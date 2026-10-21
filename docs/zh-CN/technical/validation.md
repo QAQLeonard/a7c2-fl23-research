@@ -2,6 +2,8 @@
 
 [返回首页](../../../README.zh-CN.md) · [English](../../en/technical/validation.md)
 
+**修复分支的验证证据：**见[开发指南](../development.md)和[更新日志](../changelog.md)。下方观察记录属于历史构建，不能充当本分支的实机验收。
+
 ## 当前三个独立工具（离线）
 
 FL23 只保留 prepare／install／verify；`lut.py restore-slot` 支持首次启用退回原生配方及旧色表恢复；`recovery.py` 从新存档或旧 FL23 backup2 完整回退，不需要旧工作目录／LUT Job。

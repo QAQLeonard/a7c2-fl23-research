@@ -1,0 +1,26 @@
+{
+  "schema": "a7c2-publication-layout/1",
+  "guide_pair_count": 15,
+  "retained_markdown": {
+    "docs/wb_docs/MEMORY.md": "Archived contributor research notes; not current installation instructions.",
+    "docs/wb_docs/fl23-v050-gamma-and-perslot-matrix.md": "Archived contributor research notes; not current installation instructions.",
+    "docs/wb_docs/fl23-v051-photo-slot6-tone.md": "Archived contributor research notes; not current installation instructions.",
+    "docs/wb_docs/fl23-v052-gamma-route-helper.md": "Archived contributor research notes; not current installation instructions.",
+    "docs/wb_docs/restructure-060.md": "Archived contributor research notes; not current installation instructions.",
+    "src/fl23/BUILD.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/NOTICE.md": "Source attribution retained in its original language.",
+    "src/fl23/README.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/README.zh-TW.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/fl23-colour-port-from-r5.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/fl23-v030-slot-fill.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/fl23-v031-restore-version-mismatch.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/fl23-v040-endpoint-matrices.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/fl23-v050-gamma-and-perslot-matrix.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/fl23-v051-photo-slot6-tone.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/fl23-v052-gamma-route-helper.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN.",
+    "src/fl23/docs/restructure-060.md": "Historical component instructions or research; current guides are under docs/en and docs/zh-CN."
+  },
+  "historical_language_files": [
+    "src/fl23/README.zh-TW.md"
+  ]
+}

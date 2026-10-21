@@ -190,6 +190,11 @@ class App:
             return
         needs_battery = command in ('install', 'restore')
         cmd = [sys.executable, '-u', str(APP), command]
+        if command == 'verify':
+            if self.last_workspace is None:
+                messagebox.showinfo('缺少工作目录', '请先选择已完成安装的工作记录。')
+                return
+            cmd += ['--workspace', str(self.last_workspace)]
         if needs_battery:
             try:
                 battery = int(self.battery.get().strip())

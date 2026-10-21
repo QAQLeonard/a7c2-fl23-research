@@ -6,7 +6,7 @@
 
 | 工程 | AI 文档 | 交付目标 |
 |---|---|---|
-| FL2／FL3 | [FL23 安装与复现](fl23-ai.md) | Windows 命令行优先，桌面版可选；备份、安装、读回和加载；不含恢复 |
+| FL2／FL3 | [FL23 安装与复现](fl23-ai.md) | 兼容安装使用显式 Windows 命令行准备；桌面版为原厂来源流程；完整回退使用 Recovery |
 | LUT／DCP | [独立 LUT 实施与复现](lut-ai.md) | 获取 DCP／LUT 到选中栏位实际安装和还原，不要求先安装 FL23 |
 | Recovery | [独立完整回退及 AI 说明](recovery.md) | 直接使用原始 backup2／新存档，不需要 LUT Job |
 

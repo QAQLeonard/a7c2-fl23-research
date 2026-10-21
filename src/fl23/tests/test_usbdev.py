@@ -13,6 +13,7 @@
 import sys
 import types
 import unittest
+from unittest.mock import Mock,patch
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parents[1]
@@ -206,6 +207,37 @@ class RequestServiceModeTests(unittest.TestCase):
             result = usbdev.request_service_mode()
         self.assertFalse(result['switched'])
         self.assertIn('没有找到', result['detail'])
+
+    def test_unknown_authentication_sends_no_stop_or_second_authentication(self):
+        import transport
+        from pmca.usb import sony
+        dev=FakeDevice()
+        for error in (TimeoutError('unknown'),KeyboardInterrupt()):
+            with self.subTest(error=type(error).__name__):
+                auth=Mock();auth.authenticate.side_effect=error
+                with patch.object(usbdev,'find',return_value=dev) as find, \
+                        patch.object(usbdev,'dispose') as dispose, \
+                        patch.object(transport,'Bounded'), \
+                        patch('pmca.usb.driver.generic.GenericUsbDriver'), \
+                        patch.object(sony,'SonySenserAuthDevice',return_value=auth):
+                    with self.assertRaises(type(error)):usbdev.request_service_mode()
+                find.assert_called_once_with(usbdev.PID_MSC)
+                auth.authenticate.assert_called_once_with()
+                auth.stop.assert_not_called()
+                dispose.assert_called_once_with(dev)
+
+    def test_multiple_service_devices_stop_instead_of_waiting_or_reauthenticating(self):
+        import transport
+        from pmca.usb import sony
+        auth=Mock();dev=FakeDevice()
+        with patch.object(usbdev,'find',side_effect=[dev,RuntimeError('multiple cameras')]) as find, \
+                patch.object(usbdev,'dispose'),patch.object(transport,'Bounded'), \
+                patch('pmca.usb.driver.generic.GenericUsbDriver'), \
+                patch.object(sony,'SonySenserAuthDevice',return_value=auth):
+            with self.assertRaisesRegex(RuntimeError,'multiple cameras'):usbdev.request_service_mode()
+        self.assertEqual(find.call_count,2)
+        auth.authenticate.assert_called_once_with()
+        auth.stop.assert_not_called()
 
 
 if __name__ == '__main__':

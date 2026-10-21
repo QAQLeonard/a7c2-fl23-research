@@ -10,12 +10,12 @@ Read `docs/en/ai.md` before implementation.
 - `src/looks/`: Independent DCP/LUT CLI, exact-source device jobs and offline research tools.
 - `docs/en/` and `docs/zh-CN/`: matching English/Simplified Chinese guides.
 - `docs/profiles/`: source inventory and original license text; original DCP bytes are Release assets.
-- `FL23.cmd`: Windows GUI/device CLI for prepare/install/verify only.
+- `FL23.cmd`: Windows CLI/GUI. Use explicit prepare/install/verify for compatibility; legacy stock-only check/backup/restore routes remain. Mixed-feature rollback belongs to Recovery.
 - `lut.py`: portable import and single-slot restoration CLI; no GUI/CMD.
 - `recovery.py`: independent full rollback from original FL23 backup2 or complete checkpoints; no LUT job dependency.
 
 Follow `src/looks/AGENTS.md` for custom-look work. Run offline validation
-before camera interaction. FL23 admits model/user-confirmed version 2.01
+before camera interaction. Explicit FL23 preparation admits model/user-confirmed version 2.01
 without a stock/repository firmware fingerprint whitelist, as requested by
 the owner. New FL23 and checkpoint workers use edited-byte checks and full
 host byte readback, without firmware SHA gates or repeated package SHA scans.

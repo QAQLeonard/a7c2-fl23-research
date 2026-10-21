@@ -2,7 +2,7 @@
 from . import firmware
 
 def capture(transport):
-    dev=transport.get_device(0x0e8a)
+    dev=transport.get_device(0x0e8a,timeout=15)
     try:
         serial=transport.usb.util.get_string(dev,dev.iSerialNumber) if dev.iSerialNumber else None
         if (not serial or serial!=serial.strip() or len(serial)<8

@@ -2,3 +2,6 @@ pyusb==1.3.1
 libusb-package==1.0.30.0
 pycryptodomex==3.24.1
 PyYAML==6.0.3
+-r ../looks/requirements.txt
+pyelftools>=0.31,<1
+ziglang==0.13.0

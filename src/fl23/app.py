@@ -11,7 +11,7 @@ from pathlib import Path
 import core
 from workflow import Job, restore_from_backup
 
-COMMANDS = ['check', 'backup', 'install', 'restore', 'verify', 'check-package']
+COMMANDS = ['check', 'backup', 'prepare', 'install', 'restore', 'verify', 'check-package']
 
 
 def event(message):
@@ -26,11 +26,16 @@ def build_parser():
     p.add_argument('--backup-path', type=Path,
                    help='还原时指定备份目录；省略时用 backup/ 下通过校验的那份')
     p.add_argument('--battery-percent', type=int, default=-1)
+    p.add_argument('--backup-copy', type=Path, help='prepare: independent empty backup directory')
+    p.add_argument('--firmware-version', help='prepare: version from the camera version screen')
     return p
 
 
 def main():
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.command == 'prepare' and (not args.workspace or not args.backup_copy or not args.firmware_version):
+        parser.error('prepare requires --workspace, --backup-copy and --firmware-version')
     if args.command == 'check-package':
         core.assets()
         event('套件资产完整；此检查不连接相机。')
@@ -42,6 +47,8 @@ def main():
             job.check()
         elif args.command == 'backup':
             job.backup_flow()
+        elif args.command == 'prepare':
+            job.prepare(args.backup_copy, args.firmware_version)
         elif args.command == 'install':
             job.install(args.battery_percent)
         elif args.command == 'restore':

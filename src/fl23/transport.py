@@ -42,6 +42,22 @@ def _dispose(device):
     usbdev.dispose(device)
 
 
+def get_device(pid, timeout=0.0):
+    """Return one device through the shared backend, or fail before any command."""
+    return usbdev.require(pid, timeout=timeout)
+
+
+def service_identity(snapshot, model):
+    """Preserve existing body bindings without an MSC application query."""
+    if model != core.MODEL:
+        raise RuntimeError('只支持 ' + core.MODEL)
+    serial = core.backup_records(snapshot)[0].get(0x00e70003)
+    if serial is None or len(serial.data) != 4:
+        raise RuntimeError('服务备份缺少四字节序列号属性 00e70003')
+    # Sony's old getCameraInfo result hexlified the bytes before hashing.
+    return {'model': model, 'serial_sha256': core.sha(serial.data.hex().encode('ascii'))}
+
+
 def identity():
     """在 0E8A 身份上确认这是目标机型，并取出机身短码。"""
     device = usbdev.require(usbdev.PID_MSC,
@@ -78,52 +94,49 @@ class Session:
         self.service_timeout = service_timeout
 
     def __enter__(self):
-        self.identity = identity()
-        if not _matches(self.identity, self.expected):
-            raise RuntimeError('当前机身与备份的机身不同，拒绝继续')
-        device = usbdev.require(usbdev.PID_MSC,
-                                hint='没有找到 054C:0E8A 身份的相机，请确认已开机并以 USB 海量存储模式连接')
-        auth = None
+        # Only local USB enumeration is retried. TUR/getCameraInfo can remain
+        # busy even when service authentication is usable.
+        device = get_device(usbdev.PID_MSC, timeout=15)
         try:
+            model = usb.util.get_string(device, device.iProduct) if device.iProduct else None
+            if model != core.MODEL:
+                raise RuntimeError('USB 型号不符，只支持 ' + core.MODEL)
             auth = SonySenserAuthDevice(GenericUsbDriver(Bounded(device, 20)))
             auth.start()
             auth.authenticate()
         except BaseException:
-            if auth is not None:
-                try:
-                    auth.stop()
-                except Exception:
-                    pass
+            # No stop packet or second authentication after an unknown result.
+            self.healthy = False
             raise
         finally:
             _dispose(device)
         deadline = time.monotonic() + self.service_timeout
         while True:
-            probe = None
-            try:
-                probe = usbdev.find(usbdev.PID_SERVICE)
-            except RuntimeError as exc:
-                if '需要且只能连接一台' in str(exc):
-                    raise
+            probe = usbdev.find(usbdev.PID_SERVICE)
             if probe is not None:
-                self.dev = probe          # 找到就保留，不要在这里 dispose
+                self.dev = probe
                 break
             if time.monotonic() >= deadline:
                 raise RuntimeError('服务身份未出现，请确认 0336 驱动已安装')
             time.sleep(0.5)
         time.sleep(2)
-        self.backend = Bounded(self.dev)
-        self.auth = SonySenserAuthDevice(GenericUsbDriver(self.backend))
+        authenticated = False
         try:
+            self.backend = Bounded(self.dev)
+            self.auth = SonySenserAuthDevice(GenericUsbDriver(self.backend))
             self.auth.start()
             self.auth.authenticate()
+            authenticated = True
             self.channel = SonySenserDevice(self.auth.driver)
             self.camera = SonySenserCamera(self.channel)
-            if len(self.camera.readHasp()) != 88:
-                raise RuntimeError('ProductInfo 响应不符')
+            snapshot = self.call(self.camera.getBackupPresetData, True)
+            self.identity = service_identity(snapshot, model)
+            if not _matches(self.identity, self.expected):
+                raise RuntimeError('当前机身与备份的机身不同，拒绝继续')
         except BaseException:
             try:
-                self.auth.stop()
+                if authenticated and self.healthy:
+                    self.auth.stop()
             finally:
                 _dispose(self.dev)
             raise
@@ -143,7 +156,7 @@ class Session:
         self.backend.reset()
         try:
             return method(*args)
-        except Exception:
+        except BaseException:
             self.healthy = False
             raise
 

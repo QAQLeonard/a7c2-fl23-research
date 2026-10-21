@@ -86,6 +86,6 @@ python lut.py restore-slot "要撤销的导入JOB" --battery-percent 90
 
 单槽恢复不检查固件、备份或原生程序的文件哈希；使用实际改写字节和完整读回。工具创建新的单槽恢复 Job，仍采用共用压缩基础和小增量，按第 6、7 步重载后验证这个新 Job。保留原 Job 及共用存储。
 
-**完整回退请用独立的 [Recovery](recovery.md)**。LUT 不再提供整个安装／整机回退命令，FL23 也不提供恢复按钮。先 FL23 后 LUT、先 LUT 后 FL23 都支持。
+**完整回退请用独立的 [Recovery](recovery.md)**。LUT 只负责单槽恢复，保留的旧 FL23 原厂来源还原辅助入口不处理混装回退。两种安装顺序已经过本修复分支的离线测试，实机验收仍待完成。
 
 若结果未知，保留首次失败任务和临时证据，先用 `python lut.py diagnose-job "JOB"` 离线查看，再用 `recover` 检查已有结果；只有确认可继续的阶段才用 `resume`，不重放未知写入。[AI 实现说明](lut-ai.md)。

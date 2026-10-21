@@ -1,5 +1,7 @@
 # A7C II Tools
 
+**Unreleased repair branch:** this checkout includes host workflow fixes and current-FL23/LUT compatibility checked offline against official 2.01 components. See the [repair record](docs/en/changelog.md) for changes and physical-validation limits. The v2.2-preview.1 links below refer to the upstream historical package and do not contain these local changes.
+
 **Community:** [Telegram — recommended](https://t.me/sonyfwlab) · [Discord](https://discord.gg/SwPdfSd9c). We recommend joining the Telegram group.
 
 **Author:** Xiaohongshu: [QAQLeonard（读研版）](https://www.xiaohongshu.com/user/profile/660501f7000000000600d03c) · Douyin: **LeonardZ** (ID: `90860261487`).

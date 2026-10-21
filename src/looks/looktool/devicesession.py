@@ -28,30 +28,12 @@ class Camera:
         transport,self.core=modules()
         normal={k:self.expected[k] for k in ['model','serial_sha256']} if self.expected and self.expected.get('serial_sha256') else None
         self.service_only=False
-        import usb.core,usb.backend.libusb1
-        backend=usb.backend.libusb1.get_backend(find_library=transport.libusb_package.find_library)
-        detected=usb.core.find(idVendor=0x054c,idProduct=0x0e8a,backend=backend)
-        if detected is None:
-            # A successful auth.stop re-enumerates asynchronously. Wait for
-            # the normal descriptor locally; never re-authenticate service.
-            deadline=time.monotonic()+15
-            while detected is None and time.monotonic()<deadline:
-                time.sleep(.5)
-                detected=usb.core.find(idVendor=0x054c,idProduct=0x0e8a,backend=backend)
-        if detected is not None:
-            transport.usb.util.dispose_resources(detected)
-            from . import usbidentity
-            usb_serial=usbidentity.capture(transport)
-            usbidentity.require_match(self.expected,usb_serial)
-            try:
-                self.link=transport.Session(normal);self.link.__enter__()
-            except (transport.ReadinessFailure,transport.SonyBusyFailure) as exc:
-                from .usbservice import allowed_initial_busy,open_service
-                if not allowed_initial_busy(transport,exc):raise
-                print('Known initial storage busy/no-media state. Acquiring service access for pinned-program/native-model identification; no firmware writes.',flush=True)
-                self.link=open_service(transport);self.identity_pending=True
-        else:
-            raise ValueError('Normal Mass Storage USB serial is required for body binding; end I/O and reconnect USB')
+        from . import usbidentity,usbservice
+        usb_serial=usbidentity.capture(transport)
+        usbidentity.require_match(self.expected,usb_serial)
+        # Session already authenticates directly and verifies the AP serial.
+        # Never retry a failed session through a second authentication path.
+        self.link=usbservice.open_service(transport,normal)
         try:
             self.identity=dict(self.link.identity,usb_serial_sha256=usb_serial)
             if self.identity_pending and self.expected and self.expected.get('model')==self.core.MODEL:

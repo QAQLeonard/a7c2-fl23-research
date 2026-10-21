@@ -38,7 +38,7 @@ def require_save_preserves_unsaved(ram,saved,selected):
             if other is None or (value.data,value.attr)!=(other.data,other.attr):
                 raise ValueError('Unselected unsaved AP settings would be persisted; save them first')
 
-def compare(before,after,expected,core):
+def compare(before,after,expected,core,*,expected_cp=None):
     """Preserve writable AP settings and protected CP units, not telemetry.
 
     Other AP groups are never written by this importer. Complete original
@@ -49,6 +49,12 @@ def compare(before,after,expected,core):
     if any(int(k) not in before[0] or int(k) not in after[0] for k in expected):
         raise ValueError('Selected setting missing')
     allowed={(0,int(k)):bytes.fromhex(v) for k,v in expected.items()}
+    # FL23 intentionally updates these two color units. The caller guards the
+    # exact color windows; the other protected units remain immutable.
+    expected_cp=expected_cp or {}
+    if any(k not in (0x02a40001,0x02a4000d) for k in expected_cp):
+        raise ValueError('Expected CP setting outside FL23 color units')
+    allowed.update({(1,k):bytes.fromhex(v) for k,v in expected_cp.items()})
     for state in [before,after]:
         if any(k not in state[1] for k in PROTECTED):raise ValueError('Protected CP unit missing')
     if SAVED_TELEMETRY in before[0] or SAVED_TELEMETRY in after[0]:

@@ -23,7 +23,7 @@ python -m pip install "numpy>=1.24,<3" "scipy>=1.10,<2" pyusb==1.3.1 libusb-pack
 python lut.py doctor --device
 ```
 
-On Mac replace `python` with `python3`. The standalone file extracts its verified internal source/native assets under `~/.a7c2-tools/runtime`; jobs/backups are separate and survive tool updates. Pip dependencies are not bundled or automatically installed. `doctor` never opens the camera.
+On Mac replace `python` with `python3`. The standalone file extracts its bundled source/native assets under `~/.a7c2-tools/runtime`; jobs/backups are separate and survive tool updates. Pip dependencies are not bundled or automatically installed. `doctor` never opens the camera.
 
 ## Camera connection
 
@@ -53,4 +53,4 @@ All examples have the prefix `python lut.py`. Offline research commands remain a
 
 ## Independent Recovery
 
-Complete rollback uses `python recovery.py restore BACKUP --firmware-version 2.01 --battery-percent N`. Its own [guide](recovery.md) covers original backup2 folders and new archives, reload and verification. Recovery uses the same Python/device dependencies and works without LUT jobs. On Mac use `python3`. FL23 exposes only prepare/install/verify.
+Complete rollback uses `python recovery.py restore BACKUP --firmware-version 2.01 --battery-percent N`. Its own [guide](recovery.md) covers original backup2 folders and new archives, reload and verification. Recovery uses the same Python/device dependencies and works without LUT jobs. On Mac use `python3`. For mixed-feature work, use the explicit FL23 prepare/install/verify route; its retained legacy stock restore helper is not a substitute for Recovery.

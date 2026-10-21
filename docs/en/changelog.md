@@ -2,6 +2,23 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Unreleased — host workflow and current FL23/LUT repairs
+
+Based on upstream `0bf1dbb` for ILCE-7CM2 2.01. This branch is for review and has no physical camera acceptance. The historical Release links below do not contain these changes.
+
+- Restore direct service authentication with USB-model and AP-serial binding; remove LUT dependencies on deleted transport interfaces. Unknown authentication, interrupted I/O and malformed native results stop without replay or cleanup packets.
+- Preserve an explicitly selected FL23 backup and its color units, including an empty default store or stale workspace. Restore launcher argument/exit-code forwarding and use the recorded workspace/backup for reload verification.
+- Add a reproducible current-FL23/LUT adapter. Official Sony 2.01 AP/CP components match the repository's original fingerprints. Eight reviewed windows (982 bytes) merge current gamma data/helper behavior while retaining LUT dispatch and the larger loaded extent. Both install orders produce identical complete programs; exact inverse, slot undo and full checkpoint rollback are covered offline.
+- Restore explicit compatibility `prepare`, per-body candidate/native workers, independent checkpoints, complete byte readback and verification after a later LUT import. Preserve writable look settings and protected CP units; reject unrelated unsaved recipes before writes and do not misclassify runtime counters as configuration changes.
+- Restore byte-only worker compilation and independent checkpoint request/result names alongside the hash-checked importer. Existing precompiled FL23 assets and the legacy runtime table are unchanged.
+- Document module boundaries, command variants, fixture acquisition, adapter reproduction, test commands, state/preservation invariants, packaging inputs and hardware acceptance. Inventory retained historical documents explicitly; keep privacy/link checks for them and reject unlisted documents.
+
+**Validation:** 96 FL23, 52 USB/launcher and 111 LUT cases passed; 35 historical fixture cases skipped. The LUT result includes 12 official-component integration cases and 512 native Thumb routing replays. Real AArch64 import/recovery workers compiled. Six publication-policy tests and the publication check passed. The adapter reproduces byte for byte from official components, and standalone bundles were checked against source. No camera was connected, authenticated or written.
+
+**Remaining acceptance:** real USB, install, cold boot, photo/video, long-term behavior and physical/power-loss recovery remain untested. Historical three-look/six-look owner files are still required for the skipped matrix. Full release verification also needs the unchanged upstream original-DCP attachment; no new Release or rewritten tag is part of this change.
+
+See the [development guide](development.md) for reproducible commands and [historical validation](technical/validation.md) for earlier build evidence. Complete firmware and generated program images remain outside the public repository.
+
 ## v2.2-preview.1 — updated 2026-10-20
 
 - **Independent Recovery:** restore the selected complete checkpoint or original FL23 backup2 without the original workspace or any LUT job. The tool saves a compressed copy of the current state, restores programs, project names/settings, and fully reads back the result. [Recovery instructions](recovery.md).

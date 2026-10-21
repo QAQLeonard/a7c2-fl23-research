@@ -1,49 +1,30 @@
-"""No USB: busy-only service acquisition and deferred model guards."""
-import types,unittest
-from unittest.mock import Mock,patch
-from looktool import usbservice,firmware
+"""Shared service entry and deferred model guards, with no USB access."""
+import types
+import unittest
+from unittest.mock import Mock
+from looktool import usbservice, firmware
 from looktool.devicesession import Camera
 
-class ReadinessFailure(RuntimeError):pass
-class SonyBusyFailure(RuntimeError):pass
 
 class ServiceTests(unittest.TestCase):
-    def transport(self,manufacturer='Sony',failure=None):
-        events=[]
-        class Auth:
-            def __init__(self,driver):self.driver=driver
-            def start(self):events.append(('start',self.driver))
-            def authenticate(self):
-                events.append(('authenticate',self.driver))
-                if failure:raise failure
-        def get_device(pid):events.append(('device',pid));return pid
-        t=types.SimpleNamespace(ReadinessFailure=ReadinessFailure,SonyBusyFailure=SonyBusyFailure,
-            get_device=get_device,usb=types.SimpleNamespace(util=types.SimpleNamespace(dispose_resources=lambda d:events.append(('dispose',d)))),
-            MscBbbDriver=lambda x:x,_InitialBackend=lambda d,r:d,
-            MscDevice=lambda d:types.SimpleNamespace(getDeviceInfo=lambda:types.SimpleNamespace(manufacturer=manufacturer)),
-            GenericUsbDriver=lambda d:d,Bounded=lambda d,budget=180:d,SonySenserAuthDevice=Auth,
-            Session=lambda:types.SimpleNamespace(healthy=True),SonySenserDevice=lambda d:d,SonySenserCamera=lambda d:d)
-        return t,events
-    def test_fallback_is_only_known_initial_busy_not_unknown_or_timeout(self):
-        t,_=self.transport()
-        self.assertTrue(usbservice.allowed_initial_busy(t,ReadinessFailure('Camera did not become ready; Sony query was not started.')))
-        self.assertTrue(usbservice.allowed_initial_busy(t,ReadinessFailure('Camera is not ready; sense=02/3a/00. Stopped.')))
-        self.assertTrue(usbservice.allowed_initial_busy(t,SonyBusyFailure('Camera remained busy after readiness passed; query stopped.')))
-        for error in [ReadinessFailure('Camera is not ready; sense=05/20/00. Stopped.'),TimeoutError('timeout'),ValueError('wrong camera')]:
-            self.assertFalse(usbservice.allowed_initial_busy(t,error))
-    def test_known_protocol_switches_once_and_keeps_model_unconfirmed(self):
-        t,events=self.transport()
-        with patch.object(usbservice.time,'sleep'):link=usbservice.open_service(t)
-        self.assertIsNone(link.identity['model'])
-        self.assertEqual([e for e in events if e[0]=='authenticate'],[('authenticate',0x0e8a),('authenticate',0x0336)])
-    def test_wrong_manufacturer_and_ambiguous_auth_never_advance(self):
-        t,events=self.transport('Other')
-        with self.assertRaises(ValueError):usbservice.open_service(t)
-        self.assertFalse(any(e[0]=='authenticate' for e in events))
-        t,events=self.transport(failure=TimeoutError('unknown'))
-        with self.assertRaises(TimeoutError):usbservice.open_service(t)
-        self.assertNotIn(('device',0x0336),events)
-        self.assertEqual([e for e in events if e[0]=='authenticate'],[('authenticate',0x0e8a)])
+    def test_service_entry_uses_expected_identity_once(self):
+        expected={'model':'ILCE-7CM2','serial_sha256':'body'}
+        link=Mock();link.__enter__=Mock(return_value=link)
+        transport=types.SimpleNamespace(Session=Mock(return_value=link))
+        self.assertIs(usbservice.open_service(transport,expected),link)
+        transport.Session.assert_called_once_with(expected)
+        link.__enter__.assert_called_once_with()
+
+    def test_failed_or_interrupted_entry_never_retries_or_sends_cleanup(self):
+        for error in (TimeoutError('unknown'),KeyboardInterrupt(),ValueError('wrong body')):
+            with self.subTest(error=type(error).__name__):
+                link=Mock();link.__enter__=Mock(side_effect=error);link.__exit__=Mock()
+                transport=types.SimpleNamespace(Session=Mock(return_value=link))
+                with self.assertRaises(type(error)):usbservice.open_service(transport)
+                transport.Session.assert_called_once_with(None)
+                link.__enter__.assert_called_once_with()
+                link.__exit__.assert_not_called()
+
     def test_unconfirmed_identity_only_allows_pinned_readonly_probe(self):
         camera=Camera();camera.identity_pending=True;camera.programs_pinned=True;camera.service_only=False
         camera.identity={'model':None};camera.link=Mock();blob=b'only-readonly-runtime'
@@ -56,5 +37,6 @@ class ServiceTests(unittest.TestCase):
         with self.assertRaises(ValueError):camera.confirm_identity({'model_index':17})
         camera.confirm_identity({'model_index':16})
         self.assertFalse(camera.identity_pending);self.assertEqual(camera.identity['model'],'ILCE-7CM2')
+
 
 if __name__=='__main__':unittest.main()

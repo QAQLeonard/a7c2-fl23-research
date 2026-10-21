@@ -19,17 +19,32 @@ class LauncherTests(unittest.TestCase):
         with patch.object(launcher,'prepare') as prepare,redirect_stderr(io.StringIO()):
             self.assertEqual(launcher.main(['fl23','unsafe-unknown-command']),1)
         prepare.assert_not_called()
+    def test_help_and_package_check_do_not_install_dependencies(self):
+        for command in ['--help','check-package']:
+            with patch.object(launcher,'prepare') as prepare,patch.object(launcher,'execute',return_value=0) as execute:
+                self.assertEqual(launcher.main(['fl23',command]),0)
+            prepare.assert_not_called()
+            self.assertEqual(execute.call_args.args[0][-1],command)
+    def test_current_backup_command_is_forwarded(self):
+        with patch.object(launcher,'prepare',return_value=Path(sys.executable)),patch.object(launcher,'execute',return_value=0) as execute:
+            self.assertEqual(launcher.main(['fl23','backup','--workspace','chosen folder']),0)
+        self.assertEqual(execute.call_args.args[0][-3:],['backup','--workspace','chosen folder'])
+    def test_compatible_prepare_preserves_version_and_independent_backup(self):
+        args=['fl23','prepare','--workspace','work folder','--backup-copy','backup folder','--firmware-version','2.01']
+        with patch.object(launcher,'prepare',return_value=Path(sys.executable)),patch.object(launcher,'execute',return_value=0) as execute:
+            self.assertEqual(launcher.main(args),0)
+        self.assertEqual(execute.call_args.args[0][-7:],args[1:])
     def test_manual_device_command_executes_once_and_returns_failure(self):
-        args=['fl23','install','--workspace','D:\space and 中文\work','--battery-percent','82']
+        args=['fl23','install','--workspace',r'D:\space and 中文\work','--battery-percent','82']
         with patch.object(launcher,'prepare',return_value=Path(sys.executable)),patch.object(launcher,'execute',return_value=9) as run:
             self.assertEqual(launcher.main(args),9)
         self.assertEqual(run.call_count,1)
         self.assertEqual(run.call_args.args[0][-5:],args[-5:])
     def test_looks_uses_module_path_and_passes_help_and_input_arguments(self):
         with patch.object(launcher,'prepare',return_value=Path(sys.executable)) as prepare,patch.object(launcher,'execute',return_value=0) as run:
-            self.assertEqual(launcher.main(['looks','--research','inspect','D:\color docs\profiles\参考.dcp']),0)
+            self.assertEqual(launcher.main(['looks','--research','inspect',r'D:\color docs\profiles\参考.dcp']),0)
         prepare.assert_called_once_with('looks',True)
-        self.assertEqual(run.call_args.args[0][-2:],['inspect','D:\color docs\profiles\参考.dcp'])
+        self.assertEqual(run.call_args.args[0][-2:],['inspect',r'D:\color docs\profiles\参考.dcp'])
         self.assertEqual(run.call_args.args[2],ROOT/'src/looks')
         with patch.object(launcher,'prepare',return_value=Path(sys.executable)),patch.object(launcher,'execute',return_value=0) as run:
             self.assertEqual(launcher.main(['looks','--help']),0)

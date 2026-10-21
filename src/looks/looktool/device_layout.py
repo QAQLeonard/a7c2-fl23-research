@@ -5,7 +5,7 @@ recognizes a pinned program layout and still binds every job to full hashes.
 """
 import hashlib,struct,json
 from pathlib import Path
-from . import firmware,six
+from . import firmware,six,fl23compat
 
 CODE_SHA='5434cd40a746fef421fbe6825ebbdc1d41aa5304a686a162bb56378a6e94c4b5'  # Filled from the known complete v4 private fixture during build.
 
@@ -45,6 +45,31 @@ def code_hash(cp):
     if len(cp)<end:raise ValueError('Truncated CP program')
     h=hashlib.sha256();h.update(cp[:start]);h.update(bytes(end-start));h.update(cp[end:]);return h.hexdigest()
 
+def first_source(cp,kind,*,hash_checks=True):
+    asset=runtime();current=fl23compat.runtime()
+    spec=dict(next(s for s in asset['cp_sources'] if s['kind']==kind))
+    spec['target_sha256']=asset['cp_zero_tables_sha256']
+    spec['upgrade_gamma']=False
+    digest=firmware.sha(cp) if hash_checks else None
+    if kind=='stock':
+        if hash_checks and digest!=spec['sha256']:raise ValueError('First import needs the exact matching stock AP+CP pair')
+        spec.update(target_sha256=current['cp_zero_tables_sha256'],upgrade_gamma=True)
+    elif digest==current['fl23_cp_sha256']:
+        spec.update(sha256=digest,target_sha256=current['cp_zero_tables_sha256'])
+    elif hash_checks and digest!=spec['sha256']:
+        raise ValueError('First import needs the exact matching stock/FL23 AP+CP pair')
+    return spec
+
+def first_program(cp,kind,*,hash_checks=True):
+    spec=first_source(cp,kind,hash_checks=hash_checks);result=bytearray(cp)
+    for w in spec['windows']:
+        at=w['offset'];old,new=bytes.fromhex(w['before']),bytes.fromhex(w['after'])
+        if len(old)!=len(new) or cp[at:at+len(old)]!=old:raise ValueError('Bootstrap source window differs')
+        result[at:at+len(new)]=new
+    result=fl23compat.transform(bytes(result)) if spec['upgrade_gamma'] else bytes(result)
+    if hash_checks and firmware.sha(result)!=spec['target_sha256']:raise ValueError('Canonical runtime differs')
+    return result
+
 def structural_ap(ap):
     """Recognize actual converter bytes/slot mask, without a file digest."""
     template=ap[0x35287f0:0x3528874].hex();asset=runtime()
@@ -79,13 +104,13 @@ def tables(cp):
 def identify(ap,cp):
     a=identify_ap(ap);c=firmware.sha(cp);asset=runtime()
     if a['kind']=='legacy-six':
-        if code_hash(cp)!=CODE_SHA:raise ValueError('Unsupported legacy CP code identity')
+        if code_hash(cp)!=CODE_SHA:
+            if code_hash(fl23compat.transform(cp,reverse=True))!=CODE_SHA:raise ValueError('Unsupported legacy CP code identity')
         six.read_tables(cp)
     elif a.get('first_install'):
-        spec=next((s for s in asset['cp_sources'] if s['kind']==a['kind']),None)
-        if spec is None or c!=spec['sha256']:raise ValueError('First import needs the exact matching stock/FL23 AP+CP pair')
+        first_source(cp,a['kind'])
     else:
-        if code_hash(cp)!=asset['cp_code_sha256']:raise ValueError('Unsupported standalone CP code identity')
+        if code_hash(cp) not in (asset['cp_code_sha256'],fl23compat.runtime()['cp_code_sha256']):raise ValueError('Unsupported standalone CP code identity')
         six.read_tables(cp)
     return dict(a,layout='full7-v4' if a['kind']=='legacy-six' else 'standalone-v1',AP=firmware.sha(ap),CP=c,
         physical_first_install_tested=False if a['kind']!='legacy-six' else None)
@@ -96,12 +121,7 @@ def replace(ap,cp,replacements,*,hash_checks=True):
     if not replacements or any(type(s) is not int or s not in range(1,7) for s in replacements):raise ValueError('Select custom slots 1..6')
     result=bytearray(cp);spans=[];ap_result=ap;ap_spans=[]
     if identity.get('first_install'):
-        spec=next(s for s in runtime()['cp_sources'] if s['kind']==identity['kind'])
-        for w in spec['windows']:
-            at=w['offset'];old,new=bytes.fromhex(w['before']),bytes.fromhex(w['after'])
-            if cp[at:at+len(old)]!=old:raise ValueError('Bootstrap source window differs')
-            result[at:at+len(new)]=new
-        if hash_checks and firmware.sha(result)!=runtime()['cp_zero_tables_sha256']:raise ValueError('Canonical runtime differs')
+        result=bytearray(first_program(cp,identity['kind'],hash_checks=hash_checks))
     if identity['kind']!='legacy-six':
         source=bytearray(ap)
         spec=next(s for s in runtime()['ap_sources'] if identity['kind'].startswith(s['kind']))
@@ -135,11 +155,7 @@ def before_first_table(ap,cp,slot,*,hash_checks=True):
     identity=(identify if hash_checks else structural)(ap,cp)
     read_tables=six.read_tables if hash_checks else tables
     if not identity.get('first_install'):return read_tables(cp)[slot-1]
-    result=bytearray(cp)
-    spec=next(s for s in runtime()['cp_sources'] if s['kind']==identity['kind'])
-    for w in spec['windows']:
-        raw=bytes.fromhex(w['after']);result[w['offset']:w['offset']+len(raw)]=raw
-    return read_tables(bytes(result))[slot-1]
+    return read_tables(first_program(cp,identity['kind'],hash_checks=hash_checks))[slot-1]
 
 def deactivate(ap,cp,slot,raw,*,hash_checks=True):
     """Restore one native custom slot, retaining other LUTs and current FL23.

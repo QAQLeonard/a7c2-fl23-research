@@ -81,4 +81,22 @@ class OfflineTests(unittest.TestCase):
             with self.assertRaises(TimeoutError):job.module(session,'installer',0)
             self.assertFalse(any(remove for _,remove in session.operations))
 
+    def test_malformed_native_report_is_preserved_without_cleanup(self):
+        class S:
+            healthy=True
+            def __init__(self):self.files={};self.operations=[]
+            def read(self,path,missing=False):return self.files.get(path)
+            def temp(self,name,data=None,remove=False):
+                self.operations.append((name,remove))
+                if remove:self.files.pop('/tmp/jiritsu/'+name,None)
+                else:self.files['/tmp/jiritsu/'+name]=data
+                if name=='libJit.so':self.files['/tmp/jiritsu/a7c2.install.result']=b'truncated'
+        with tempfile.TemporaryDirectory() as folder:
+            job=app.Job(folder);session=S()
+            with self.assertRaises(ValueError):job.module(session,'installer',1)
+            self.assertFalse(session.healthy)
+            self.assertFalse(any(remove for _,remove in session.operations))
+            self.assertEqual(sum(n=='libJit.so' for n,_ in session.operations),1)
+            self.assertIn('/tmp/jiritsu/a7c2.install.result',session.files)
+
 if __name__=='__main__':unittest.main()

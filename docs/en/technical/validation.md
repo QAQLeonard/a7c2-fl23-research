@@ -2,6 +2,8 @@
 
 [Home](../../../README.md) · [简体中文](../../zh-CN/technical/validation.md)
 
+**Repair-branch evidence:** see the [development guide](../development.md) and [changelog](../changelog.md). The observations below describe earlier builds and do not establish physical acceptance of this branch.
+
 ## Current independent tools (offline)
 
 FL23 exposes prepare/install/verify only. `lut.py restore-slot` supports native first activation and previous imported-table restoration; `recovery.py` performs complete rollback from a new checkpoint or original raw FL23 backup2, without an old workspace/LUT job.

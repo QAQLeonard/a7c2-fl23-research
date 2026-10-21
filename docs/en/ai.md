@@ -6,7 +6,7 @@ Read [AGENTS](../../AGENTS.md), then use the guide matching the requested projec
 
 | Project | AI guide | Delivery target |
 |---|---|---|
-| FL2 / FL3 | [FL23 installation and reproduction](fl23-ai.md) | Existing Windows CLI first, desktop alternative; backup/install/readback/reload; no restore entry |
+| FL2 / FL3 | [FL23 installation and reproduction](fl23-ai.md) | Explicit Windows CLI preparation for compatibility; desktop is the stock path; complete rollback uses Recovery |
 | LUT / DCP | [Independent LUT implementation and reproduction](lut-ai.md) | DCP/LUT acquisition through selected-slot installation and byte-based slot restoration |
 | Recovery | [Independent complete rollback and AI notes](recovery.md) | Restore original backup2 or checkpoints without LUT jobs; both installation orders |
 

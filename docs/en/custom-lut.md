@@ -86,6 +86,6 @@ Restore that slot's previous table, title and recipe while preserving other slot
 
 Slot restoration does not gate firmware, backup or native-worker files on hashes. It uses edited-byte checks and complete readback. The tool creates a new restoration job with shared compressed foundations and small deltas; reload using steps 6–7 and verify that new job. Retain the original job and shared stores.
 
-**Complete rollback belongs to independent [Recovery](recovery.md)**. LUT no longer exposes whole-installation/camera rollback commands, and FL23 has no restore button. Both FL23→LUT and LUT→FL23 are supported.
+**Complete rollback belongs to independent [Recovery](recovery.md)**. LUT exposes only slot restoration. The retained stock-only FL23 restore helper does not handle mixed rollback. Both installation orders are covered by this repair branch’s offline tests; physical acceptance remains outstanding.
 
 For an unknown result, preserve the original failed job and temporary evidence. Inspect offline with `python lut.py diagnose-job "JOB"`, then use `recover` to classify existing results. `resume` only continues a proven phase; never replay unknown writes. [AI implementation guide](lut-ai.md).

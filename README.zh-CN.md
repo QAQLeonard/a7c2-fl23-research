@@ -1,5 +1,7 @@
 # A7C II 工具
 
+**修复分支，尚未发布：**当前源码含电脑端流程修复，以及使用官方 2.01 程序离线验证的新版 FL23／LUT 兼容修复；内容和实机验证边界见[修复记录](docs/zh-CN/changelog.md)。下方 v2.2-preview.1 链接指向上游历史发布包，不包含本地改动。
+
 **交流群：**[Telegram（推荐加入）](https://t.me/sonyfwlab) · [Discord](https://discord.gg/SwPdfSd9c)。**更推荐大家加入 Telegram 群。**
 
 **作者：**小红书 [QAQLeonard（读研版）](https://www.xiaohongshu.com/user/profile/660501f7000000000600d03c) · 抖音 **LeonardZ**（抖音号：`90860261487`）。

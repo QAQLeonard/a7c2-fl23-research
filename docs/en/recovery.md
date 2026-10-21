@@ -42,7 +42,7 @@ python recovery.py verify "D:/RecoveryWork" --accept-photos
 
 ## AI implementation notes
 
-The entry is [recovery.py](../../recovery.py), sharing [checkpoint.py](../../src/looks/looktool/checkpoint.py), [checkpointjob.py](../../src/looks/looktool/checkpointjob.py) and [checkpointworker.py](../../src/looks/looktool/checkpointworker.py). Do not reintroduce FL23 restore commands or require LUT jobs.
+The entry is [recovery.py](../../recovery.py), sharing [checkpoint.py](../../src/looks/looktool/checkpoint.py), [checkpointjob.py](../../src/looks/looktool/checkpointjob.py) and [checkpointworker.py](../../src/looks/looktool/checkpointworker.py). Do not route mixed-feature rollback through the retained stock-only FL23 restore helper or require LUT jobs.
 
 Legacy AP property `00e70003` contains the camera serial used for normal Sony identity binding, not firmware admission. `resources.before_custom()` locates the aligned end of the last of 2860 native indices and reverses this project's six appended title indices/strings. Exact reconstruction covers all 68 original resources. This handles project append-only edits, not arbitrary third-party resource replacement.
 

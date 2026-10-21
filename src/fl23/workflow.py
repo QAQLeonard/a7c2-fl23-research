@@ -57,33 +57,66 @@ class Job:
         self.state = core.read_json(self.state_path)
         if self.state.get('format') != 2 or self.state.get('model') != core.MODEL:
             raise ValueError('不是有效的工作目录')
+        if 'compatibility' in self.state:
+            import compat
+            for name in self.state['backup_files']:
+                if (self.root / 'original' / name).read_bytes() != (Path(self.state['backup_copy']) / name).read_bytes():
+                    raise ValueError('两份备份内容不同：' + name)
+            compat.validate(self.root, self.state)
         return self
 
     # ---------- 备份来源 ----------
     def attach_backup(self, serial_sha256=None):
-        report = backup_mod.verified_backup(serial_sha256)
+        if serial_sha256 is None:
+            serial_sha256 = self.state.get('identity', {}).get('serial_sha256')
+        if self.backup is not None:
+            # Explicit selection is authoritative. Do not fall back to a
+            # different camera's default backup if it is missing or corrupt.
+            report = self.backup.require()
+            if serial_sha256 and report.get('serial_sha256') != serial_sha256:
+                raise ValueError('指定备份与当前机身不同，拒绝继续')
+            report = dict(report, backup=self.backup)
+        else:
+            report = backup_mod.verified_backup(serial_sha256)
         if report is None:
             return None
         self.backup = report['backup']
+        self.state.setdefault('format', 2)
+        self.state.setdefault('model', core.MODEL)
+        self.state.setdefault('version', core.VERSION)
+        self.state.setdefault('identity', {'model': core.MODEL,
+                                          'serial_sha256': report.get('serial_sha256')})
         self.state['backup'] = {'path': str(self.backup.path),
                                 'created': report.get('created'),
                                 'serial_sha256': report.get('serial_sha256')}
         return report
 
     def units(self):
-        """原厂色彩单元：优先用工作目录里的，没有就用备份库里的。"""
+        """Use the selected verified backup, never unrelated workspace units."""
         local = self.root / 'original'
         have = all((local / layout.UNIT_FILES[k]).is_file() for k in core.CP_KEYS)
-        source = local if have else self.backup.path
+        source = self.backup.path if self.backup is not None else (local if have else None)
         if source is None:
             raise ValueError('既没有本机备份也没有可用备份库')
         originals = {k: (source / layout.UNIT_FILES[k]).read_bytes() for k in core.CP_KEYS}
+        if self.state.get('compatibility', {}).get('already_enabled'):
+            return originals, dict(originals)
         merged = core.merge_colors(originals[core.CP_KEYS[0]], originals[core.CP_KEYS[1]])
         return originals, dict(zip(core.CP_KEYS, merged))
 
     # ---------- 原生模块 ----------
-    def module(self, session, name, mode=None):
+    def module(self, session, name, mode=None, byte_build=None):
         blob = (core.BASE / 'assets' / f'{name}.so').read_bytes()
+        dynamic = name == 'installer' and 'compatibility' in self.state
+        if dynamic:
+            import compat
+            compat.validate(self.root, self.state)
+            if self.state['compatibility']['already_enabled']:
+                raise ValueError('已启用的 FL23 不应重复执行安装器')
+            if byte_build is None:
+                return [self.module(session, name, mode, build)
+                        for build in self.state['compatibility']['byte_builds']]
+            blob = Path(byte_build['path']).read_bytes()
         result = {'installer': 'a7c2.install.result', 'probe': 'a7c2.probe.result',
                   'wbi': 'a7c2.wbi.result', 'runtime': 'a7c2.runtime.result'}[name]
         request = {'installer': ('a7c2.install.request', b'A7INS001'),
@@ -119,9 +152,18 @@ class Job:
             dest = self.root / 'evidence' / f'{datetime.now():%Y%m%d-%H%M%S-%f}-{name}.bin'
             dest.parent.mkdir(exist_ok=True)
             dest.write_bytes(raw)
-            parsed = core.parse_native(name, raw, mode)
+            if dynamic:
+                from looktool.checkpointworker import program_report
+                parsed = program_report(raw, mode, byte_build)
+            else:
+                parsed = core.parse_native(name, raw, mode)
             self.audit('native_verified', module=name, mode=mode, result=parsed)
             return parsed
+        except BaseException:
+            # Keep the request, worker and raw result available for diagnosis.
+            # A malformed/missing result is not proof that execution failed.
+            session.healthy = False
+            raise
         finally:
             for item in reversed(list(dict.fromkeys(created))):
                 if not session.healthy:
@@ -149,6 +191,78 @@ class Job:
         return report
 
     # ---------- 备份 ----------
+    def prepare(self, second, firmware_version):
+        """Prepare an exact per-body transition, including a pre-existing LUT."""
+        if firmware_version != core.VERSION:
+            raise ValueError('FL23 只适用于 2.01；请按相机版本页面填写')
+        from transport import Session
+        import compat
+        compat.modules()
+        from looktool import checkpoint
+        core.assets()
+        # __init__ creates these empty folders, but no previous job is reused.
+        if any(p.name not in ('original', 'candidate', 'readback', 'evidence') or
+               not p.is_dir() or any(p.iterdir()) for p in self.root.iterdir()):
+            raise ValueError('请选择新的空白工作目录，保留旧记录')
+        second = Path(second).resolve()
+        if second == self.root or self.root in second.parents or second in self.root.parents:
+            raise ValueError('第二份备份必须使用独立目录，不能互相包含')
+        if second.exists() and any(second.iterdir()):
+            raise ValueError('第二份备份目录必须为空')
+        second.mkdir(parents=True, exist_ok=True)
+        self.state = {'format': 2, 'model': core.MODEL, 'version': firmware_version,
+                      'version_source': 'user-camera-version-screen', 'backup_copy': str(second),
+                      'backup_files': {}, 'journal': []}
+        self.save('preparing')
+        with Session() as session:
+            self.state['identity'] = session.identity
+            settings = session.call(session.camera.getBackupPresetData, True)
+            records = core.backup_records(settings)
+            programs = {name: session.read('/tmp/jiritsu/../..' + path) for name, path in
+                        [('appFw.so', '/usr/lib/appFw.so'), ('cpapp-b.bin', '/cp/cpapp-b.bin')]}
+            originals = {layout.PROGRAM_FILES[n]: data for n, data in programs.items()}
+            originals[layout.SETTINGS_FILE] = settings
+            for key in core.CP_KEYS:
+                data = session.cp_read(key)
+                if records[1][key].data != data:
+                    raise ValueError('色彩单元与机身备份不符')
+                originals[layout.UNIT_FILES[key]] = data
+            saved = session.call(session.camera.getBackupPresetData, False)
+            values = checkpoint.capture(session, programs, settings, saved)
+            archive = self.root / 'original/checkpoint.private.zip'
+            checkpoint.write(archive, values, session.identity, provenance={'type': 'fl23-prepare-before-changes'})
+            checkpoint.copy(archive, second / 'checkpoint.private.zip')
+            self.state['checkpoint'] = str(second / 'checkpoint.private.zip')
+            for name, data in originals.items():
+                for parent in (self.root / 'original', second):
+                    path = parent / name
+                    path.write_bytes(data)
+                    if path.read_bytes() != data:
+                        raise ValueError('备份写回不符：' + name)
+                self.state['backup_files'][name] = len(data)
+            self.save('backups_verified')
+            self.state['compatibility'] = compat.prepare(self.root, programs['appFw.so'], programs['cpapp-b.bin'], firmware_version)
+            enabled = self.state['compatibility']['already_enabled']
+            for i, key in enumerate(core.AP_KEYS):
+                value = bytes([10+i]) if enabled else b'\0'
+                if session.call(session.camera.readBackup, key) != value or records[0][key].data != value:
+                    raise ValueError('FL23 参数绑定与程序状态不符；没有安装')
+            units = [originals[layout.UNIT_FILES[k]] for k in core.CP_KEYS]
+            if enabled:
+                compat.validate_enabled_colors(*units)
+                merged = units
+            else:
+                merged = core.merge_colors(*units)
+            for key, data in zip(core.CP_KEYS, merged):
+                (self.root / 'candidate' / layout.UNIT_FILES[key]).write_bytes(data)
+            self.save('backups_verified')
+            self.module(session, 'probe')
+            if not enabled:
+                self.module(session, 'installer', 0)
+                self.module(session, 'wbi', 0)
+        self.save('prepared')
+        event('独立备份、候选和只校验完成；未安装程序或外观设置。')
+
     def backup_flow(self):
         from transport import Session
         core.assets()
@@ -214,9 +328,10 @@ class Job:
             folder = self.root / 'readback'
             folder.mkdir(exist_ok=True)
             (folder / f'{datetime.now():%Y%m%d-%H%M%S-%f}-{name}').write_bytes(data)
-            if core.sha(data) != expected[chip]:
+            matches = data == expected[name] if isinstance(expected, dict) else core.sha(data) == expected[chip]
+            if not matches:
                 raise ValueError('程序完整读回不符，停止后续操作')
-        self.audit('host_full_file_readback_verified', hashes=expected)
+        self.audit('host_full_file_readback_verified', comparison='complete-bytes' if isinstance(expected, dict) else 'digest')
 
     def program_state(self, session):
         found = []
@@ -245,6 +360,10 @@ class Job:
         desired = dict(zip(core.AP_KEYS, [b'\0', b'\0'] if restore else [b'\x0a', b'\x0b']))
         before_raw = session.call(session.camera.getBackupPresetData, True)
         before = core.backup_records(before_raw)
+        if 'compatibility' in self.state:
+            from looktool import devicesettings
+            saved = core.backup_records(session.call(session.camera.getBackupPresetData, False))
+            devicesettings.require_save_preserves_unsaved(before, saved, set(core.AP_KEYS))
         folder = self.root / 'evidence'
         folder.mkdir(exist_ok=True)
         (folder / f'{datetime.now():%Y%m%d-%H%M%S-%f}-settings-before.private.bin').write_bytes(before_raw)
@@ -292,7 +411,12 @@ class Job:
         (folder / f'{datetime.now():%Y%m%d-%H%M%S-%f}-settings-stored.private.bin').write_bytes(stored_raw)
         expected = {(0, k): v for k, v in desired.items()}
         expected.update({(1, k): v for k, v in target.items()})
-        preservation = core.verify_preservation(before, core.backup_records(after_raw), expected)
+        if 'compatibility' in self.state:
+            preservation = devicesettings.compare(before, core.backup_records(after_raw),
+                {k:v.hex() for k,v in desired.items()}, core,
+                expected_cp={k:v.hex() for k,v in target.items()})
+        else:
+            preservation = core.verify_preservation(before, core.backup_records(after_raw), expected)
         stored = core.backup_records(stored_raw)
         for (chip, key), value in expected.items():
             if stored[chip][key].data != value:
@@ -301,6 +425,8 @@ class Job:
 
     # ---------- 安装 ----------
     def install(self, battery):
+        if self.state_path.is_file() and 'compatibility' in core.read_json(self.state_path):
+            return self.install_prepared(battery)
         core.assets()
         if not 50 <= battery <= 100:
             raise ValueError('请确认电量至少 50%，并保持连接')
@@ -341,12 +467,57 @@ class Job:
         event('安装及读回完成。拔线、正常关机，等存取灯熄灭后取出电池 10 秒，再装回开机。')
         event('请分别重设 FL2／FL3、拍新照片并回放；目前是实验预览版。')
 
+    def install_prepared(self, battery):
+        from transport import Session
+        import compat
+        self.load()
+        if self.state.get('phase') != 'prepared':
+            raise ValueError('须先完成 prepare；未知状态不允许重跑安装')
+        if self.state['compatibility']['already_enabled']:
+            event('FL23 已启用，没有重复安装；请进行 verify。')
+            return
+        if not 50 <= battery <= 100:
+            raise ValueError('请确认实际电量至少 50%')
+        event('提醒：' + compat.WARNING)
+        with Session(self.state['identity']) as session:
+            original_programs = {n: (self.root / 'original' / layout.PROGRAM_FILES[n]).read_bytes() for n in core.PROGRAMS}
+            self.files(session, original_programs)
+            originals, _ = self.units()
+            current = core.backup_records(session.call(session.camera.getBackupPresetData, True))
+            if any(current[1][k].data != v for k, v in originals.items()) or any(current[0][k].data != b'\0' for k in core.AP_KEYS):
+                raise ValueError('准备后目标设置已变；拒绝覆盖')
+            from looktool import devicesettings
+            saved = core.backup_records(session.call(session.camera.getBackupPresetData, False))
+            devicesettings.require_save_preserves_unsaved(current, saved, set(core.AP_KEYS))
+            self.module(session, 'wbi', 0)
+            self.save('writing_programs')
+            self.module(session, 'installer', 1)
+            self.save('programs_written')
+            self.files(session, {n: (self.root / 'candidate' / n).read_bytes() for n in core.PROGRAMS})
+            self.save('writing_settings')
+            self.settings(session)
+            self.save('settings_verified')
+            self.module(session, 'wbi', 1)
+        self.save('installed_pending_cold_start')
+        event('完整读回结束；冷启动及照片验收仍须实际完成。')
+
     # ---------- 重启后核对 ----------
     def verify(self):
         from transport import Session
         self.load()
+        if 'compatibility' not in self.state:
+            recorded = self.state.get('backup', {}).get('path')
+            if recorded:
+                self.backup = backup_mod.Backup(recorded)
+            if self.attach_backup() is None:
+                raise ValueError('没有通过校验的备份，无法核对')
         with Session(self.state.get('identity')) as session:
-            self.files(session, core.FINAL)
+            import compat
+            programs = {n: session.read('/tmp/jiritsu/../..' + path) for n, path in
+                        [('appFw.so', '/usr/lib/appFw.so'), ('cpapp-b.bin', '/cp/cpapp-b.bin')]}
+            _, enabled, _, _, _ = compat.plan(programs['appFw.so'], programs['cpapp-b.bin'], self.state.get('version', core.VERSION), transitions=False)
+            if not enabled:
+                raise ValueError('当前程序未完整启用本版 FL23')
             current = core.backup_records(session.call(session.camera.getBackupPresetData, True))
             _, new = self.units()
             if any(current[1][k].data != v for k, v in new.items()):
@@ -354,8 +525,7 @@ class Job:
             if any(current[0][k].data != bytes([10 + i]) for i, k in enumerate(core.AP_KEYS)):
                 raise ValueError('重启后 AP 绑定不符')
             runtime = self.module(session, 'runtime')
-            candidate = core.patch_program(
-                (self.root / 'original' / layout.PROGRAM_FILES['appFw.so']).read_bytes(), 0)
+            candidate = programs['appFw.so']
             for span in runtime['spans']:
                 expected = candidate[span['offset']:span['offset'] + span['length']].hex()
                 if span['memory'] != expected or span['disk'] != expected:

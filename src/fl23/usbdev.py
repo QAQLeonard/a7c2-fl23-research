@@ -223,22 +223,14 @@ def request_service_mode():
         auth.start()
         auth.authenticate()
     finally:
-        if auth is not None:
-            try:
-                auth.stop()
-            except Exception:
-                pass
+        # Authentication may have switched USB identities. Do not send a stop
+        # through the old handle, particularly after an ambiguous failure.
         dispose(dev)
 
     deadline = time.monotonic() + 20
     started = time.monotonic()
     while True:
-        probe = None
-        try:
-            probe = find(PID_SERVICE)
-        except RuntimeError as exc:
-            if '需要且只能连接一台' not in str(exc):
-                raise
+        probe = find(PID_SERVICE)
         dispose(probe)
         if probe is not None:
             return {'switched': True, 'waited': round(time.monotonic() - started, 1), 'detail': ''}

@@ -1,7 +1,8 @@
 /* Fixed-window, inode-preserving installer/restore worker. No raw flash,
  * arbitrary files, process memory writes, shell, Backup settings or WBI.
  * Mode0 only checks originals; mode1 installs; mode2 restores originals.
- * Require exact whole-file hashes before any filesystem mutation.
+ * Legacy builds use complete hashes; BYTE_WINDOWS_ONLY builds verify edited
+ * bytes and require complete byte readback on the host.
  */
 typedef unsigned long u64;typedef unsigned int u32;typedef long i64;typedef unsigned char u8;
 static i64 sc(i64 no,i64 a,i64 b,i64 c,i64 d,i64 e,i64 f) {
@@ -18,6 +19,10 @@ struct Window {u64 offset;u32 length,chip;const u8 *before,*after;};
 #define PATCH_MANIFEST "patch_manifest.h"
 #endif
 #include PATCH_MANIFEST
+#ifndef INSTALL_REQUEST
+#define INSTALL_REQUEST "/tmp/jiritsu/a7c2.install.request"
+#define INSTALL_RESULT "/tmp/jiritsu/a7c2.install.result"
+#endif
 static u8 buffer[65536],mounts[8192],checkbytes[4096];
 struct Stat {u64 dev,ino;u32 mode,nlink,uid,gid;u64 rdev,pad1;i64 size;u32 blksize,pad2;u64 blocks;u64 rest[7];};
 _Static_assert(sizeof(struct Stat)==128,"AArch64 Linux stat ABI");
@@ -104,13 +109,17 @@ static i64 patch(int after,int reverse) {
     return verify_windows(after);
 }
 static i64 verify_hashes(int after,u8 out[2][32]) {
+#ifdef BYTE_WINDOWS_ONLY
+    return verify_windows(after);
+#else
     for(u32 chip=0;chip<2;chip++) {
         i64 v=hash_file(fd[chip],chip,out[chip]);if(v)return v;
         if(!same(out[chip],after?final_hashes[chip]:original_hashes[chip],32))return -84;
     }return 0;
+#endif
 }
 static void work(void) {
-    i64 request=op("/tmp/jiritsu/a7c2.install.request",0);
+    i64 request=op(INSTALL_REQUEST,0);
     if(request<0) {r.status=request;return;}
     r.status=exact_read(request,&req,sizeof(req),0);i64 c=closefd(&request);
     const u8 magic[]="A7INS001";
@@ -148,7 +157,7 @@ __attribute__((visibility("default"))) void _init(void) {
     for(u32 chip=0;chip<2;chip++) {i64 c=closefd(&fd[chip]);if(c&&!r.status)r.status=c;}
     if(mounted_rw) {r.readonly=remount(1);if(r.readonly&&!r.status)r.status=r.readonly;}
     else {r.readonly=mount_state(1);if(r.readonly&&!r.status)r.status=r.readonly;}
-    i64 out=op("/tmp/jiritsu/a7c2.install.result",0x241);
+    i64 out=op(INSTALL_RESULT,0x241);
     if(out>=0) {exact_write(out,&r,sizeof(r),0,1);sc(82,out,0,0,0,0,0);closefd(&out);}
     /* Return to the original native Jiritsu loader. */
 }

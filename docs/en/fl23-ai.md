@@ -2,15 +2,15 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/fl23-ai.md) · [User installation guide](fl23.md)
 
-Goal: install FL2/FL3 on A7C II 2.01 under Windows, with duplicate backups, writing, independent readback, cold-load, capture/playback and restoration. **Use the CLI first; the desktop interface is an alternative to the same backend.** FL23 installation does not import LUTs; independent Recovery performs full rollback to the selected initial state.
+Goal: install FL2/FL3 on A7C II 2.01 under Windows, with duplicate backups, writing, independent readback, cold-load, capture/playback and restoration. **Use the explicit CLI preparation route for compatibility; the retained desktop route is stock-only.** FL23 installation does not import LUTs; independent Recovery performs full rollback to the selected initial state.
 
 ## 1. Starting point
 
 Read [AGENTS](../../AGENTS.md), [the user guide](fl23.md) and [compat.py](../../src/fl23/compat.py). Only ILCE-7CM2 is supported. The user enters 2.01 from the camera version screen; the version is not automatically queried.
 
-At the owner's request, FL23 has no stock/repository whole-firmware provenance whitelist. Changes outside actual patch positions do not disqualify a body. Instruction conflicts at write positions still stop with an address. Preserve existing LUT conversion and CP data; already enabled FL23 is backed up/verified without reinstalling.
+Explicit FL23 preparation has no stock/repository whole-firmware provenance whitelist. Changes outside actual patch positions do not disqualify a body. Instruction conflicts at write positions still stop with an address. Preserve existing LUT slots/dispatch and merge reviewed current gamma windows where needed; already enabled current FL23 is backed up/verified without reinstalling.
 
-The desktop shows a pre-install provenance-risk warning and CLI prints the same warning. Keep duplicate actual-file backups, exact candidates/inverses and full post-write readback. Per-job integrity is distinct from stock provenance.
+The compatible CLI installation prints a provenance-risk warning. Keep duplicate actual-file backups, exact candidates/inverses and full post-write readback. Per-job integrity is distinct from stock provenance.
 
 `Session` reads the normal USB product string, authenticates 0E8A→0336, then uses `getBackupPresetData(True)` and AP property `0x00E70003` (four bytes). Preserve the old binding with `sha256(serial.data.hex().encode('ascii'))`, not a hash of raw bytes or HASP. Match an existing expected identity before returning a usable session. Storage readiness and `getCameraInfo` are optional diagnostics, never service-entry prerequisites. Authentication/transport timeouts are not retried. This integrated change is offline-tested; user-reported success of the same service route is separate from validation of the released build.
 
@@ -20,7 +20,7 @@ Use 64-bit Python 3.10+ on Windows. The launcher installs dependencies, with no 
 
 | Source | Role |
 |---|---|
-| [app.py](../../src/fl23/app.py) | `Job.prepare/install/verify`: stages, backups, candidates, transactions and verification |
+| [app.py](../../src/fl23/app.py) / [workflow.py](../../src/fl23/workflow.py) | CLI dispatch / `Job.prepare/install/verify`, backups, candidates, transactions and verification |
 | [gui.py](../../src/fl23/gui.py) | Windows buttons dispatch to the same `app.py` commands |
 | [core.py](../../src/fl23/core.py) | `ORIGINAL/FINAL`, fixed patches, per-body merging, guards and native report validation |
 | [transport.py](../../src/fl23/transport.py) | `Session`: identity/authentication/bounded I/O, unknown-result stop, restricted staging/Backup writes |
@@ -76,7 +76,7 @@ Persist intent before each native invocation, verify staging, invoke once and va
 
 ## 6. Independent recovery
 
-FL23 exposes no restore command or desktop button. Use [Recovery](recovery.md) for complete rollback from the original backup2 or a new checkpoint. It does not require LUT jobs. Keep model/body binding, edited-byte checks, complete readback and unknown-result evidence; do not reintroduce whole-firmware hash gates.
+The retained stock-only FL23 restore helper is not a mixed-feature rollback entry. Use [Recovery](recovery.md) for complete rollback from the original backup2 or a new checkpoint. It does not require LUT jobs. Keep model/body binding, edited-byte checks, complete readback and unknown-result evidence; do not reintroduce whole-firmware hash gates.
 
 Both install orders must preserve the other feature. `compat.plan` adds FL23 flags/parameters around existing LUT code; LUT's planner accepts stock or FL23 sources. FL23 verify reads current programs and checks its own activation plus live spans, allowing later LUT imports. Test both orders and selected-slot restoration after FL23 installation with real private program fixtures; offline results do not prove camera boot safety.
 

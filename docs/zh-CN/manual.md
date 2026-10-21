@@ -23,7 +23,7 @@ python -m pip install "numpy>=1.24,<3" "scipy>=1.10,<2" pyusb==1.3.1 libusb-pack
 python lut.py doctor --device
 ```
 
-Mac 将 `python` 换成 `python3`。单文件会将经过校验的内部源码／原生程序释放到 `~/.a7c2-tools/runtime`；工作和备份目录独立保存，不随工具更新覆盖。依赖不内置，也不会自动安装。`doctor` 不连接相机。
+Mac 将 `python` 换成 `python3`。单文件会将内置源码／原生程序释放到 `~/.a7c2-tools/runtime`；工作和备份目录独立保存，不随工具更新覆盖。依赖不内置，也不会自动安装。`doctor` 不连接相机。
 
 ## 相机连接
 
@@ -53,4 +53,4 @@ Mac 使用 libusb，不安装 Zadig。遇到设备占用，关闭“照片”／
 
 ## 独立 Recovery
 
-完整回退使用 `python recovery.py restore BACKUP --firmware-version 2.01 --battery-percent N`。独立[教程](recovery.md)包含旧 backup2／新存档、重载和核对。与 LUT 共用 Python／设备依赖，运行不需要 LUT Job；Mac 使用 `python3`。FL23 只保留 prepare／install／verify。
+完整回退使用 `python recovery.py restore BACKUP --firmware-version 2.01 --battery-percent N`。独立[教程](recovery.md)包含旧 backup2／新存档、重载和核对。与 LUT 共用 Python／设备依赖，运行不需要 LUT Job；Mac 使用 `python3`。混装使用显式 FL23 prepare／install／verify 流程；保留的旧原厂来源还原辅助入口不能替代 Recovery。

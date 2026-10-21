@@ -32,7 +32,8 @@ def prepare(workflow,research=False):
         raise RuntimeError('Existing local Python is unsupported. No environment files or camera data were replaced.')
     if workflow=='fl23':
         requirement=ROOT/'src/fl23/requirements.txt'
-        imports='import usb,libusb_package,Cryptodome,yaml,numpy,elftools,ziglang'
+        imports='import usb,libusb_package,Cryptodome,yaml,numpy,scipy,elftools,ziglang'
+        requirement=ROOT/'src/looks/requirements-device.txt'
     else:
         requirement=ROOT/'src/looks'/('requirements-research.txt' if research else 'requirements.txt')
         imports='import numpy,scipy'+(',keystone,unicorn,capstone' if research else '')
@@ -62,8 +63,10 @@ def main(argv=None):
         args,remaining=p.parse_known_args(argv)
         if remaining==['--check']:
             info['workflow']=args.workflow;print(json.dumps(info,indent=2));return 0
-        if args.workflow=='fl23' and remaining and remaining[0] not in ['prepare','install','verify','check-package','--help','-h']:
+        if args.workflow=='fl23' and remaining and remaining[0] not in ['check','backup','prepare','install','restore','verify','check-package','--help','-h']:
             raise RuntimeError('Unknown FL2/FL3 command. Use FL23.cmd --help.')
+        if args.workflow=='fl23' and remaining and remaining[0] in ['--help','-h','check-package']:
+            return execute([sys.executable,ROOT/'src/fl23/app.py',*remaining],Path.cwd())
         python=prepare(args.workflow,args.research)
         if args.setup_only:
             print('Environment ready. No camera connection or firmware/settings write performed.');return 0

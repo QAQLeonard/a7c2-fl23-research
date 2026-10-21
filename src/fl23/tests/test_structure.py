@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -167,7 +168,8 @@ class DriverTests(unittest.TestCase):
             self.assertFalse(usbdev._accept(service), service)
 
     def test_report_shape_without_devices(self):
-        report = usbdev.driver_report()
+        with patch.object(usbdev,'_windows_services',return_value=None),patch.object(usbdev,'find',return_value=None):
+            report = usbdev.driver_report()
         self.assertEqual(set(['0e8a', '0336']) <= set(report), True)
         self.assertIn('ok', report)
 

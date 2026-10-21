@@ -1,3 +1,3 @@
 @echo off
-call "%~dp0src\fl23\Start.cmd" fl23 %*
+call "%~dp0dev\windows\bootstrap.cmd" fl23 %*
 exit /b %errorlevel%

@@ -41,4 +41,16 @@ class ScopeTests(unittest.TestCase):
         for key in [0x02770015,devicesettings.SAVED_TELEMETRY,devicesettings.PROTECTED[0],0x02cf9999]:
             with self.assertRaises(ValueError):self.compare({key:'00'})
 
+    def test_fl23_allows_exact_color_targets_but_keeps_other_calibration_protected(self):
+        target=b'new-color-unit'
+        self.after[1][0x02a40001]=Prop(target,0)
+        self.after[0][0x02770015]=Prop((160).to_bytes(4,'little'),2)
+        devicesettings.compare(self.before,self.after,{},core,expected_cp={0x02a40001:target.hex()})
+        with self.assertRaises(ValueError):self.compare()
+        self.after[1][0x02a40002]=Prop(b'changed-calibration',0)
+        with self.assertRaises(ValueError):
+            devicesettings.compare(self.before,self.after,{},core,expected_cp={0x02a40001:target.hex()})
+        with self.assertRaises(ValueError):
+            devicesettings.compare(self.before,self.after,{},core,expected_cp={0x02a40002:'00'})
+
 if __name__=='__main__':unittest.main()

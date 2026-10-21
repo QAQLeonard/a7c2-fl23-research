@@ -42,7 +42,7 @@ python recovery.py verify "D:/RecoveryWork" --accept-photos
 
 ## 给 AI 的实现说明
 
-入口是 [recovery.py](../../recovery.py)，共用后端为 [checkpoint.py](../../src/looks/looktool/checkpoint.py)、[checkpointjob.py](../../src/looks/looktool/checkpointjob.py) 和 [checkpointworker.py](../../src/looks/looktool/checkpointworker.py)。禁止把恢复重新挂回 FL23 或要求 LUT Job。
+入口是 [recovery.py](../../recovery.py)，共用后端为 [checkpoint.py](../../src/looks/looktool/checkpoint.py)、[checkpointjob.py](../../src/looks/looktool/checkpointjob.py) 和 [checkpointworker.py](../../src/looks/looktool/checkpointworker.py)。混装完整回退不得转给保留的原厂来源 FL23 还原辅助入口，也不要求 LUT Job。
 
 旧备份从 AP 属性 `00e70003` 读取机身编号，与正常 Sony 身份查询绑定；这不是固件哈希门槛。`resources.before_custom()` 根据 2860 个原生索引中的最后记录确定原始末尾，逆转本工具追加的六个名称索引／字符串。已用全部 68 份原始资源做精确重建；该算法处理本工具的追加式修改，不修复任意第三方资源替换。
 
