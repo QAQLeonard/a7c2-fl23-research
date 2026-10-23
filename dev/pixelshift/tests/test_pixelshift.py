@@ -1671,6 +1671,34 @@ class NativeTests(unittest.TestCase):
         self.assertTrue(all(len(values) == 2 and values[0] == values[1] for values in groups.values()))
         self.assertFalse(report['physical_shift_verified'])
 
+    def test_native_context_and_capturing_level_writers_feed_capture_policy(self):
+        from cp_capture_context_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 192)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            publication = result['native_context_publication']
+            transitions = [int(action == 'enter') for action in inputs['guard_actions']]
+            self.assertEqual(publication['native_guard_transitions'], transitions)
+            self.assertEqual(publication['native_guard'], transitions[-1])
+            self.assertEqual(publication['native_pipeline_pointer_stores'], 1)
+            for field in ('native_context_binder_executed', 'native_pipeline_getter_executed',
+                          'binder_and_getter_share_object', 'native_helpers_returned',
+                          'pipeline_parameters_are_fixtures', 'lifecycle_order_is_fixture'):
+                self.assertTrue(publication[field], field)
+            for field in ('host_assigned_consumed_pointer_or_guard', 'startup_and_scheduler_executed', 'camera_io'):
+                self.assertFalse(publication[field], field)
+            if inputs['capture_mode'] == 2:
+                eligible = bool(inputs['override'] or inputs['pipeline'])
+                expected = 0x17 if eligible and not transitions[-1] else 2
+                self.assertEqual(result['selected_mode'], expected)
+                self.assertEqual(result['final_trinity'], inputs['trinity'] if expected == 0x17 else 0)
+            for field in ('host_assigned_capture_flag_or_api_returns', 'full_outer_caller_executed',
+                          'automatically_scheduled', 'positioning_or_exposure_executed', 'installable', 'camera_io'):
+                self.assertFalse(result[field], field)
+        self.assertFalse(report['physical_shift_verified'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)

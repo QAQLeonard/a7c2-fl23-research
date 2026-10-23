@@ -71,26 +71,37 @@ def profile(directory):
     return data, s, p
 
 
-def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, native_state=0):
+def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, native_state=0,
+           native_context=False, guard_actions=()):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, s, p = profile(directory)
     gate_value, written_flag, write_phase, snapshot_calls = None, None, None, 0
+    input_evidence = None
 
     def initialize(cpu, snapshot, dispatch, source):
+        nonlocal input_evidence
         if source != p['source']:
             raise ValueError('Capture gate consumes a different LiRo source object')
         for at in (p['context'], p['override'], p['state']):
             page = at & ~4095
             if not any(lo <= page <= hi for lo, hi, _ in cpu.mem_regions()):
                 cpu.mem_map(page, 4096)
-        cpu.mem_map(0x30012000, 4096)
         cpu.mem_write(source+0x138, struct.pack('<II', capture_mode, 0))
         cpu.mem_write(p['override'], bytes([override]))
-        cpu.mem_write(p['state'], bytes([native_state]))
-        cpu.mem_write(p['context']+0x10, struct.pack('<I', 0x30012000))
-        cpu.mem_write(0x30012102, bytes([pipeline]))
-        cpu.mem_write(0x3001213c, bytes(4))
+        if native_context:
+            from cp_capture_context_replay import initialize as publish_context
+            input_evidence = publish_context(cpu, directory, p, pipeline, guard_actions)
+            if input_evidence['native_guard'] != native_state:
+                raise ValueError('Native guard lifecycle differs from the requested comparison state')
+        else:
+            if guard_actions:
+                raise ValueError('Guard actions require native context publication')
+            cpu.mem_map(0x30012000, 4096)
+            cpu.mem_write(p['state'], bytes([native_state]))
+            cpu.mem_write(p['context']+0x10, struct.pack('<I', 0x30012000))
+            cpu.mem_write(0x30012102, bytes([pipeline]))
+            cpu.mem_write(0x3001213c, bytes(4))
 
     def run_snapshot(cpu, snapshot, dispatch, source, capture_id, stack):
         nonlocal gate_value, written_flag, write_phase, snapshot_calls
@@ -203,7 +214,7 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
             or consistency_before[:0x1a0] != consistency_after[:0x1a0]
             or consistency_before[0x1a4:] != consistency_after[0x1a4:]):
         raise ValueError('Original consistency policy did not retain/clear the same propagated TRINITY value')
-    return dict(native_gate=gate_value, native_snapshot_flag_d88=flag, selected_mode=selected,
+    result = dict(native_gate=gate_value, native_snapshot_flag_d88=flag, selected_mode=selected,
                 adjacent=adjacent, propagated_trinity=prior['capture_configuration_trinity'],
                 final_trinity=final_trinity, diagnostic_calls_omitted=diagnostics,
                 native_snapshot_copy_bytes=prior['copied_bytes'], native_snapshot_returned_to_caller=True,
@@ -211,6 +222,9 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
                 host_assigned_capture_flag_or_api_returns=False, full_outer_caller_executed=False,
                 automatically_scheduled=False, data_block_9416_used_as_live_source=False,
                 positioning_or_exposure_executed=False, same_ram=True, camera_io=False, installable=False)
+    if input_evidence is not None:
+        result['native_context_publication'] = input_evidence
+    return result
 
 
 def compare(c2, reference):
