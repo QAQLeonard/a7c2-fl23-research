@@ -64,6 +64,18 @@ def test_existing_windows_zip_extracts_data_only(tmp_path):
     assert not list(tmp_path.rglob('*.exe'))
 
 
+def test_legacy_pack_license_is_optional_but_preserved_when_present(tmp_path):
+    before=tmp_path/'before';folder=before/'desktop-assets/presets/default-six-v1'
+    folder.mkdir(parents=True)
+    for name in assets.PRESET_NAMES:(folder/name).write_bytes(name.encode())
+    library_fixture(before)
+    legacy=assets.OPTIONAL_PRESET_NAMES[0]
+    (folder/legacy).write_bytes(b'original legacy license')
+    archive=assets.export_presets(tmp_path/'presets.zip',before)
+    after=assets.import_presets(archive,tmp_path/'after')
+    assert (after/legacy).read_bytes()==b'original legacy license'
+
+
 def test_missing_pack_notice_does_not_replace_existing_assets(tmp_path):
     target=tmp_path/'desktop-assets/presets/default-six-v1';target.mkdir(parents=True)
     (target/'slot1.a7look').write_bytes(b'existing')
