@@ -1606,6 +1606,36 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_native_dma_construction_returns_and_preserves_pending_hardware_poll(self):
+        from cp_startup_binding_replay import compare
+        report = compare(self.c2, self.cr, continue_dma=True)
+        self.assertEqual(report['paired_cases'], 4)
+        for case in report['cases']:
+            result = case['target']['config_continuation']
+            self.assertEqual(result, case['reference']['config_continuation'])
+            self.assertTrue(result['original_dma_constructor_returned'])
+            self.assertEqual(result['boundary'], 'before_repeating_hardware_poll')
+            self.assertEqual(result['native_register_writes'], 186)
+            self.assertEqual(result['independent_dma_register_words_checked'], 20)
+            self.assertEqual(result['independent_dma_route_words_checked'], 5)
+            self.assertTrue(result['dma_route_table_from_original_image'])
+            self.assertEqual(result['hardware_poll'], {'address': '0xf3830810',
+                'value': case['input']['initial_register_word'] | 1, 'wait_mask': 0x10001})
+            self.assertEqual([row['mode'] for row in result['native_dma_records']],
+                             [0x440, 0x440, 0x440, 0x660, 0x19e])
+            self.assertEqual([len(row['descriptor_ids']) for row in result['native_dma_records']],
+                             [4, 4, 4, 6, 3])
+            self.assertEqual(result['native_irq_enable_results'], [(0xa2, -17)])
+            self.assertTrue(result['same_ram'])
+            self.assertTrue(result['register_backing_is_synthetic_plain_ram'])
+            for field in ('original_address_binder_returned', 'native_irq_enable_succeeded',
+                          'dma_data_transfer_or_capture_emulated', 'hardware_acknowledgement_or_settling_supplied',
+                          'physical_mmio_access_executed', 'complete_boot_executed'):
+                self.assertFalse(result[field], field)
+        self.assertFalse(report['camera_io'])
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
