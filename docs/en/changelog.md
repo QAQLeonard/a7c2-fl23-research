@@ -2,6 +2,10 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Unreleased
+
+- Keep RAW metadata reads read-only when filenames contain ExifTool argument syntax: reject the entire batch before starting ExifTool if an input path contains CR, LF or NUL, and pass absolute paths so leading `-` and `#` remain filename characters. Preserve UTF-8 stdin batching for large selections. Regression tests use synthetic XMP files; no camera interaction is involved.
+
 ## 3.0.3 — USB recovery and sound workflow fixes — 2026-10-23
 
 - All desktop sound controls now work from the current selection/body: volume up/down/reset and conversion remain host-only; On/Off use fresh switch transactions; Restore original sound rebuilds only the supported AP sound-loader inverse from current bytes, preserves the switch and looks, and removes the boot call before its reader prerequisites. It no longer searches completed installation records or sends the user to full factory recovery. Sound verification reads currently loaded sound code/resources without a saved installation job. Optional listening/recovery statements can be recorded without an audition job. Stale staging is handled by the same current-request cleanup used by Save/Audition; no old pending task is an eligibility gate.
