@@ -126,6 +126,15 @@ original-source reports and model results, not just pass new replacement tests.
   No UIPC open/ioctl/CP request, AP/worker migration, parameter/ROM/existing-RAM
   patch or signal manipulation. Old phase89 failure remains retired. This
   does not admit a synchronous send or establish physical pre-capture.
+- Phase92's combined self-cpuset/signal/fresh-context component has no camera entry.
+  Its62 generated-code controls cover all50 modeled calls, short move/inverse,
+  invalid/reused inputs and preservation of unknown nested ownership. It has
+  completed a102-record/50-call combined child under Sony-kernel CPU0 VM, with
+  original VM UIPC query/map/allocate16 wait0/cancel/unmap/close and both guard
+  inverses; two process-absence samples. No camera execution or CP send path.
+  Raw VM report's inherited device_open=false label is incorrect: preserve it
+  with the explicit qualification recording actual VM UIPC device access.
+  Separate physical successes do not admit that composition automatically.
 - The owner's October19-23 handoff includes superseded hypotheses. Reuse its
   offline name-array discovery with actual ELF coordinates, not hardcoded
   paths, cross-model IDs or its camera operators. Generated PRM/VAL/FUNC names

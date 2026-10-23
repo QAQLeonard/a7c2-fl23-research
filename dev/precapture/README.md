@@ -90,6 +90,7 @@ do not add up to physical pre-capture.
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
 | `support/ap_model.py` | Generated-component unit calls with explicit modeled outcomes; never used to supply successful native services in source audits |
 | `ap_client_cpuset.c/h`, `verify_client_cpuset.py` | Single-thread diagnostic child moves only itself with tasks-file token0, verifies membership/CPU, then restores original membership/affinity; no AP/worker migration or CP request |
+| `ap_client_context.c/h`, `verify_client_context.py` | Self cpuset → signal/affinity guard → fresh never-sent allocate/cancel context → inverse guards;62 generated-code controls and a102-record Sony-kernel CPU0 VM run; combined physical execution remains untested |
 | `support/ap_names.py`, `audit_ap_names.py` | ELF-based generated parameter-name discovery and Timeshift name comparison; preserves interior string pointers and separate FILE/VA coordinates; offline metadata only |
 | `capture_workflow.c/h`, `support/workflow_model.py` | Asynchronous ownership/save/cancel/restore controller and explicit virtual pixel actors; separate from the CP runtime and unbound to native hardware |
 | `vm/workflow_guest.c`, `vm/verify_workflow_guest.py` | File-only continuous-controller integration under Linux and independent pixel/journal validation; no native camera adapter |

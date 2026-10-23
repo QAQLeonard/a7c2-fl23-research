@@ -2828,3 +2828,32 @@ was a camera failure. Next native gate: combine self cpuset + signal protection
 with fresh context, then qualify exact single-request sender/completion/teardown
 and live ownership before admitting a CP request. Exposure/RAW/save/release and
 physical pre-capture remain unfinished. Reviewed main9ecae919 unchanged.
+
+Phase92 adds one offline composition, ap_client_context.c/h: fresh zeroed
+result/disjoint workspace -> own cpuset -> existing own signal/affinity guard
+-> fresh NEVER-SENT UIPC context -> guard inverse -> original cpuset inverse.
+Any unknown nested ownership returns UNKNOWN before another guard inverse;
+known context rejection preserves its error while resolving known outer guards.
+Single-use result rejects a second call before any modeled service.
+62 generated-code cases execute all linked components: one normal50-call
+transaction, failure injected independently at each of50 calls, short move/
+inverse writes and9 invalid/reused inputs. Target context/binding/cpuset ABI
+checks are independent. No successful native call is supplied to source audits.
+Models alone do not admit native execution. A separately journaled static
+child subsequently completes under Sony-kernel CPU0 VM:102 records,50 actual
+component calls, original VM UIPC query/map/allocate16 wait0/cancel/unmap/close,
+both guard inverses and two absent-process samples. No physical USB exposed.
+Raw result inherited a wrong device_open=false label from cpuset-only scope;
+raw evidence is preserved with a separate explicit qualification of actual
+VM UIPC access. The inherited worker comment also wrongly says no ioctl;
+the qualified operation list/journal, not that comment, defines this VM test.
+Initial model harness missed its workspace mapping and was corrected before
+native execution. Original32KiB collector was too small for the102-record
+journal; a separate bounded VM collector/image was prepared before launch.
+No combined physical run or CP send is admitted. Next work is fresh reviewed
+combined physical child and exact request/return/callback lifetime contract;
+still no actual CP receipt or pre-trigger pixels.
+The combined native journal also passes114 false-success controls, including
+101 incomplete prefixes. A corrupted inverse-status field exposed a missing
+decoder check; final guard return statuses are now checked explicitly before
+any physical use. Raw native evidence was retained; no guest rerun was needed.
