@@ -30,6 +30,15 @@ class KernelMappingTests(unittest.TestCase):
         for address in (0,0xffffff8008080000,0xffffffc000000000):
             with self.assertRaises(ValueError):module_walk_step(address,0x400001000,[],ram)
 
+    def test_data_policy_keeps_RAM_and_kernel_guards(self):
+        ram=[dict(start=0x400000000,end=0x4ffffffff)];virtual=0xffffff80005c9000
+        words=[0x400002003,0x400003003,0x440001413|(1<<53)]
+        self.assertEqual(module_walk_step(virtual,0x400001000,words,ram,executable=False)['physical'],0x440001000)
+        with self.assertRaises(ValueError):module_walk_step(virtual,0x400001000,words,ram)
+        with self.assertRaises(ValueError):module_walk_step(virtual,0x400001000,words,ram,executable=0)
+        for leaf in (words[2]|64,(words[2]&~0x1c),0xf1000413):
+            with self.assertRaises(ValueError):module_walk_step(virtual,0x400001000,words[:2]+[leaf],ram,executable=False)
+
     def test_plan_never_admits_read(self):
         plan=bootstrap_plan(IOMEM,SYMBOLS,BOOT)
         self.assertFalse(plan['native_memory_read_admitted']);self.assertFalse(plan['loaded_code_verified'])

@@ -216,6 +216,12 @@ original-source reports and model results, not just pass new replacement tests.
   was observed as known-95/devclose0/only standard FDs before disposable-guest
   shutdown; original failed scope is never replayed. A fresh VM-specific RAM
   input passes; never widen physical-body RAM bounds to make a VM pass.
+- Phases103-104 add original preemption/single-CPU wakeup facts and loaded
+  scheduler/transport-state samples. Native VM sender0 remains a negative;
+  physical sender1 and matching callback table/functions are necessary only.
+  No CP response or live sender has been admitted. Code walks require executable
+  leaves; only explicitly scoped metadata walks may accept normal NX kernel
+  data. Never transfer that data policy to a code comparison implicitly.
 - The owner's October19-23 handoff includes superseded hypotheses. Reuse its
   offline name-array discovery with actual ELF coordinates, not hardcoded
   paths, cross-model IDs or its camera operators. Generated PRM/VAL/FUNC names

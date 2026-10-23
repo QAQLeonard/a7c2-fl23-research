@@ -97,11 +97,12 @@ def bootstrap_plan(iomem,symbols,boot_id):
         source_facts_verified=False,native_memory_read_admitted=False,loaded_code_verified=False)
 
 
-def module_walk_step(virtual,root_physical,descriptors,ram):
+def module_walk_step(virtual,root_physical,descriptors,ram,*,executable=True):
     """Plan one 39-bit/4K page-table read or decode its leaf; never performs I/O.
 
-    This intentionally accepts only ordinary executable kernel pages and table
-    descriptors, a strict subset of the original vmalloc_to_page behavior.
+    This accepts only ordinary kernel pages and table descriptors, a strict
+    subset of vmalloc_to_page. Code requires executable leaves by default;
+    data observations must explicitly choose executable=False.
     Root/epoch/source and read atomicity remain independent caller duties.
     """
     if not isinstance(virtual,int) or not 0xffffff8000000000<=virtual<0xffffff8008000000:
@@ -109,6 +110,7 @@ def module_walk_step(virtual,root_physical,descriptors,ram):
     if not isinstance(root_physical,int) or root_physical&4095 or not 0<root_physical<U64:
         raise ValueError('Qualified aligned root physical address required')
     if len(descriptors)>3:raise ValueError('Three-level walk only')
+    if type(executable) is not bool:raise ValueError('Explicit code/data policy required')
     def memory(address,size):
         if not 0<address<=U64-size or not any(r['start']<=address and address+size-1<=r['end'] for r in ram):
             raise ValueError('Read outside qualified System RAM')
@@ -122,8 +124,8 @@ def module_walk_step(virtual,root_physical,descriptors,ram):
             if entry&0xffff000000000000:raise ValueError('Unqualified table attributes')
             table=memory(physical,4096)
         else:
-            if (entry>>2)&7!=4 or entry&(1<<6) or entry&(1<<53) or not entry&(1<<10):
-                raise ValueError('Require accessed normal-memory kernel executable leaf')
+            if (entry>>2)&7!=4 or entry&(1<<6) or executable and entry&(1<<53) or not entry&(1<<10):
+                raise ValueError('Require normal accessed kernel leaf and executable code policy')
             physical=memory(physical,4096)+(virtual&4095)
             return dict(kind='leaf',physical=physical,page_bytes_left=4096-(virtual&4095),
                 native_memory_read_admitted=False)

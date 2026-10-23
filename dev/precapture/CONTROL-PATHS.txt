@@ -3116,3 +3116,33 @@ not whole-kernel/module identity, a module reference or an atomic lifetime
 guarantee. Next native blocker remains remaining send route/UIPC qualification
 and actual callback/preemption lifetime; then a separately reviewed diagnostic
 request. In-camera switch and pre-S2 RAW/save/release are still absent.
+
+Phase103 original preemption audit:16 slices execute class traversal, priority
+guards and single-bit-affinity wakeup selection. Actual original class links
+stop->deadline->RT->fair->idle are checked. Normal wakeups do not reach
+resched_curr while current class is RT; higher classes do. Single allowed CPU
+uses the allowed mask/find_next_bit and online test before task migration;
+historical sleeping statCPU1 does not select the wakeup CPU when mask4 holds.
+The pure original bit helper executes; no successful service return is faked.
+These are synthetic task/online words, not an actual callback CPU observation,
+an atomic affinity guarantee or new live-send admission.
+
+Phase104 checks that source/state on the body through a new scoped RAM-only
+reader. Explicit code/data policies: executable code still rejects PXN;
+metadata reads may accept normal NX kernel data, never user/device/outside-RAM
+pages.79 generated-reader cases include two compile-input mode controls;
+do not pretend a compiler-folded modes array is a mutable ELF symbol. Five
+corruptions,10 host and5 adapter controls. Native Sony-kernel CPU0 loads the
+original PCIe module, walks/reads29 times, registers the proper table/functions
+and exits; sender flag remains0 as expected with no virtual peer. No flag,
+IRQ or readiness is forced, and this negative is not treated as CP readiness.
+
+Physical matching observations: UIPC.bss+3018 points to actual PCIe.data+b8;
+two entries equal actual PCIe.text+3c70/+3c58; sender.bss+4d8 is1. Six named
+scheduler code/data slices (preemption, single-CPU wakeup, RT-runtime guard
+and original class chain) match cached original bytes exactly.29 reads/1,740
+bytes; descriptors/root rechecked; exact3 temporary files cleaned, four source
+program files unchanged, USB_FINISHED. This is a necessary initialized-state
+sample, NOT CP receipt, whole UIPC code or callback-lifetime admission. Stage2
+still refuses. Next: qualify remaining loaded UIPC send spans and assemble a
+separately reviewed isolated original-default request with same-child fencing.
