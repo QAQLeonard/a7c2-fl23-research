@@ -5,7 +5,7 @@ No device is opened at import time. Unknown native outcomes are never replayed.
 from datetime import datetime,timezone
 import gzip,json,os,shutil,struct,uuid
 from pathlib import Path
-from . import backupstore,calibration,device_layout,devicesettings,firmware,nameworker,native,nativebuild,project,resources,six,worker
+from . import backupstore,calibration,device_layout,devicesettings,firmware,nameworker,native,nativebuild,project,resources,six,uploadgate,worker
 from .devicesession import Camera,invoke
 from .devicelock import serialized
 
@@ -126,6 +126,7 @@ class Job:
         actual={}
         self._later_fl23=False
         self._later_slot_updates=False
+        self._later_upload_gate=False
         camera.byte_checks=not self._hashes()
         if not self._hashes():
             wanted={n:self.source(n) for n in PROGRAM_PATHS}
@@ -143,7 +144,20 @@ class Job:
                 modules();import compat
                 _,_,with_fl23,_,_=compat.plan(target['appFw.so'],target['cpapp-b.bin'],transitions=False)
                 self._later_fl23=actual==with_fl23
-                differs=not self._later_fl23
+                if allow_later_slots and not self._later_fl23:
+                    # Old hash-based jobs remain strict about other slot data.
+                    # Accept only the complete target with this one reviewed
+                    # forward migration, never rewrite its recorded hashes.
+                    for candidate,later_fl23 in ((target,False),(with_fl23,True)):
+                        try:
+                            upgraded=dict(candidate)
+                            upgraded['cpapp-b.bin']=uploadgate.restore(candidate['cpapp-b.bin'])
+                        except ValueError:
+                            continue
+                        if upgraded!=candidate and actual==upgraded:
+                            self._later_upload_gate=True;self._later_fl23=later_fl23
+                            break
+                differs=not (self._later_fl23 or self._later_upload_gate)
             if differs:raise ValueError('Complete host readback differs from the job and its FL23-compatible target')
         elif actual!=wanted:
             if expected==self.state['target_hashes']:
@@ -157,7 +171,8 @@ class Job:
                         self._later_fl23=True;self._later_slot_updates=True
             if not self._later_fl23 and not self._later_slot_updates:raise ValueError('Complete host readback differs from planned bytes')
         self.record('complete_host_program_readback_verified',hashes={n:firmware.sha(b) for n,b in actual.items()} if self._hashes() else None,
-            comparison='file-digest' if self._hashes() else 'complete-bytes-with-later-unselected-slot-data' if self._later_slot_updates else 'complete-bytes',full_readback_files_saved=False)
+            comparison='complete-bytes-with-native-upload-entry' if self._later_upload_gate else
+                'file-digest' if self._hashes() else 'complete-bytes-with-later-unselected-slot-data' if self._later_slot_updates else 'complete-bytes',full_readback_files_saved=False)
         if hasattr(camera,'pin_programs'):camera.pin_programs(actual['appFw.so'],actual['cpapp-b.bin'])
         return actual
     def _resource_readback(self,camera,after,*,allow_later_slots=False):

@@ -81,7 +81,9 @@ class OriginalFirmware(unittest.TestCase):
             if len(old)!=len(new) or result[at:at+len(old)]!=old:raise AssertionError('Source window differs')
             result[at:at+len(new)]=new
         cls.lutcp=bytes(result)
-        if core.sha(cls.lutcp)!=cls.layout.runtime()['cp_zero_tables_sha256']:raise AssertionError('Canonical LUT runtime differs')
+        from looktool import uploadgate
+        if core.sha(uploadgate.legacy_hash_source(cls.lutcp))!=cls.layout.runtime()['cp_zero_tables_sha256']:
+            raise AssertionError('Canonical LUT runtime differs')
     def expected_native_update(self,cp):
         result=bytearray(cp)
         for at,size in ((0x138832,26),(0x1100b80,3872)):

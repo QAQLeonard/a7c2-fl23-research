@@ -42,7 +42,7 @@ class WorkerPrivateSourceTests(unittest.TestCase):
     def test_real_table_transition_yields_native_inputs_and_exact_restore(self):
         header,c=worker.prepare_table_worker(self.ap,self.cp,self.f,self.r,{'6':'ST'})
         self.assertIn('static const struct Window windows[]',header)
-        self.assertEqual(c['window_writes'],2);self.assertEqual(c['selected_slots'],[6]);self.assertFalse(c['live_bindings_verified'])
+        self.assertEqual(c['window_writes'],3);self.assertEqual(c['selected_slots'],[6]);self.assertFalse(c['live_bindings_verified'])
         self.assertEqual(c['before']['cpapp-b.bin'],six.CP_SHA)
         self.assertEqual(c['after']['cpapp-b.bin'],firmware.sha(self.after['cpapp-b.bin']))
         self.assertEqual(c['before']['appFw.so'],c['after']['appFw.so'])

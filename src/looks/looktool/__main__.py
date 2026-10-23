@@ -45,7 +45,8 @@ def main(argv=None):
     p.add_argument("bindings",type=Path)
     p.add_argument("output",type=Path)
     p.add_argument("--layout",choices=["three-preview-v2","full7-v4"],default="three-preview-v2")
-    p = sub.add_parser("prepare-preview-retry",help="Exact switch-v2 to upload-retry-v4; no USB")
+    p = sub.add_parser("prepare-preview-retry",help="Exact switch-v2 to native LUT-upload gating; no USB",
+                       description="Prepare native LUT-upload gating from the exact historical switch-v2 source; no USB.")
     p.add_argument("ap",type=Path)
     p.add_argument("cp",type=Path)
     p.add_argument("output",type=Path)
@@ -110,7 +111,9 @@ def main(argv=None):
             args.output.mkdir(parents=True)
             write_json(args.output/"forward.private.json",forward)
             write_json(args.output/"reverse.private.json",reverse)
-            result={"status":forward["status"],"camera_io":False,"changed_bytes":44,"physical_validation_required":True}
+            result={"status":forward["status"],"camera_io":False,
+                    "changed_bytes":sum(window["bytes"] for component in forward["files"].values() for window in component["windows"]),
+                    "physical_validation_required":True}
         else:
             data = read_json(args.candidate/"candidate.json")
             if data.get("schema") != "a7c2-look-candidate/1":

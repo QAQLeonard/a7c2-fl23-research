@@ -16,7 +16,7 @@ COMMANDS={'diagnose-job':'Explain a recorded failure without USB or changing the
           'check-bindings':'Check host ST binding declarations','calibrate':'Generate calibration from measured inputs',
           'fit':'Fit native table candidates','prepare-transition':'Prepare exact-source forward/reverse manifests',
           'prepare-six-program':'Reproduce programs from the pinned historical three-look source',
-          'prepare-preview-retry':'Prepare the exact historical preview repair'}
+          'prepare-preview-retry':'Prepare native LUT-upload gating from the exact historical switch-v2 source'}
 
 def missing_packages():
     return [name for name in ['numpy','scipy'] if importlib.util.find_spec(name) is None]
