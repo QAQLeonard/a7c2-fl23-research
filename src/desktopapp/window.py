@@ -20,7 +20,8 @@ from .theme import WINDOW as STYLE
 class Window(W.QMainWindow):
     def __init__(self, *, demo=False):
         super().__init__()
-        self.setWindowTitle('A7C II Tools · Desktop Preview')
+        self.setWindowTitle('A7C II Tools · LUT Gate A/B Test' if '--preview-gate-test' in sys.argv else
+                            'A7C II Tools · Desktop Preview')
         self.resize(1130, 850)
         self.setMinimumSize(960, 730)
         self.settings = load_settings()
@@ -480,6 +481,19 @@ class Window(W.QMainWindow):
         self.fl23_accept = self.reload_controls(diagnostic, '菜单、拍照和回放正常')
         self.button(diagnostic, '只读核对已加载的版本（可选）', 'direct_verify',
                     lambda: self.direct_verify_args('fl23', self.fl23_accept.isChecked()))
+        if '--preview-gate-test' in sys.argv:
+            preview = layout
+            preview.addWidget(W.QLabel('取景器横线：四字节对照测试（候选，尚未实机验收）'))
+            hint = W.QLabel('仅切换 LUT 刷新入口，不改色表、名称或配方。先记录能复现横线的模式；'
+                           '应用后按弹窗断电重开，在相同模式比较横线和六槽实时切换。')
+            hint.setWordWrap(True); preview.addWidget(hint)
+            self.button(preview, '应用原生 LUT 刷新候选（仅四字节）', 'direct_preview_native',
+                        lambda: self.direct_args('preview'))
+            self.button(preview, '撤回候选：恢复旧版重复上传补偿（仅四字节）', 'direct_preview_legacy',
+                        lambda: self.direct_args('preview'))
+            self.preview_accept = self.reload_controls(preview, '横线消失、六槽实时切换、拍摄和回放正常')
+            self.button(preview, '断电重开后只读核对本轮测试', 'direct_verify',
+                        lambda: self.direct_verify_args('preview', self.preview_accept.isChecked()))
         layout.addStretch()
 
     def look_page(self):
@@ -778,7 +792,8 @@ class Window(W.QMainWindow):
                           'FL2／FL3：从列表移除' if action == 'direct_fl23_disable' else
                           '自订 %s：%s' % (arguments.get('slot'), 'ST 默认' if action == 'direct_slot_default'
                                            else arguments.get('name') or Path(arguments.get('look', '')).stem))
-            scope = ('一次应用清单内的写入和恢复，未添加的槽位保持原样；保留 FL23、声音和竖屏。写入读回完成后统一提示断电重开。\n' if action=='direct_looks_import' else
+            scope = ('仅切换 CP 的四字节 LUT 刷新入口；保留所有色表、名称、配方和其他功能。写入后完整断电重开再比较。\n' if action in ('direct_preview_native','direct_preview_legacy') else
+                     '一次应用清单内的写入和恢复，未添加的槽位保持原样；保留 FL23、声音和竖屏。写入读回完成后统一提示断电重开。\n' if action=='direct_looks_import' else
                      '自动准备驱动并安装首页勾选的功能。断电重开必须由你按提示完成；结果不明时停止，不自动重复刷写。\n' if action == 'setup_all' else
                      '先只读核对；只有相机内容已改变时才按当前字节写入，已符合原厂的内容不重复写入。\n' if action == 'direct_resume_factory' and factory_finished else
                      '根据当前字节继续未完成阶段，已恢复的内容不重复写入；原失败事务保留，结果不明时先读取报告核对。\n' if action == 'direct_resume_factory' else
@@ -795,7 +810,8 @@ class Window(W.QMainWindow):
             arguments = dict(arguments, power_confirmed=True)
             arguments.pop('battery', None)
         if action in jobs.DIRECT_ACTIONS:
-            group = 'factory' if action in ('direct_factory_reset', 'direct_resume_factory') else 'fl23' if 'fl23' in action else 'look'
+            group = ('preview' if action in ('direct_preview_native', 'direct_preview_legacy') else
+                     'factory' if action in ('direct_factory_reset', 'direct_resume_factory') else 'fl23' if 'fl23' in action else 'look')
             self.settings[group + '_direct_work'] = arguments['workspace']
             if group=='look':
                 self.settings['look_resume_source']=arguments.get('failed_workspace','')
@@ -998,6 +1014,8 @@ def main():
     app.setApplicationName('A7C2Tools')
     app.setOrganizationName('QAQLeonard')
     window = Window()
+    if '--preview-gate-test' in sys.argv:
+        window.nav.setCurrentRow(3)
     window.show()
     if '--smoke-test' in sys.argv:
         data_root().mkdir(parents=True, exist_ok=True)

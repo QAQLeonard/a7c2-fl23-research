@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import sys
 from PyInstaller.utils.hooks import collect_all
 
@@ -45,7 +46,11 @@ for name in ('desktop.py', 'LICENSE', 'README.md', 'README.zh-CN.md', 'desktop-r
              'calibration/a7c2-2.01.virtual.npz'):
     datas.append((str(root / name), str(Path(name).parent)))
 
-a = Analysis([str(root / 'dev/desktop/frozen_entry.py')], pathex=[],
+entry = root / 'dev/desktop/frozen_entry.py'
+if os.environ.get('A7C2_BUILD_PREVIEW_GATE_TRIAL') == '1':
+    datas.append((str(entry), 'dev/desktop'))
+    entry = root / 'dev/desktop/preview_gate_entry.py'
+a = Analysis([str(entry)], pathex=[],
              binaries=binaries, datas=datas, hiddenimports=hidden,
              excludes=['tkinter', 'matplotlib', 'pandas', 'IPython', 'pytest'])
 pyz = PYZ(a.pure)

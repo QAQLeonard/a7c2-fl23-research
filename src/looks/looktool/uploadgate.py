@@ -56,6 +56,22 @@ def restore(cp):
     return source[:OFFSET] + NATIVE + source[OFFSET + len(NATIVE):]
 
 
+def restore_legacy_for_test(cp):
+    """Exact inverse for the isolated A/B test, never a normal install target.
+
+    Native admission alone does not validate the dormant trampoline bytes.
+    Check both complete historical stubs before making them reachable again.
+    """
+    source = _source(cp)
+    validate(source)
+    for at, expected in _FORCED_STUBS:
+        if source[at:at + len(expected)] != expected:
+            raise ValueError('Historical LUT upload retry trampoline differs')
+    if source[OFFSET:OFFSET + len(FORCED)] == FORCED:
+        return source
+    return source[:OFFSET] + FORCED + source[OFFSET + len(FORCED):]
+
+
 def legacy_hash_source(cp):
     """Normalize native to FORCED solely for an existing strict code hash.
 
