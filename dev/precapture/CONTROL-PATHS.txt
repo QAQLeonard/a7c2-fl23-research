@@ -2916,3 +2916,56 @@ before reviewing a first CP send. Main7827856 product files remain unchanged.
 
 Completion additionally requires a manual in-camera Off/On entry, initially
 Off. No menu or live switch binding exists; document that gap explicitly.
+
+Phase95: new nonce, context95 paths,12,664-byte worker;58 generated-worker
+models and same-file CPU0 Sony-kernel VM pass. Original phase94 job/fence stays
+retired. Both launch-session post-observation and follow-up source reads now
+use terminal gating. The follow-up's fixed syscall-only metadata scope uses
+the original captured source epoch, exact artifacts/receipt and body identity;
+native observer rejects changed AP PID before inspecting the old child. It
+makes NO fresh full-source claim and leaves programs_pinned false. Only exact
+observer uploads are possible; no child/UIPC/CP operation.13 adapter and11
+follow-up controls cover source-ordering/epoch differences;25 parent/48 observer,
+23 initial-adapter,16 corruption+2 reusedBSS,15 launch-controller controls pass.
+Both native/model journals reject166 false successes;323 preexecution members
+verified on E/P. No old admission dictionary/fence inherited.
+
+Physical initial session: first observation UNKNOWN, no post-launch source
+read, normal USB_FINISHED. Same-child follow-up with no pre-observation source
+read obtains ABSENT twice for child1003/AP519 and exact102-record success:
+50 calls,60 inheritedFDs closed,2 own outputFDs, actual getcpu2, masks7->4->7,
+signal inverse and never-sent UIPC query/map/allocate16 wait0/cancel/unmap/close.
+Exact old-job temporary files cleaned only after terminal proof; then all4
+full sources match and USB_FINISHED. No cold reload required. Owner confirms
+ordinary photo/playback. This completes this bounded diagnostic, NOT pre-capture
+or a general USB root-cause/stability proof. No CP request has been sent.
+
+Phase96 refreshes scheduling metadata only:20 generated probe cases,5 malformed
+records,10 operator cases and5 adapter guards. Physical scan297 tasks/4 batches,
+AP519 ordinary0/mask7; completion workers407/412 FIFO1 priority148 masks4/8,
+global RT runtime-1/period1000000. Sleeping-task CPU fields still1; do not call
+those masks proof of actual callback CPU execution. Exact probe cleanup, all4
+files unchanged and USB normal. No scheduling mutation/device open/ioctl/send.
+
+Offline RPC preparation: retain the original40-case v2 baseline and sources.
+New v4 keeps112-byte result extent/24-byte native packet, repurposes reserved
+fields for gate_calls/gate_status and retires unguarded entry before all I/O.
+Guard before allocation; guard again after native header checks but BEFORE
+payload/source writes. Refusal at the second gate cancels that untouched,
+never-sent allocation once; failed cancel retains UNKNOWN. A modeled gate is
+not live source/CPU/scheduler/callback lifetime proof.
+
+Zero native sync status cannot independently prove receipt or outgoing-owner
+release (three original send-admission branches still reproduce). Accept only
+the exact original unsupported e1 default: byte0=e1,byte1=80,bytes2..19=0,
+fresh nonce tail. Anything else, including unchanged data or old custom-observer
+reply, preserves UNKNOWN without free.34 retained protocol/ownership outcomes;
+5 intentionally change from freeing to retaining;1 old arbitrary-source fixture
+now rejects before I/O. Positive source fixtures now use own-queue ID grammar,
+not the old structural-only arbitrary source. Binding/result must be private,
+disjoint and outside shared mapping.26 added controls total66. This grammar
+does not independently prove that an ID belongs to a current opened context.
+Original native-library ioctl boundary and default756 returns/12
+supported-mode stop boundaries retained. NO live gate, fresh RPC context or
+physical sender is admitted. Next gate is their real lifetime/source binding;
+manual in-camera switch and real pre-trigger pixel/save/release remain open.

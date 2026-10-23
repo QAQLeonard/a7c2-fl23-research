@@ -162,6 +162,32 @@ original-source reports and model results, not just pass new replacement tests.
   RUNNING. support/child_session.py enforces that policy;10 focused controls,
   existing32 support/session tests and15 revised controller models pass.
   The revised controller is model-only; no new physical job is admitted.
+- Phase95 supersedes that controller-only checkpoint. A fresh nonce/path/worker
+  passes58 models and CPU0 native VM. The new initial session skips source
+  reads after UNKNOWN and exits USB normally. Follow-up uses a separately
+  reviewed fixed syscall-only observer with original source epoch/body/receipt
+  binding and native AP PID checking; it does NOT pretend to freshly pin full
+  programs or permit arbitrary uploads. Source reads are blocked until terminal.
+  13 observer-only adapter and11 follow-up controls cover those distinctions.
+  Physical same child1003/AP519 has102 records/50 calls, CPU2, masks7->4->7,
+  signals/context restored; two absent samples BEFORE any reload, exact cleanup,
+  four sources unchanged, both USB sessions normal. Owner photo/playback normal
+  without reboot. Phase94 remains retired; one success is not a broad USB fix.
+- Phase96 read-only scheduling refresh again finds FIFO148 workers with allowed
+  masks4/8 and runtime-1/period1000000. Their sleeping-task CPU field remains1:
+  allowed masks are NOT an observed callback executing on CPU2/3. Probe cleaned,
+  four sources unchanged and USB normal. No policy/affinity change or CP send.
+- RPC component v4 is OFFLINE ONLY. The unguarded entry now returns-95 without
+  I/O; guarded entry needs checks before allocation and before payload/send.
+  A refused second gate cancels the untouched allocation once. Only the exact
+  original e1/80/zero-middle/fresh-tail default response qualifies release after
+  sync; unexpected/unchanged/non-default replies retain unknown ownership.
+  Original40 models are preserved:34 retained protocol/ownership outcomes,
+  5 intentionally retain unexpected replies,1 now rejects the old foreign-type
+  source fixture. Positive source fixtures use the own-queue grammar; binding/
+  result spans must be private/disjoint.26 added controls give66. No live gate or
+  fresh RPC-context adapter exists. Do not treat a modeled allow callback or
+  the completed never-sent context as permission for a real CP request.
 - Manual in-camera Off/On control is required for completion, initially Off.
   It is NOT implemented. Do not auto-enable pre-capture or reuse the retired
   look display/segment/icon approach to fabricate an entry.
