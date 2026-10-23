@@ -236,6 +236,9 @@ def main():
                 calls=[] if stage==1 else [A,F],terminal=(7,0),**{'return':-95}))
     specs.append(dict(name='gate2-refused-cancel-unknown',gate_statuses={2:-22},
         release_status=-5,calls=[A,F],terminal=(8,3)))
+    for stage in (1,2):
+        specs.append(dict(name=f'gate{stage}-resource-unknown',gate_statuses={stage:-117},
+            calls=[] if stage==1 else [A],terminal=(8,3)))
     results=[model(elf,header,s) for s in specs]
     report=dict(schema='OFFLINE_RPC_PROBE_UNIT_MODELS/4',camera_io=False,cases=results,native_wire_boundary=wire,
         kernel_header_fixture_payload_bytes=24,ELF_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(),

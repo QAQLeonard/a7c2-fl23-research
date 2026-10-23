@@ -197,6 +197,17 @@ original-source reports and model results, not just pass new replacement tests.
 - Manual in-camera Off/On control is required for completion, initially Off.
   It is NOT implemented. Do not auto-enable pre-capture or reuse the retired
   look display/segment/icon approach to fabricate an entry.
+- Phase98's native condition gate always refuses stage2. Its successful
+  no-AP Sony-kernel CPU0 test uses the actual original PCIe worker and native
+  syscall/file replies; no fake thread, forced readiness or CP send. This is
+  necessary-condition evidence only. Lost UIPC FD identity or unknown gate
+  resources use-117, preserving the whole RPC context even before allocation.
+  Never turn that status into a clean cancellation/exit. The earlier VM with
+  no PCIe worker stopped before diagnostic launch and stays as a negative.
+  Its separate physical metadata probe locates loaded sections only: no kernel
+  code read or device open. kmem/kcore absent; mem node presence is not a safe
+  read route. Never guess physical mappings or treat section addresses as
+  loaded-byte admission. Reused gate records retain UNKNOWN without overwrite.
 - The owner's October19-23 handoff includes superseded hypotheses. Reuse its
   offline name-array discovery with actual ELF coordinates, not hardcoded
   paths, cross-model IDs or its camera operators. Generated PRM/VAL/FUNC names

@@ -33,6 +33,7 @@ int precapture_rpc_probe_guarded_once(const struct probe_binding*b,volatile stru
     r->allocation_status=r->rpc_status=r->release_status=-1;
     r->phase=RPC_GUARDING;r->gate_calls=1;
     r->gate_status=gate(RPC_GATE_BEFORE_ALLOC,gate_context);
+    if(r->gate_status==RPC_GATE_UNKNOWN_STATUS)return uncertain(r);
     if(r->gate_status){r->phase=RPC_REJECTED;return -95;}
     r->phase=RPC_ALLOCATING;r->allocation_attempts=1;
     probe_u64 message=0;
@@ -55,6 +56,7 @@ int precapture_rpc_probe_guarded_once(const struct probe_binding*b,volatile stru
      * cancel that allocation once, without entering the synchronous sender.
      */
     r->gate_calls=2;r->gate_status=gate(RPC_GATE_BEFORE_SEND,gate_context);
+    if(r->gate_status==RPC_GATE_UNKNOWN_STATUS)return uncertain(r);
     if(r->gate_status){
         if(release_once(b,r,invoke,RPC_REJECTED))return -5;
         return -95;

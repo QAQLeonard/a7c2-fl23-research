@@ -24,9 +24,14 @@ struct rpc_probe_result {
     probe_u32 reply_kind,source,gate_calls;probe_i32 gate_status;
 };
 enum rpc_gate_stage { RPC_GATE_BEFORE_ALLOC=1, RPC_GATE_BEFORE_SEND };
-/* Zero means the separately qualified live conditions still hold. This
- * callback interface alone is NOT source/CPU/scheduler/lifetime admission.
- * No live gate or native sender entry is provided by this component.
+/* A gate with unresolved resources must retain the whole child/context.
+ * Distinguish it from a known refusal with no remaining gate ownership. */
+enum { RPC_GATE_UNKNOWN_STATUS=-117 };
+/* Zero means the separately qualified conditions still hold. A known nonzero
+ * refusal has no unresolved gate resources. RPC_GATE_UNKNOWN_STATUS instead
+ * retains the whole context, even before allocation. This interface alone
+ * is NOT source/CPU/scheduler/lifetime admission. ap_rpc_conditions.c checks
+ * native necessary conditions but ALWAYS denies stage2; no sender admitted.
  */
 typedef probe_i32 (*probe_rpc_gate)(probe_u32 stage,void *context);
 int precapture_rpc_probe_guarded_once(const struct probe_binding *,volatile struct rpc_probe_result *,

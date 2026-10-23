@@ -3000,3 +3000,55 @@ Next native blocker: implement real fresh condition checks and establish the
 callback/loaded-source lifetime contract before admitting any physical request;
 actual CP receipt, pre-S2 exposure/RAW retention/writer/release and menu remain
 unimplemented. Old failed jobs and their immutable evidence stay retired.
+
+Phase98: replace abstract allow callbacks with an actual read-only native
+necessary-condition component, ap_rpc_conditions.c. No physical sender is
+admitted: stage2 unconditionally refuses, with no bypass/admission flag.
+Check both stages and bracket each with fresh UIPC FD stat identity and self
+CPU/affinity/ordinary-policy/priority/catchable-signal queries. Read the exact
+ordinary completion worker comm and stat identity before/after its FIFO148
+policy/priority/single-CPU affinity queries; require fresh expected PID/start,
+kernel-thread flag, runtime-1 and period1000000. A sampled mask still does NOT
+show a callback actually executing there or establish atomicity/lifetime.
+
+No syscall mutates scheduling/signals from this condition component. Its
+bounded regular-file reader opens/closes once, verifies flags/stat, detects
+overflow/short-read budget exhaustion and never retries close. Lost descriptor
+identity or unclosed gate resource returns-117. The RPC component recognizes
+that distinct UNKNOWN before allocation and before send: retain map/message/
+FD/process instead of interpreting it as a clean refusal and tearing down.
+112-byte result/version4 unchanged. All original66 RPC case reports identical;
+2 new unknown-resource cases give68. Fresh-context cases33->35.133 integrated
+generated-code cases cover each of88 read-only calls failing independently,
+PID reuse/name/flags/extent corruption, second-gate drift, unknown descriptors/
+close results and disjoint private storage. No actual sender executes.
+
+First CPU0 Sony-kernel VM lacks the PCIe worker and stops BEFORE launching
+the diagnostic. Preserve that negative result. A separate no-AP guest loads
+original hash-checked pcie-if.ko through the native loader in the previously
+qualified mapped/fault profile; no readiness flag/IRQ/event is forced. Worker
+197/start457 is read fresh. Same current candidate301 performs both genuine
+native condition rounds successfully, then lifetime-unqualified gate2 returns
+-95. Only INFO/ALLOCATE24/RELEASE ioctls observed; wrapper independently denies
+all sends. Group/affinity/signals/context restored, all owners zero, same child
+absent twice before guest exit. No physical camera I/O or CP request. This
+CPU0 conditional test is not physical CPU2 or after-send lifetime validation.
+Main7827856 product files unchanged. Next: qualify actual loaded source and
+callback lifetime before separately reviewing a physical diagnostic request;
+pre-S2 exposures, RAW retention/save/release and in-camera Off/On still absent.
+
+Phase98 physical metadata follow-up is a separate fixed11-path read-only
+probe, NOT the condition worker or an RPC candidate:8 regular text files read,
+3 paths stat-only.12 generated probe cases/4 corruptions,10 host-operator cases/
+5 adapter restrictions;335-file fresh admission sealed/mirrored before use.
+AP519 returns seven nonzero UIPC/PCIe/UTM .text/.data/.bss section addresses,
+kptr_restrict0, absent /dev/kmem and /proc/kcore, present /dev/mem character
+node. These are locations/metadata only: no device node opened, memory/code
+byte read, child, ioctl, CP request or existing code/parameter/ROM patch.
+Exact3 temporary files removed with byte/readback checks; four AP/CP/UIPC
+program files reread unchanged; USB_FINISHED and normal body USB identity.
+The next loaded-code verification must establish a genuine bounded read
+route without guessing a physical mapping or accessing MMIO. Disk matching
+and exported addresses do not independently identify the loaded instructions.
+Subsequent offline tightening treats reused gate records as UNKNOWN without
+overwriting them: they may retain prior unresolved resources. No camera replay.

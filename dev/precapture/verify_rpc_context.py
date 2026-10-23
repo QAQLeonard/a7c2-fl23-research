@@ -64,7 +64,8 @@ def model(elf, header, abi, kind):
             gates.append(stage)
             if stage == 2:
                 assert bytes(u.mem_read(MESSAGE-16, 44)) == header[48:92]
-            ret(-95 if kind == f'deny-{stage}' or kind == 'deny-cancel-error' and stage == 2 else 0)
+            ret(-117 if kind == f'gate-{stage}-unknown' else
+                -95 if kind == f'deny-{stage}' or kind == 'deny-cancel-error' and stage == 2 else 0)
             return
         if at == SCALL:
             assert word(STATE+4) == 2 and word(STATE+44) == 1
@@ -153,7 +154,8 @@ def model(elf, header, abi, kind):
     else:
         assert word(STATE+4) == 2 and word(STATE+44) == 1
         unknowns = ('rpc-tail-map-overlap','allocate-unknown','bad-header','send-error',
-            'unchanged-reply','bad-reply','callback','release-error','deny-cancel-error','unmap-error','close-error')
+            'unchanged-reply','bad-reply','callback','release-error','deny-cancel-error','unmap-error','close-error',
+            'gate-1-unknown','gate-2-unknown')
         if kind in unknowns:
             assert status == (-5 & 0xffffffff) and word(STATE+8) == 11 and word(STATE+12) == 3
             if kind not in ('unmap-error','close-error'):
@@ -186,7 +188,7 @@ def main():
     sources = [root/name for name in ('ap_rpc_context.c','ap_rpc_probe_once.c')]
     elf = a.output/'NOT-INSTALLABLE-rpc-context.elf'
     compile_shared(a.zig, 'aarch64', elf, sources)
-    kinds = ['default-reply','different-fresh-source','deny-1','deny-2','deny-cancel-error',
+    kinds = ['default-reply','different-fresh-source','deny-1','deny-2','deny-cancel-error','gate-1-unknown','gate-2-unknown',
         'invalid-source','zero-source','path-error','open-error','fd-error','query-error','map-error',
         'rpc-tail-map-overlap','allocate-rejected','allocate-unknown','bad-header','send-error',
         'unchanged-reply','bad-reply','callback','release-error','unmap-error','close-error',
