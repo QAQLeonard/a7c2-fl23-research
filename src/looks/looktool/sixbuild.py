@@ -103,7 +103,7 @@ def build(ap,cp,tables,native_cp_original):
     if apply(apply(before,forward),reverse)!=before:raise ValueError('Six-look inverse differs')
     report={'status':'OFFLINE_SIX_PROGRAM_TRANSITION_REQUIRES_SEPARATE_INTEGRATION','camera_io':False,
         'additional_quantization':False,'raw_table_bytes':7290,'header_bytes':32,'native_grid':[5,9,9],'native_signed_bits':7,
-        'per_use_integrity_gate':True,'preview_revision':'upload-retry-v4','segment_headers_unchanged':True,
+        'per_use_integrity_gate':True,'preview_revision':'native-upload-gate','segment_headers_unchanged':True,
         'resource_label_ids':[hex(v) for v in LABEL_IDS],
         'remaining_integration':['68 validated language/layout resource files','Fresh per-body ST settings provisioning and preservation',
             'Exact native worker transaction and tested inverse','Retained-image evidence and physical cold-load testing'],

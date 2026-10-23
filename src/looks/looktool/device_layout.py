@@ -6,13 +6,16 @@ native FL23 updates. Desktop transactions use structural checks directly.
 """
 import hashlib,struct,json
 from pathlib import Path
-from . import firmware,six
+from . import firmware,six,uploadgate
 
 CODE_SHA='5434cd40a746fef421fbe6825ebbdc1d41aa5304a686a162bb56378a6e94c4b5'  # Filled from the known complete v4 private fixture during build.
 
 def runtime():
     data=json.loads((Path(__file__).resolve().parents[1]/'assets/runtime-v1.json').read_text(encoding='utf-8'))
     if data['schema']!='a7c2-lut-runtime/1':raise ValueError('Unknown runtime patch schema')
+    # Both CP hash fields describe historical hash inputs, not raw new output.
+    if data.get('cp_hash_canonical_upload_entry')!=uploadgate.FORCED.hex():
+        raise ValueError('Unknown canonical CP upload entry for runtime hashes')
     return data
 
 def _ap_target(source,mask):
@@ -42,7 +45,10 @@ def identify_ap(ap):
     raise ValueError('Unsupported AP identity; no firmware/settings writes performed')
 
 def code_hash(cp):
-    cp=normalize_fl23_native(cp)
+    # Retain the published complete-code fingerprint. Only the two reviewed
+    # upload-entry instructions normalize to its historical representation;
+    # unknown entries/context and all other code changes still fail.
+    cp=uploadgate.legacy_hash_source(normalize_fl23_native(cp))
     start=six.TABLE_FILE+8;end=six.TABLE_FILE+32+6*six.TABLE_BYTES
     if len(cp)<end:raise ValueError('Truncated CP program')
     h=hashlib.sha256();h.update(cp[:start]);h.update(bytes(end-start));h.update(cp[end:]);return h.hexdigest()
@@ -108,6 +114,7 @@ def structural(ap,cp):
     from . import photoio
     photo=photoio.inspect(cp)
     if not identity.get('first_install'):
+        uploadgate.validate(cp)
         if len(cp)<six.TABLE_FILE+32+6*six.TABLE_BYTES or struct.unpack_from('<2I',cp,six.TABLE_FILE)!=(six.MAGIC,six.VERSION):
             raise ValueError('Custom table header/size differs')
     return dict(identity,layout='full7-v4' if identity['kind']=='legacy-six' else 'standalone-v1',
@@ -123,7 +130,8 @@ def tables(cp):
 def same_selected_programs(expected,actual,slot):
     """Post-reload only: permit later data updates to the other five slots.
 
-    AP and every CP byte outside the explicit per-slot data remain exact.
+    Also accept the reviewed one-way forced-to-native upload-entry migration.
+    AP and all other CP code remain exact; old job evidence is never rewritten.
     This never relaxes pre-write checks or immediate installation readback.
     """
     from . import photoio,photobuild,photobasis
@@ -131,6 +139,14 @@ def same_selected_programs(expected,actual,slot):
     before,current=expected['cpapp-b.bin'],actual['cpapp-b.bin']
     if len(before)!=len(current):return False
     try:
+        entry=slice(uploadgate.OFFSET,uploadgate.OFFSET+len(uploadgate.NATIVE))
+        if before[entry]!=current[entry]:
+            if before[entry]!=uploadgate.FORCED or current[entry]!=uploadgate.NATIVE:
+                return False
+            # Validate both contexts and the reachable historical stubs. Only
+            # normalize this in-memory comparison; restoration uses fresh CP.
+            uploadgate.validate(current)
+            before=uploadgate.restore(before)
         tables(before);tables(current)
         a,b=photoio.inspect(before),photoio.inspect(current)
     except (ValueError,struct.error):return False
@@ -183,6 +199,12 @@ def replace(ap,cp,replacements,*,hash_checks=True,native_photo=None,native_bank=
             result[at:at+len(new)]=new
         # The final code/layout check below also permits the reviewed updated
         # native FL23 curves. Do not reject them with the old full-file digest.
+    # Existing v4 runtimes keep their tables/photo data and dormant stubs.
+    # Migrate only the reviewed forced-repeat entry, inside this transaction.
+    native=uploadgate.restore(bytes(result))
+    if native!=result:
+        spans.append((uploadgate.OFFSET,4))
+    result=bytearray(native)
     if identity['kind']!='legacy-six':
         source=bytearray(ap)
         spec=next(s for s in runtime()['ap_sources'] if identity['kind'].startswith(s['kind']))

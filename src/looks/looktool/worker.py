@@ -1,6 +1,6 @@
 """Offline compiler inputs and report checks; no USB or camera execution.
 
-Only selected-table updates from the pinned full7-v4 source are accepted.
+Only selected-table updates and the reviewed upload-entry migration are accepted.
 This does not authorize an unknown source or install a stock-to-six build.
 Generated headers contain private firmware-derived bytes; keep them private.
 """
@@ -12,7 +12,7 @@ REPORT=struct.Struct('<8sIIII7q4Q')
 
 
 def prepare_table_worker(ap,cp,forward,reverse,bindings):
-    if firmware.sha(ap)!=six.AP_SHA or firmware.sha(cp)!=six.CP_SHA:
+    if firmware.sha(ap)!=six.AP_SHA or firmware.sha(six.uploadgate.legacy_hash_source(cp))!=six.CP_SHA:
         raise ValueError('Worker preparation requires the pinned full7-v4 source')
     for manifest in [forward,reverse]:
         if manifest.get('schema')!='a7c2-private-transition/1' or set(manifest.get('files',{}))!=set(NAMES):
@@ -31,7 +31,7 @@ def prepare_table_worker(ap,cp,forward,reverse,bindings):
     tables=six.read_tables(after['cpapp-b.bin'])
     expected_f,expected_r,expected_after=six.replace_tables(ap,cp,{s:tables[s-1] for s in slots})
     if after!=expected_after or forward['files']!=expected_f['files'] or reverse['files']!=expected_r['files']:
-        raise ValueError('Only selected tables and their own checksums may change')
+        raise ValueError('Only selected tables, their checksums and the reviewed upload entry may change')
     windows=[]
     for chip,name in enumerate(NAMES):
         windows.extend(dict(window,chip=chip) for window in forward['files'][name]['windows'])

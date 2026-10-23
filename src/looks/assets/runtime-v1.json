@@ -186,7 +186,7 @@
         {
           "offset": 1267002,
           "before": "42f6b010",
-          "after": "f1f1e89f"
+          "after": "42f6b010"
         },
         {
           "offset": 1267912,
@@ -488,7 +488,7 @@
         {
           "offset": 1267002,
           "before": "42f6b010",
-          "after": "f1f1e89f"
+          "after": "42f6b010"
         },
         {
           "offset": 1267912,
@@ -519,5 +519,6 @@
     }
   ],
   "cp_zero_tables_sha256": "45c53a7a32190582ed985b4f6aa9fd878f014296d06d2710a6d3967ece4bf623",
-  "cp_code_sha256": "befd42d2531e31605a565f5c85ee467b932cfb9d60bb8e0866611ab9367e1695"
+  "cp_code_sha256": "befd42d2531e31605a565f5c85ee467b932cfb9d60bb8e0866611ab9367e1695",
+  "cp_hash_canonical_upload_entry": "f1f1e89f"
 }

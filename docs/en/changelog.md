@@ -2,6 +2,14 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Unreleased — restore native LUT upload conditions
+
+- New builds and desktop stock/FL23 installs retain Sony's original CP instruction at `0x13553a`, instead of entering the v4 forced-repeat compensation. Normal uploads, native conditions, tables, photo support and FL2/FL3 remain. Dormant retry stubs remain only for historical layout compatibility.
+- Reimporting a custom slot migrates a recognized old entry to the native instruction within the same readback/inverse transaction. Replanning an already-native entry adds no gate write. Unknown instructions, native continuation or old trampoline conflicts stop. Complete-code fingerprints normalize only these two exact reviewed entries; other code remains covered by the existing checks.
+- Post-reload verification of old slot jobs accepts this validated one-way entry migration without changing their records or hashes. A fresh selected-slot restore preserves the current native entry. Pre-write checks, immediate readback and raw restoration do not use this exception. The legacy `prepare-preview-retry` command keeps its arguments, describes native upload conditions and reports bytes from actual windows.
+- On one 2.01 A7C II using macOS, an isolated four-byte CP change removed the moving band in NC S35 4K60 recording; photos/playback and immediate ST↔NC preview switching worked. Samples decoded from the exported videos support this observation. NC S35 4K30 also reproduced before the change, but has not been retested afterward. This PR's integrated installation paths are offline-tested only, not physically accepted as a package.
+- Refs #12 and #13 describe high-refresh EVF artifacts, without establishing the same cause as the recorded-video band. Native gating can expose the dropped-submission behavior the old compensation targeted; broader preview, EVF and recording regression is still needed. No universal stability or hardware timing root cause is claimed. The original stopped check remains preserved because 26 historical AP setting differences across physical testing are not fully explained.
+
 ## 3.0.3 — USB recovery and sound workflow fixes — 2026-10-23
 
 - All desktop sound controls now work from the current selection/body: volume up/down/reset and conversion remain host-only; On/Off use fresh switch transactions; Restore original sound rebuilds only the supported AP sound-loader inverse from current bytes, preserves the switch and looks, and removes the boot call before its reader prerequisites. It no longer searches completed installation records or sends the user to full factory recovery. Sound verification reads currently loaded sound code/resources without a saved installation job. Optional listening/recovery statements can be recorded without an audition job. Stale staging is handled by the same current-request cleanup used by Save/Audition; no old pending task is an eligibility gate.
