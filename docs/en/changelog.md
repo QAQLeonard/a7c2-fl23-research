@@ -2,6 +2,10 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Unreleased
+
+- Fix resource-reload continuation for batches that mix look imports with ST resets on the legacy six-slot layout, including reset-only batches. Reconstruct the complete title selection from the saved name worker's header, so restored slots are verified as ST and modern-layout resets retain their existing titles. Keep full resource readback, program-window checks and unknown-outcome guards. Offline regression tests use synthetic resources and a simulated camera; physical continuation has not been tested.
+
 ## 3.0.3 — USB recovery and sound workflow fixes — 2026-10-23
 
 - All desktop sound controls now work from the current selection/body: volume up/down/reset and conversion remain host-only; On/Off use fresh switch transactions; Restore original sound rebuilds only the supported AP sound-loader inverse from current bytes, preserves the switch and looks, and removes the boot call before its reader prerequisites. It no longer searches completed installation records or sends the user to full factory recovery. Sound verification reads currently loaded sound code/resources without a saved installation job. Optional listening/recovery statements can be recorded without an audition job. Stale staging is handled by the same current-request cleanup used by Save/Audition; no old pending task is an eligibility gate.

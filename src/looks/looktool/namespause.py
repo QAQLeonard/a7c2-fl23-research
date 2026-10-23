@@ -5,7 +5,7 @@ The program installer retains its read-only mount prerequisite.
 """
 import json,re,struct
 from pathlib import Path
-from . import bundle,checkpoint,nameworker,resources,lookfile
+from . import checkpoint,nameworker,resources
 
 WAIT='AWAITING_RESOURCE_RELOAD'
 
@@ -46,6 +46,30 @@ def source(folder):
     return root,state,raw
 
 
+def name_plan(header):
+    """Read the exact title selection compiled into the saved forward worker."""
+    labels=re.search(r'static const u32 label_ids\[\]=\{([^}]+)\};',header)
+    selection=re.search(r'static const u32 selected_mask=(\d+);',header)
+    names=re.search(r'static const u8 names\[6\]\[64\]=\{([{}\d,\s]+)\};',header)
+    if not labels or not selection or not names:raise ValueError('Missing name plan evidence')
+    ids=tuple(int(v.strip().rstrip('U')) for v in labels[1].split(','))
+    mask=int(selection[1])
+    # The generated C initializer contains decimal byte arrays only.
+    rows=json.loads('['+names[1].replace('{','[').replace('}',']')+']')
+    if len(ids)!=6 or set(ids)!=set(resources.LABEL_IDS) or not 1<=mask<=63 or len(rows)!=6:
+        raise ValueError('Invalid name plan layout or selection')
+    titles={}
+    for slot,row in enumerate(rows,1):
+        if not isinstance(row,list) or not 2<=len(row)<=64 or any(type(v) is not int for v in row):
+            raise ValueError('Invalid name plan bytes')
+        value=bytes(row)
+        if value[-1]!=0 or b'\0' in value[:-1]:raise ValueError('Invalid name plan terminator')
+        title=value[:-1].decode('utf-8')
+        if any(ord(c)<32 for c in title):raise ValueError('Invalid name plan controls')
+        if mask&(1<<(slot-1)):titles[slot]=title
+    return titles,ids
+
+
 def verify_files(camera,root,state):
     print('正在读取原程序，核对尚未写入的程序窗口。',flush=True)
     images={n:camera.read(p) for n,p in checkpoint.PROGRAM_PATHS.items()}
@@ -61,15 +85,11 @@ def verify_files(camera,root,state):
             expected=arrays[int(old)];raw=images['cpapp-b.bin' if chip=='1' else 'appFw.so']
             if len(expected)!=int(size) or raw[int(at):int(at)+int(size)]!=expected:
                 raise ValueError('Current program differs; no automatic replay')
-    if state['mode']=='install_all':
-        _,rows=bundle.documents(state['bundle_options']);titles={r['slot']:r['name'] for r in rows}
-    else:
-        doc=lookfile.read(root/'reference.a7look');titles={state['slot']:state.get('name') or doc['name']}
     build=state['forward_name_build']
     header=Path(build['path']).with_name('names.private.h').read_text(encoding='ascii')
-    match=re.search(r'static const u32 label_ids\[\]=\{([^}]+)\};',header)
-    if not match:raise ValueError('Missing name layout evidence')
-    ids=tuple(int(v.strip().rstrip('U')) for v in match[1].split(','))
+    # Includes ST resets on legacy-six; modern resets may leave titles alone.
+    # Reuse the saved transaction rather than reconstructing only look imports.
+    titles,ids=name_plan(header)
     for index,spec in enumerate(build['files'],1):
         raw=camera.read('/usr/share/app/'+spec['file'])
         original=resources.inverse(raw,spec['inverse'])

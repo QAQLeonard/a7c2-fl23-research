@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 from looktool import checkpointworker,direct,lookfile,nameworker,namespause,resources
 from test_checkpoint import Camera,values,fake_compile
+from test_device_components import resource_fixture
 from test_direct import SimDirect
 
 
@@ -17,14 +18,8 @@ class NamesPauseTests(unittest.TestCase):
         self.target=dict(self.current,**{'appFw.so':b'\7'+self.current['appFw.so'][1:]})
         with patch.object(checkpointworker,'compile_worker',side_effect=fake_compile):
             programs=checkpointworker.build_programs(self.current,self.target,self.failed/'worker')
-        rows=[]
-        for n in nameworker.filenames():
-            old=self.current['resources/'+n];new,plan=resources.rename(old,{1:'CC'})
-            self.camera.files['/usr/share/app/'+n]=new
-            rows.append(dict(file=n,before_bytes=len(old),after_bytes=len(new),inverse=plan))
-        path=self.failed/'names/names.so';path.parent.mkdir();path.write_bytes(b'known names worker')
-        path.with_name('names.private.h').write_text('static const u32 label_ids[]={'+','.join(str(v)+'U' for v in resources.LABEL_IDS)+'};\n')
-        self.build=dict(path=str(path),count=68,files=rows,byte_only=True,stream_install=True,AP=None)
+        self.install_names(self.current['resources/'+nameworker.filenames()[0]],{1:'CC'})
+        path=Path(self.build['path'])
         self.raw=nameworker.REPORT.pack(b'A7NMR001',1,1,9,68,-16,0,0,-16,0,0,517,68,0,68,0,0,0,bytes(32))
         (self.failed/'evidence/failed-names-forward-1.bin').write_bytes(self.raw)
         lookfile.write(self.failed/'reference.a7look','CC',bytes(1215),method='fixture',attribution='test')
@@ -38,6 +33,87 @@ class NamesPauseTests(unittest.TestCase):
 
     def save(self):(self.failed/'direct.private.json').write_text(json.dumps(self.state),encoding='utf-8')
     def job(self):return SimDirect(self.root/'resume',factory=self.camera)
+
+    def install_names(self,original,titles,label_ids=resources.LABEL_IDS):
+        def compile_names(*args,**kwargs):
+            fake_compile(*args,**kwargs)
+            return {}
+        sources={n:original for n in nameworker.filenames()}
+        with patch.object(nameworker,'compile_worker',side_effect=compile_names):
+            changed,self.build=nameworker.prepare(sources,titles,self.current['appFw.so'],
+                '0123456789abcdef',self.failed/'names',label_ids=label_ids,byte_only=True)
+        for name,data in changed.items():self.camera.files['/usr/share/app/'+name]=data
+
+    def bundle_names(self,original,titles,label_ids=resources.LABEL_IDS):
+        self.install_names(original,titles,label_ids)
+        self.state.update(mode='install_all',forward_name_build=self.build,
+            bundle_options=dict(fl23=False,sound=False,reset_slots=[2,5],looks=[]))
+        for slot in (1,4):
+            if slot not in titles:continue
+            path=self.failed/('reference-slot-%d.a7look'%slot)
+            lookfile.write(path,titles[slot],bytes(1215),method='fixture',attribution='test')
+            self.state['bundle_options']['looks'].append(dict(slot=slot,path=str(path),name=titles[slot]))
+        self.save()
+
+    def test_mixed_legacy_write_and_st_reset_survives_resource_reload(self):
+        self.bundle_names(resource_fixture(),{1:'CC',2:'ST',4:'夜景',5:'ST'})
+        before=dict(self.camera.files);settings=copy.deepcopy((self.camera.ram,self.camera.saved))
+        evidence={p:p.read_bytes() for p in self.failed.rglob('*') if p.is_file()}
+        job=self.job()
+        self.assertEqual(job.prepare_names_reload(self.failed,power_confirmed=True)['phase'],namespause.WAIT)
+        self.assertEqual(job.verify_names_reload()['phase'],namespause.WAIT)
+        self.camera.boot='boot-new';self.camera.usr_mount_readonly=True
+        self.assertEqual(job.verify_names_reload()['phase'],'RESOURCE_RELOAD_VERIFIED')
+        self.assertEqual(self.camera.files,before)
+        self.assertEqual((self.camera.ram,self.camera.saved),settings)
+        self.assertFalse(any(kind in ('program','names') for kind,mode in self.camera.native_calls))
+        self.assertEqual(evidence,{p:p.read_bytes() for p in self.failed.rglob('*') if p.is_file()})
+        parsed=resources.decode(self.camera.files['/usr/share/app/'+nameworker.filenames()[0]])
+        self.assertEqual([parsed['entries'][rid]['text'] for rid in resources.LABEL_IDS],
+                         ['CC','ST','Original 3','夜景','ST','Original 6'])
+
+    def test_reset_only_legacy_bundle_uses_recorded_st_titles(self):
+        self.bundle_names(resource_fixture(),{2:'ST',5:'ST'})
+        self.assertEqual(self.job().prepare_names_reload(self.failed,power_confirmed=True)['phase'],namespause.WAIT)
+
+    def test_modern_resets_do_not_rename_inactive_slots(self):
+        ids=tuple(sorted(resources.LABEL_IDS))
+        self.bundle_names(resource_fixture(),{1:'CC',4:'夜景'},ids)
+        before=dict(self.camera.files)
+        self.assertEqual(self.job().prepare_names_reload(self.failed,power_confirmed=True)['phase'],namespause.WAIT)
+        self.assertEqual(self.camera.files,before)
+        parsed=resources.decode(before['/usr/share/app/'+nameworker.filenames()[0]])
+        original=resources.decode(resource_fixture())
+        for slot in (2,3,5,6):self.assertEqual(parsed['entries'][ids[slot-1]],original['entries'][ids[slot-1]])
+
+    def test_changed_restored_title_stops_before_cleanup_or_native_operations(self):
+        self.bundle_names(resource_fixture(),{1:'CC',2:'ST',4:'夜景',5:'ST'})
+        path='/usr/share/app/'+nameworker.filenames()[0]
+        raw=bytearray(self.camera.files[path]);parsed=resources.decode(raw)
+        at=parsed['data_base']+parsed['entries'][resources.LABEL_IDS[1]]['pointer']*4+4
+        raw[at:at+2]=b'SX';self.camera.files[path]=bytes(raw)
+        temps=dict(self.temps)
+        with self.assertRaisesRegex(ValueError,'Complete name readback differs'):
+            self.job().prepare_names_reload(self.failed,power_confirmed=True)
+        self.assertFalse(self.camera.native_calls)
+        self.assertEqual(self.temps,temps)
+
+    def test_incomplete_or_invalid_name_evidence_stops_before_cleanup(self):
+        path=Path(self.build['path']).with_name('names.private.h')
+        header=path.read_text(encoding='ascii');temps=dict(self.temps)
+        invalid=[header.replace('static const u32 selected_mask=1;',''),
+                 header.replace('selected_mask=1;','selected_mask=64;'),
+                 header.replace('selected_mask=1;','selected_mask=0;'),
+                 header.replace('{67,67,0}','{67,67}'),
+                 header.replace('{67,67,0}','{255,0}'),
+                 header.replace('{67,67,0}','{67,0,67,0}')]
+        for index,text in enumerate(invalid):
+            with self.subTest(index=index):
+                path.write_text(text,encoding='ascii')
+                job=SimDirect(self.root/('invalid-'+str(index)),factory=self.camera)
+                with self.assertRaises(ValueError):job.prepare_names_reload(self.failed,power_confirmed=True)
+                self.assertFalse(self.camera.native_calls)
+                self.assertEqual(self.temps,temps)
 
     def test_prepare_accounts_actual_report_without_any_program_or_recipe_write(self):
         before={p:p.read_bytes() for p in self.failed.rglob('*') if p.is_file()}
