@@ -1559,6 +1559,53 @@ class NativeTests(unittest.TestCase):
                 self.assertFalse(result[field], field)
         self.assertFalse(report['physical_shift_verified'])
 
+    def test_original_imager_constructs_its_own_model_config_and_dispatches_query(self):
+        from cp_startup_config_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 4)
+        for case in report['cases']:
+            self.assertEqual(case['model_configuration_difference_offsets'],
+                             [6, 8, 9, 72, 73, 74, 75, 76, 88, 89, 90, 91, 92, 94, 108])
+            for key in ('target', 'reference'):
+                result = case[key]
+                self.assertTrue(result['original_constructor_returned'])
+                self.assertTrue(result['native_singleton_binding'])
+                self.assertTrue(result['real_vtable_query_executed'])
+                self.assertTrue(result['native_callee_saved_registers_preserved'])
+                self.assertEqual(result['native_config_copy_bytes'], 116)
+                self.assertEqual(result['native_status'], 0)
+                self.assertEqual(len(bytes.fromhex(result['native_config_hex'])), 116)
+                self.assertEqual(bytes.fromhex(result['constructor_config_hex'])[6], 8 if key == 'target' else 5)
+                self.assertFalse(result['host_assigned_config_or_api_returns'])
+                self.assertFalse(result['full_startup_executed'])
+                self.assertFalse(result['physical_mmio_access_executed'])
+        self.assertFalse(report['physical_shift_verified'])
+
+    def test_native_startup_config_feeds_address_binding_until_real_dma_dependency(self):
+        from cp_startup_binding_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 4)
+        for case in report['cases']:
+            a = case['target']['config_continuation']
+            self.assertEqual(a, case['reference']['config_continuation'])
+            self.assertTrue(a['original_backend_constructor_returned'])
+            self.assertTrue(a['original_address_binding_prefix_executed'])
+            self.assertTrue(a['config_preserved'])
+            self.assertTrue(a['same_ram'])
+            self.assertEqual(a['boundary'], 'before_dma_object_constructor')
+            self.assertEqual(a['native_register_writes'], 57)
+            self.assertEqual(a['independent_register_words_checked'], 6)
+            self.assertEqual(a['config_read_offsets'], [(2, 1), (3, 1), (4, 1), (5, 1), (24, 4), (28, 2)])
+            self.assertEqual(a['native_irq_enable_results'], [(0xa2, -17)])
+            self.assertTrue(a['irq_id_bounds_are_zero_fixtures'])
+            self.assertTrue(a['register_backing_is_synthetic_plain_ram'])
+            for field in ('original_address_binder_returned', 'native_irq_enable_succeeded',
+                          'hardware_acknowledgement_or_settling_supplied',
+                          'physical_mmio_access_executed', 'complete_boot_executed'):
+                self.assertFalse(a[field], field)
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
