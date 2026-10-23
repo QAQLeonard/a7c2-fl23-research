@@ -3065,3 +3065,54 @@ subtract a guessed constant or use them as device offsets. mmap/write paths,
 actual RAM extents, runtime page tables and physical reads remain unadmitted.
 Next blocker is source-qualified live page-table/RAM binding for a bounded
 read-only loaded-text comparison; callback lifetime remains separately open.
+
+Phases100-102 advance that loaded-source blocker without a CP request.
+Pure support/kernel_mapping.py checks canonical boot UUID, exact11 original
+symbol offsets, resource hierarchy and independent code/data image-offset
+agreement. Original setup_arch store slices reproduce the resource extents;
+original vmalloc_to_page independently loads init_mm.pgd at+40. Six generated
+unittest methods include invalid/hidden resources, duplicate/changed symbols,
+outside-RAM/block/device/user/NX leaves. Two original three-level walk cases
+match the planner, stopping before page-object conversion; no native service
+success is fabricated. Public helpers perform no I/O.
+
+Physical fixed3-proc scan (15 models/4 corruptions,10 operator/5 adapter cases)
+finds normal System RAM400000000..4ffffffff, code400080000..40062ffff and
+data400680000..40072efff; exact11 symbol offsets match current boot. Next
+separate scoped96-byte read (23 models/4 corruptions) verifies original64-byte
+kernel header, actual kimage_voffset/memstart and actual init_mm.pgd contents;
+the latter really equals swapper_pg_dir on this body. Boot mismatch refuses
+before device open. Native Sony-kernel CPU0 wrapper also completes96 bytes
+and exits. This only bootstraps a bounded read route; it is not full code ID.
+
+Separate fixed-code reader walks ordinary3-level module tables, accepts only
+normal accessed kernel executable leaves within System RAM, rechecks every
+descriptor and brackets reads with the same root pointer. No mmap/device write
+or ioctl exists.63 actual generated-reader models cover23 reads failing/short,
+invalid/outside-RAM/table-attribute/device/user/NX/block leaves and observed
+table/root changes. Five output corruptions and10 host/5 adapter guards pass.
+References reconstruct all12 CALL26 relocations, never mask changed words.
+
+The first VM wrapper correctly refuses its next table53fffe000 because its
+input incorrectly reused the body's narrower RAM end4ffffffff. Same guest/
+child observed without replay: status-95, only2x8-byte reads, devclose0; native
+FD listing proves only0/1/2 remain and ordinary sleeping state. Keep this guard
+negative and all failed disposal observers. Shell-init ignores ordinary
+poweroff; a new QMP connection receives no greeting (NO QMP command sent).
+Only after known-return/independent no-owned-FD qualification, its disposable
+guest executes its own kernel poweroff; no child kill, native replay or camera
+action. A fresh nonce/path/VM-only range input uses independently observed
+RAM400000000..53fffffff. Same read logic then completes23 reads,9 exact spans
+and two absent samples. No VM range is carried into body admission.
+
+Physical code scope then succeeds: nine named spans/1,796 code bytes match,
+including PCIe wait/wakeup244, completion dispatch144, schedule_timeout832,
+spinlock irqsave80/unlock80, wake_up_process32, read_mem328 and range-check56.
+Total physical reads1,908 bytes include table/root observations;12 relocation
+sites rebuilt exactly, no masking. Full table-path rechecks, exact3 temporary
+file cleanup, four source programs unchanged and USB_FINISHED. No firmware,
+parameter/existing-code patch, CP request or real exposure. Named spans are
+not whole-kernel/module identity, a module reference or an atomic lifetime
+guarantee. Next native blocker remains remaining send route/UIPC qualification
+and actual callback/preemption lifetime; then a separately reviewed diagnostic
+request. In-camera switch and pre-S2 RAW/save/release are still absent.

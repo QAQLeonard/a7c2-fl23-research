@@ -208,6 +208,14 @@ original-source reports and model results, not just pass new replacement tests.
   code read or device open. kmem/kcore absent; mem node presence is not a safe
   read route. Never guess physical mappings or treat section addresses as
   loaded-byte admission. Reused gate records retain UNKNOWN without overwrite.
+- Phases100-102 supersede address-only evidence for9 named code spans only:
+  exact boot/resource bootstrap, actual init_mm.pgd, RAM-only page walks and
+  descriptor rechecks qualify1,796 bytes with12 CALL26 sites reconstructed.
+  Do not infer full module, UIPC send-path or callback-lifetime admission.
+  The VM's first next-table refusal correctly enforced body RAM bounds. It
+  was observed as known-95/devclose0/only standard FDs before disposable-guest
+  shutdown; original failed scope is never replayed. A fresh VM-specific RAM
+  input passes; never widen physical-body RAM bounds to make a VM pass.
 - The owner's October19-23 handoff includes superseded hypotheses. Reuse its
   offline name-array discovery with actual ELF coordinates, not hardcoded
   paths, cross-model IDs or its camera operators. Generated PRM/VAL/FUNC names
