@@ -108,10 +108,24 @@ original-source reports and model results, not just pass new replacement tests.
   physical binding works. Its default observed_CPU=0 is not a getcpu sample:
   the failed path stopped before that syscall.
 - Original UTM routes mask4 to /dev/cgroup/cpu2/tasks and mask7 to cpu0_1_2/tasks;
-  those are source arguments only. No cgroup write has been admitted/executed.
+  those are source arguments only. The later phase91 self-task experiment is
+  separately scoped; it does not execute UTM or admit arbitrary cgroup writes.
   Group names do not establish actual CPU masks, and missing config export
   does not prove a controller absent. Any alternative needs separate scoped
   self-only candidate/inverse review; never move AP or existing kernel workers.
+- Phase90's completed fixed-file probe read the actual cpuset controller/groups:
+  target configured/effective CPU2, original group0-3; AP remained mask7.
+  This does not establish why the earlier setaffinity was ineffective.
+- Phase91's fresh self-task candidate writes token0 once to cpu2/tasks and once
+  to its exact original cpu0_1_2_3rt/tasks; no control creation/truncation or
+  PID formatting.34 component models and28 worker models pass; same worker
+  completes50-record migration/inverse in Sony-kernel CPU0 VM and physical
+  CPU2. Physical getcpu=2, affinity7->4->7. Initial empty observation stayed
+  UNKNOWN; follow-up observed the same fenced child, two absent samples and
+  exact cleanup. Four source files unchanged, USB_FINISHED, normal0E8A.
+  No UIPC open/ioctl/CP request, AP/worker migration, parameter/ROM/existing-RAM
+  patch or signal manipulation. Old phase89 failure remains retired. This
+  does not admit a synchronous send or establish physical pre-capture.
 - The owner's October19-23 handoff includes superseded hypotheses. Reuse its
   offline name-array discovery with actual ELF coordinates, not hardcoded
   paths, cross-model IDs or its camera operators. Generated PRM/VAL/FUNC names

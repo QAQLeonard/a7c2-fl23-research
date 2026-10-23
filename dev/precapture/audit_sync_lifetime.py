@@ -281,6 +281,26 @@ def audit(pcie, utm, kernel):
         assert got['call']=='filp_open' and got['args'][:3]==[output,2,0x1a4]
         cpuset_routes.append(dict(mask=mask,case='independent-fixed-path-open-boundary',
             flags=2,mode=0x1a4,no_create_or_truncate_flag=True,open_called=False))
+    self_token=[]
+    assert decoded(kernel,0x9bce0,0x9bcf0)==[
+        ('stp','x29, x30, [sp, #-0x10]!'),('mov','w3, #0'),('mov','x29, sp'),('bl','#0x9ba10')]
+    assert decoded(kernel,0x9ba84,0x9ba98)==[
+        ('ldr','w0, [x29, #0x7c]'),('cbnz','w0, #0x9bbf0'),('mrs','x19, sp_el0'),
+        ('cbz','w28, #0x9ba98'),('ldr','x19, [x19, #0x3c0]')]
+    for pid_token in (0,1,1522):
+        u.mem_write(frame+0x7c,struct.pack('<I',pid_token))
+        got=runner.run(K(0x9ba84),(K(0x9ba8c),K(0x9bbf0)),inputs=[(R.UC_ARM64_REG_X29,frame)])
+        assert got['at']==K(0x9ba8c if not pid_token else 0x9bbf0)
+        self_token.append(dict(explicit_parsed_PID=pid_token,current_task_MRS_boundary=not pid_token,
+            current_task_or_other_PID_lookup_executed=False))
+    current_task,leader=MEM+0x1000,MEM+0x2000
+    u.mem_write(current_task+0x3c0,struct.pack('<Q',leader))
+    for threadgroup in (0,1):
+        got=runner.run(K(0x9ba90),(K(0x9ba98),),inputs=[
+            (R.UC_ARM64_REG_X19,current_task),(R.UC_ARM64_REG_X28,threadgroup)])
+        assert got['at']==K(0x9ba98) and u.reg_read(R.UC_ARM64_REG_X19)==(leader if threadgroup else current_task)
+        self_token.append(dict(threadgroup_argument=threadgroup,selected_group_leader=bool(threadgroup),
+            native_reference_or_attach_executed=False))
 
     # Original update_curr_rt tests the GLOBAL signed runtime before per-rq
     # bandwidth/lock handling. Missing /proc/config.gz is not needed to locate
@@ -311,6 +331,7 @@ def audit(pcie, utm, kernel):
         utm_policy_request=policy,kernel_attribute_checks=scheduler,cpu_paths=cpu_paths,
         cached_rt_budget=cached_rt_budget,global_RT_budget_source_slices=budget_cases,
         original_cpuset_route_slices=cpuset_routes,
+        cgroup_self_token_source_slices=self_token,
         scheduling_event_controls=scheduling_interleavings(),
         original_instruction_slices=len(wait)+1+3+2*len(workers)+2+len(scheduler)+len(cpu_paths),
         lifetime_proven=False,live_rpc_admitted=False,

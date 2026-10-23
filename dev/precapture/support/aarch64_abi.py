@@ -95,3 +95,20 @@ const unsigned int precapture_aarch64_client_abi[]={__NR_sched_getscheduler,__NR
 __NR_sched_setaffinity,__NR_sched_getaffinity,__NR_rt_sigprocmask,__NR_getcpu,__NR_getpid,__NR_getppid,
 SIG_BLOCK,SIG_SETMASK,sizeof(sigset_t),sizeof(unsigned long),sizeof(struct sched_param)};
 ''','precapture_aarch64_client_abi',fields,header_directory)
+
+
+def client_cpuset_abi(zig,folder,*,header_directory=None):
+    fields=('gettid','getpid','getppid','openat','read','write','close','read_flags','write_flags','getaffinity','getcpu')
+    return _constants(zig,folder,'''#define _GNU_SOURCE 1
+#include <asm/unistd.h>
+#include <fcntl.h>
+#include "ap_linux_aarch64.h"
+_Static_assert(__NR_gettid==178 && __NR_getpid==172 && __NR_getppid==173,"self identity ABI");
+_Static_assert(__NR_openat==56 && __NR_read==63 && __NR_write==64 && __NR_close==57,"bounded file ABI");
+_Static_assert(AP_A64_OPEN_READ==(O_RDONLY|O_CLOEXEC|O_NOFOLLOW),"read flags");
+_Static_assert((AP_A64_O_WRONLY|AP_A64_O_CLOEXEC|AP_A64_O_NOFOLLOW)==(O_WRONLY|O_CLOEXEC|O_NOFOLLOW),"write flags");
+_Static_assert(__NR_sched_getaffinity==123 && __NR_getcpu==168,"affinity readback ABI");
+const unsigned int precapture_aarch64_cpuset_abi[]={__NR_gettid,__NR_getpid,__NR_getppid,__NR_openat,
+__NR_read,__NR_write,__NR_close,O_RDONLY|O_CLOEXEC|O_NOFOLLOW,O_WRONLY|O_CLOEXEC|O_NOFOLLOW,
+__NR_sched_getaffinity,__NR_getcpu};
+''','precapture_aarch64_cpuset_abi',fields,header_directory)

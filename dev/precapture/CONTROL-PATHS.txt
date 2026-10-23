@@ -2793,3 +2793,38 @@ mask7->cpu0_1_2; other masks can alias group names, so names are not masks.
 No snprintf/file-open/kernel-write/real membership change executed in audits.
 Next: fresh self-only cpuset candidate with actual group policy/readback/inverse
 and process-lifetime proof before any UIPC/CP transaction. Full pre-capture open.
+
+Phase90/91 supersede that candidate gate only. Fixed metadata90 physically
+reads hierarchy1/cpuset, target configured/effective2, original0-3, online0-3.
+The AP's mask7 does not establish the cause of phase89's affinity rejection.
+Kernel tasks wrapper uses threadgroup0; parsedPID0 selects current-task MRS,
+nonzero takes lookup. Five independently entered source cases qualify those
+branches, not native references/attach/locks or a real membership operation.
+
+New ap_client_cpuset.c/h changes ONLY an isolated single-thread child's own
+membership: expected parent, ordinary policy/priority, original group and CPU
+eligibility; fixed write"0\n" once to cpu2/tasks; exact group/mask/getcpu;
+write"0\n" once to original cpu0_1_2_3rt/tasks; exact group/original mask.
+O_WRONLY|CLOEXEC|NOFOLLOW; no create/truncate, AP/worker PID, retry or automatic
+inverse after UNKNOWN.34 generated component cases + independent target ABI;
+28 exact-worker models; native/model journals each reject68 false successes,
+including49 incomplete prefixes. File success never grants process cleanup.
+
+Same static integer-only worker runs under Sony-kernel CPU0 VM with explicit
+CPU0 argv and physical CPU2 with CPU2 argv. Both50 records/24 component calls,
+one move/one inverse. Physical getcpu2, masks7->4->7,60 inheritedFDs closed,
+2 owned outputFDs. Physical first UNKNOWN/empty observation retained SAME
+child/fence; independent follow-up obtains50 final records + two ENOENT samples
+before exact owned-file cleanup. Four complete files unchanged, USB_FINISHED,
+normal0E8A. Fresh scope374 preexecution members verified on E/P; no old
+admission dictionary inherited or old failed job replayed.25 parent/48 observer,
+23 adapter,15 operator,10 followup,16 corruption+2 staleBSS controls pass.
+
+No UIPC open/ioctl/CP message, signals, existing AP/CP RAM patch, parameter/ROM
+write or native shooting action. Initial private fixture PID/TID mutation
+missed the additional TID field and was corrected before admission/execution;
+VM journal parser's target-group length14 was corrected to actual15. Neither
+was a camera failure. Next native gate: combine self cpuset + signal protection
+with fresh context, then qualify exact single-request sender/completion/teardown
+and live ownership before admitting a CP request. Exposure/RAW/save/release and
+physical pre-capture remain unfinished. Reviewed main9ecae919 unchanged.
