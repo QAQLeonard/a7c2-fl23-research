@@ -1521,6 +1521,44 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_original_device_pool_constructs_then_stops_before_register_writes(self):
+        from cp_device_acquire_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 36)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertTrue(result['original_pool_initializer_returned'])
+            self.assertEqual(result['original_backend_constructor_returned'], inputs['construct_backend'])
+            if inputs['channel'] < 2:
+                self.assertEqual(result['native_free_objects'], 7)
+                self.assertTrue(result['original_constructor_returned'])
+                self.assertTrue(result['real_vtable_dispatch_executed'])
+                self.assertTrue(result['native_atomic_instructions_executed'])
+                self.assertEqual(result['native_zeroed_scratch_bytes'], 2790)
+                self.assertIsNone(result['native_status'])
+                if inputs['construct_backend']:
+                    self.assertEqual(result['boundary'], 'before_register_writing_initializer')
+                    self.assertEqual(result['register_initializer_inputs'],
+                                     {'register_base': 0, 'control_base': 0, 'mode': 0})
+                    self.assertEqual(result['register_initializer_variant'],
+                                     'secondary' if inputs['kind'] == 11 else 'primary')
+                    self.assertEqual(len(result['native_lock_calls']), 4)
+                else:
+                    self.assertEqual(result['boundary'], 'before_common_resource_initializer')
+                    self.assertIsNone(result['register_initializer_inputs'])
+                    self.assertEqual(len(result['native_lock_calls']), 2)
+            else:
+                self.assertEqual(result['native_status'], 0x10004)
+                self.assertEqual(result['native_free_objects'], 8)
+                self.assertEqual(result['native_lock_calls'], [])
+                self.assertFalse(result['original_constructor_returned'])
+            for field in ('output_object_host_assigned', 'common_resource_initializer_returned',
+                          'acquisition_completed', 'original_backend_address_binder_returned',
+                          'register_writing_initializer_executed', 'actual_device_or_mmio_executed',
+                          'physical_shift_verified', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+        self.assertFalse(report['physical_shift_verified'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
