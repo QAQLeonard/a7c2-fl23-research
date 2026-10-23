@@ -2,8 +2,9 @@
 
 The actual eligibility helper/caller suffix supplies the snapshot argument;
 the original snapshot writes +D88 and the real capture getter supplies the mode
-selector's pointer in the same RAM as the AP-built TRINITY command. Source mode,
-pipeline/override/guard state and capture invocation remain synthetic. Complete
+selector's pointer in the same RAM as the AP-built TRINITY command. Optional
+native context/state/input producers replace selected intermediate fixtures;
+source mode, underlying inputs and capture invocation remain synthetic. Complete
 scheduling, capture preparation, MMIO, motion and exposure do not run. No host
 writes +D88/+D8E, assigns an API result, or substitutes the 0x9416 data-block path.
 """
@@ -72,7 +73,7 @@ def profile(directory):
 
 
 def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, native_state=0,
-           native_context=False, guard_actions=()):
+           native_context=False, guard_actions=(), pipeline_source=None):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, s, p = profile(directory)
@@ -91,12 +92,13 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
         cpu.mem_write(p['override'], bytes([override]))
         if native_context:
             from cp_capture_context_replay import initialize as publish_context
-            input_evidence = publish_context(cpu, directory, p, pipeline, guard_actions)
+            input_evidence = publish_context(cpu, directory, p, pipeline, guard_actions,
+                                             pipeline_source=pipeline_source)
             if input_evidence['native_guard'] != native_state:
                 raise ValueError('Native guard lifecycle differs from the requested comparison state')
         else:
-            if guard_actions:
-                raise ValueError('Guard actions require native context publication')
+            if guard_actions or pipeline_source is not None:
+                raise ValueError('Guard actions/pipeline production require native context publication')
             cpu.mem_map(0x30012000, 4096)
             cpu.mem_write(p['state'], bytes([native_state]))
             cpu.mem_write(p['context']+0x10, struct.pack('<I', 0x30012000))
@@ -149,6 +151,11 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
     if gate_value != expected_flag or flag != expected_flag or written_flag != expected_flag or snapshot_calls != 1:
         raise ValueError('Native capture eligibility/snapshot differs from independent classification')
     frame = snapshot['root']+8
+    policy_flag = 0
+    if pipeline_source is not None:
+        policy_flag = int(input_evidence['pipeline_source']['native_policy_field'] == 1)
+    if cpu.mem_read(frame+0xd8e, 1)[0] != policy_flag:
+        raise ValueError('Native snapshot did not propagate the independently checked pipeline policy')
     before = bytes(cpu.mem_read(frame, 0xda0))
     stack = 0x3000f000
 
@@ -174,7 +181,7 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
     if not native_state:
         if capture_mode == 2 and expected_flag:
             expected_mode, expected_adjacent = 0x17, 1
-        elif capture_mode == 0x21 and expected_flag:
+        elif capture_mode == 0x21 and (expected_flag or policy_flag):
             expected_mode = 1
     after = bytes(cpu.mem_read(frame, 0xda0))
     if (cpu.reg_read(arm.UC_ARM_REG_PC) != p['selector_end']
@@ -224,6 +231,8 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
                 positioning_or_exposure_executed=False, same_ram=True, camera_io=False, installable=False)
     if input_evidence is not None:
         result['native_context_publication'] = input_evidence
+    if pipeline_source is not None:
+        result['native_snapshot_flag_d8e'] = policy_flag
     return result
 
 

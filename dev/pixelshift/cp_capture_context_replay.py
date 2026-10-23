@@ -3,8 +3,10 @@
 The full original context binder supplies the consumed pipeline pointer; its
 native getter independently identifies the same pipeline object. Enter/exit
 CapturingLv functions write the capture guard rather than a host assignment.
-The lifecycle order, root auxiliary pointers, pipeline data, debug setting,
-capture mode and override are fixtures. No full startup, scheduler, saved
+The lifecycle order, root auxiliary pointers, default pipeline data, debug
+setting, capture mode and override are fixtures. An opt-in original producer
+can generate the shared pipeline condition from further independent fixtures.
+No full startup, scheduler, saved
 setting, positioning, settling or exposure runs. CapturingLv is an original
 function label, not evidence of a sensor/stabilizer mode.
 """
@@ -54,7 +56,7 @@ def profile(directory):
     return data, p
 
 
-def initialize(cpu, directory, capture, pipeline, actions):
+def initialize(cpu, directory, capture, pipeline, actions, *, pipeline_source=None):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, p = profile(directory)
@@ -140,16 +142,27 @@ def initialize(cpu, directory, capture, pipeline, actions):
     finally:
         cpu.hook_del(ch)
         cpu.hook_del(wh)
-    # Data remain fixtures: only their destination object's identity is native.
-    cpu.mem_write(native_pipeline+0x102, bytes([pipeline]))
-    cpu.mem_write(native_pipeline+0x13c, bytes(4))
-    return dict(native_guard=guard, native_guard_transitions=guard_writes,
+    source_evidence = None
+    if pipeline_source is None:
+        # Data remain fixtures: only their destination object's identity is native.
+        cpu.mem_write(native_pipeline+0x102, bytes([pipeline]))
+        cpu.mem_write(native_pipeline+0x13c, bytes(4))
+    else:
+        from cp_pipeline_source_replay import publish
+        source_evidence = publish(cpu, directory, capture, native_pipeline, **pipeline_source)
+        if source_evidence['native_pipeline_flag'] != pipeline:
+            raise ValueError('Native pipeline producer differs from the independent expected input')
+    result = dict(native_guard=guard, native_guard_transitions=guard_writes,
                 native_pipeline_pointer_stores=len(pointer_writes),
                 native_context_binder_executed=True, native_pipeline_getter_executed=True,
                 binder_and_getter_share_object=True, native_helpers_returned=True,
                 host_assigned_consumed_pointer_or_guard=False,
                 pipeline_parameters_are_fixtures=True, lifecycle_order_is_fixture=True,
                 startup_and_scheduler_executed=False, camera_io=False)
+    if source_evidence is not None:
+        result['pipeline_source'] = source_evidence
+        result['pipeline_condition_generated_natively'] = True
+    return result
 
 
 def compare(c2, reference):

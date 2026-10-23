@@ -1699,6 +1699,63 @@ class NativeTests(unittest.TestCase):
                 self.assertFalse(result[field], field)
         self.assertFalse(report['physical_shift_verified'])
 
+    def test_native_state_producer_and_gpio_read_publish_capture_pipeline_conditions(self):
+        from cp_pipeline_source_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 492)
+        retained_cases, policy_retained_cases, secondary_flag_modes = 0, 0, 0
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            publication = result['native_context_publication']
+            source = publication['pipeline_source']
+            fixture = inputs['pipeline_source']
+            self.assertTrue(publication['pipeline_condition_generated_natively'])
+            for field in ('source_producer_returned', 'source_and_target_binding_verified',
+                          'gpio_inputs_and_mapping_are_fixtures', 'notification_history_is_fixture',
+                          'stages_and_register_bindings_are_harness_supplied'):
+                self.assertTrue(source[field], field)
+            for field in ('host_assigned_computed_flag_or_api_return', 'hardware_acknowledgement_supplied',
+                          'complete_configuration_function_executed', 'camera_io'):
+                self.assertFalse(source[field], field)
+            self.assertEqual(source['producer_branch'], 3)
+            self.assertEqual(source['native_gpio_read_offsets'], [0, 0x40 if fixture.get('gpio_output') else 0x10])
+            gpio = fixture.get('gpio_bit', 1) ^ int(fixture.get('polarity', 1) == 0)
+            expected = int(bool(gpio and fixture.get('enabled', 1)))
+            inhibit = int(bool(inputs['native_state'] and fixture.get('inhibit_input')))
+            retain = bool(fixture.get('special') or (inhibit and expected))
+            if retain:
+                expected = fixture.get('retained', 0)
+                retained_cases += 1
+            self.assertEqual(source['native_inhibit_argument'], inhibit)
+            self.assertEqual(source['native_source_flag'], expected)
+            self.assertEqual(source['native_pipeline_flag'], expected)
+            self.assertEqual(source['source_flag_written'], not retain)
+            policy = fixture.get('policy_input', 1)
+            policy = 1 if policy == 1 else 2 if policy == 0 else 0
+            if not fixture.get('policy_enable', 1) and not fixture.get('special'):
+                policy = fixture.get('policy_prior', 0)
+                policy_retained_cases += 1
+            self.assertEqual(source['native_policy_field'], policy)
+            self.assertEqual(result['native_snapshot_flag_d8e'], int(policy == 1))
+            selected = inputs['capture_mode']
+            if not inputs['native_state']:
+                if selected == 2 and (expected or inputs['override']):
+                    selected = 0x17
+                elif selected == 33 and (expected or inputs['override'] or policy == 1):
+                    selected = 1
+                    if not expected and not inputs['override'] and policy == 1:
+                        secondary_flag_modes += 1
+            self.assertEqual(result['selected_mode'], selected)
+            self.assertEqual(result['final_trinity'], inputs['trinity'] if selected == 0x17 else 0)
+            self.assertFalse(result['positioning_or_exposure_executed'])
+            self.assertFalse(result['automatically_scheduled'])
+        self.assertGreater(retained_cases, 0)
+        self.assertEqual(policy_retained_cases, 12)
+        self.assertGreater(secondary_flag_modes, 0)
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
