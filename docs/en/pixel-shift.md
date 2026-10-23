@@ -2,6 +2,8 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/pixel-shift.md)
 
+A7CR owners can contribute native reference images and optional read-only settings snapshots with the [reference collector](cr-reference.md).
+
 Target: the native Sony workflow used by A7CR: tripod, static subject, four shifted RAW captures, then computer composition. Sixteen-shot support is a later goal. Published programs are **offline research, not an installable or working Pixel Shift release**.
 
 ## Whole-firmware analysis and external claims
