@@ -2,6 +2,10 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Unreleased
+
+- Fix macOS look-conversion startup failure in issue #29: SciPy 1.16.3 arm64 wheels and the released DMG contain nonzero file offsets for PROPACK `__thread_bss` zero-fill sections. Normalize those header fields in bundled SciPy extensions before creating the DMG, re-sign affected libraries and the app, and verify the result. No LUT algorithm or camera code changes. The wheel and DMG binaries were checked on Windows; loading on the affected macOS version remains unverified.
+
 ## 3.0.3 — USB recovery and sound workflow fixes — 2026-10-23
 
 - All desktop sound controls now work from the current selection/body: volume up/down/reset and conversion remain host-only; On/Off use fresh switch transactions; Restore original sound rebuilds only the supported AP sound-loader inverse from current bytes, preserves the switch and looks, and removes the boot call before its reader prerequisites. It no longer searches completed installation records or sends the user to full factory recovery. Sound verification reads currently loaded sound code/resources without a saved installation job. Optional listening/recovery statements can be recorded without an audition job. Stale staging is handled by the same current-request cleanup used by Save/Audition; no old pending task is an eligibility gate.

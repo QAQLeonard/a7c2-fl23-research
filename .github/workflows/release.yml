@@ -50,6 +50,8 @@ jobs:
             grep -E '^(FAILED|ERROR) |^[^ ]+:[0-9]+: ' pytest.log | head -40 | while IFS= read -r line; do echo "::error title=pytest::${line}"; done
             exit 1
           }
+      - name: SciPy Mach-O header contracts
+        run: python -m pytest dev/desktop/test_macos_binary.py -q
       - name: Build native package
         run: python dev/desktop/build.py
       - name: Windows packaged offline checks
