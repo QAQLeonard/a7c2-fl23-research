@@ -99,12 +99,12 @@ def test_inverse_requires_both_complete_historical_trampolines():
 
 
 def test_trial_requires_power_and_has_explicit_restart_and_visual_checks():
-    for action in ('direct_preview_native', 'direct_preview_legacy'):
+    for action in ('direct_preview_native', 'direct_preview_legacy', 'direct_preview_pending'):
         assert action in jobs.CAMERA_ACTIONS and action in jobs.POWER_ACTIONS
         assert reloadguide.required(action, {'phase': 'AWAITING_RELOAD'})
-    for mode in ('preview_native', 'preview_legacy'):
+    for mode in ('preview_native', 'preview_legacy', 'preview_pending'):
         text = reloadguide.text(mode=mode)
-        for phrase in ('六个自定义槽', '至少等待 1 分钟', '只读核对', '撤回候选', 'CP RAM'):
+        for phrase in ('六个自定义槽', '至少等待 1 分钟', '只读核对', '撤回测试', 'CP RAM'):
             assert phrase in text
 
 

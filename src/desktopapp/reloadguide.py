@@ -57,13 +57,13 @@ def sound_notice(action,result):
 
 
 def text(*, setup=False, mode=None):
-    if mode in ('preview_native', 'preview_legacy'):
-        return ('本轮 LUT 刷新入口对照的写入和完整读回已结束，尚未证明取景器横线已修复。\n\n'+STEPS+
+    if mode in ('preview_native', 'preview_legacy', 'preview_pending'):
+        return ('本轮 LUT 刷新候选的写入和完整读回已结束，尚未证明横线与实时预览问题已修复。\n\n'+STEPS+
                 '\n\n下一步：保持原先能复现横线的帧率和拍摄模式，检查高刷新率取景器、背屏及录像；'
                 '在 ST 与六个自定义槽之间反复切换，确认预览及时变化，再拍照并回放。\n\n'
                 '接回 USB 后，在本测试区域点击“断电重开后只读核对本轮测试”。'
                 '只在完成机身检查后勾选验收；磁盘读回和 AP 加载核对不等于 CP RAM 或屏幕时序验证。'
-                '\n\n若切换后色彩不更新或出现新异常，保留日志，可用本测试区域的“撤回候选”恢复旧版刷新方式。')
+                '\n\n若切换后色彩不更新或出现新异常，保留日志，可用本测试区域的“撤回测试：恢复旧版刷新方式”撤回本轮候选。')
     if mode=='factory_prewrite_temporary':
         return ('本次恢复尚未开始写入，连接操作已结束。相机里有同名临时工作文件，'
                 '无法仅凭文件名确定它由哪次操作留下；本次没有覆盖它，也没有标记恢复完成。\n\n'

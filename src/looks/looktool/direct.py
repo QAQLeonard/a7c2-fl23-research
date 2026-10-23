@@ -111,13 +111,15 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
         for filename in nameworker.filenames():
             key = 'resources/' + filename
             target[key] = resources.before_custom(current[key])
-    elif mode in ('preview_native', 'preview_legacy'):
-        from . import uploadgate
-        identity = device_layout.structural(ap, cp)
+    elif mode in ('preview_native', 'preview_legacy', 'preview_pending'):
+        from . import uploadgate, uploadpending
+        base = uploadpending.normalize(cp) if mode == 'preview_pending' or uploadpending.active(cp) else cp
+        identity = device_layout.structural(ap, base)
         if identity.get('first_install') or not identity['mask']:
             raise ValueError('本测试只用于已安装自定义 LUT 的相机；本次没有写入。')
-        change = uploadgate.restore if mode == 'preview_native' else uploadgate.restore_legacy_for_test
-        target['cpapp-b.bin'] = change(cp)
+        change = {'preview_native': uploadgate.restore, 'preview_legacy': uploadgate.restore_legacy_for_test,
+                  'preview_pending': uploadpending.install}[mode]
+        target['cpapp-b.bin'] = change(base)
     elif mode in ('vertical_enable', 'vertical_disable'):
         from .verticalpersist import field
         wanted[0].update(field(ap, records, mode == 'vertical_enable'))
@@ -493,7 +495,7 @@ class DirectJob(Rollback):
                     from .factoryrecover import supersede_temporary
                     supersede_temporary(camera,self.root/'evidence/superseded-temporary',self.record)
                 current = self.capture(camera)
-                if mode in ('preview_native', 'preview_legacy'):
+                if mode in ('preview_native', 'preview_legacy', 'preview_pending'):
                     from . import uploadgate
                     self.state['preview_source_entry'] = current['cpapp-b.bin'][uploadgate.OFFSET:uploadgate.OFFSET + 4].hex()
                 if mode == 'install_all':
