@@ -3052,3 +3052,16 @@ route without guessing a physical mapping or accessing MMIO. Disk matching
 and exported addresses do not independently identify the loaded instructions.
 Subsequent offline tightening treats reused gate records as UNKNOWN without
 overwriting them: they may retain prior unresolved resources. No camera replay.
+
+Phase99 offline loaded-code-route audit, not a device operation: independently
+checks encoded BL targets in original kernel read_mem and valid_phys_addr_range.
+18 slices stop before memblock region/map services, current-task register and
+copy_to_user. Explicit independent post-service inputs test zero/reject and
+page-limited direct-map arithmetic; no synthetic API success is resumed.
+Sony official source agrees that read_mem takes a PHYSICAL offset; native code
+checks memblock region and mapped-memory membership before its copy path.
+Module addresses found by phase98 are virtual, in a different range. Never
+subtract a guessed constant or use them as device offsets. mmap/write paths,
+actual RAM extents, runtime page tables and physical reads remain unadmitted.
+Next blocker is source-qualified live page-table/RAM binding for a bounded
+read-only loaded-text comparison; callback lifetime remains separately open.
