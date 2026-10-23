@@ -45,7 +45,8 @@ class ReferenceFiles(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)/'reference'
             complete(root)
-            (root/'evidence/cycle.MP4').write_bytes(b'phone video')
+            (root/'evidence/operations.txt').write_bytes(b'owner confirmed completed four-shot capture')
+            (root/'evidence/cycle.MP4').write_bytes(b'not requested')
             (root/'unrequested-firmware.bin').write_bytes(b'not selected')
             before = {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob('*.ARW')}
             report, archive = pack(root)
@@ -53,7 +54,8 @@ class ReferenceFiles(unittest.TestCase):
             self.assertFalse(report['physical_shift_verified'])
             with zipfile.ZipFile(archive) as packed:
                 self.assertNotIn('unrequested-firmware.bin', packed.namelist())
-                self.assertIn('evidence/cycle.MP4', packed.namelist())
+                self.assertIn('evidence/operations.txt', packed.namelist())
+                self.assertNotIn('evidence/cycle.MP4', packed.namelist())
                 self.assertNotIn(str(root), packed.read('validation.json').decode())
                 for name, data in before.items():
                     self.assertEqual(packed.read(name), data)

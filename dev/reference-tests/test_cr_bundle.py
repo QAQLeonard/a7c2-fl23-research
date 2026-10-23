@@ -21,6 +21,7 @@ class StandaloneBundle(unittest.TestCase):
             output = folder/'collector.zip'
             names = builder.build(output)
             self.assertIn('vendor/pmca/usb/sony.py', names)
+            self.assertIn('AGENTS.md', names)
             self.assertFalse(any(name.endswith(('.bin', '.so', '.ARW', '.HIF', '.dcp')) for name in names))
             extracted = folder/'unpacked'
             with zipfile.ZipFile(output) as archive:
@@ -38,6 +39,8 @@ class StandaloneBundle(unittest.TestCase):
                 readme = (extracted/('README.'+language+'.md')).read_text(encoding='utf-8')
                 self.assertNotIn('(../', readme)
                 self.assertIn('CP', readme)
+                self.assertIn('evidence/operations.txt', readme)
+            self.assertIn('Do not request video', (extracted/'AGENTS.md').read_text())
 
 
 if __name__ == '__main__':

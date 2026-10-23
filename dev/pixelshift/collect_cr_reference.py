@@ -11,10 +11,10 @@ import zipfile
 
 from raw_group import inspect, validate
 
-VERSION = '1.0'
+VERSION = '1.1'
 ROLES = ('before', 'four-shot', 'four-shot-repeat', 'after')
 STAGES = ('off-before', 'four-selected', 'off-after')
-EVIDENCE_TYPES = {'.jpg', '.jpeg', '.png', '.mp4', '.mov', '.txt', '.arq'}
+EVIDENCE_TYPES = {'.jpg', '.jpeg', '.png', '.txt', '.arq'}
 
 
 def now():

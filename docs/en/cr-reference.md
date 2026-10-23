@@ -4,10 +4,16 @@
 
 For an owner of a **Sony A7CR / ILCE-7CR** willing to contribute reference data from the native feature. No modification, firmware upgrade or downgrade is required. Record the actual firmware version; 2.01 best matches the current research, but retain data from other versions too.
 
+**Give the extracted package to the owner's AI; no video is needed.** Use this instruction:
+
+> Read AGENTS.md and README.en.md first, then collect the A7CR reference data locally. Check Python, install dependencies, run the collector, organize original ARWs, validate results and create a private ZIP. Use only this tool's read-only USB commands for camera access. Ask the owner for physical native-menu/shutter/cable steps individually, after the current USB command has ended, and wait for actual confirmation. Do not request video. Record timestamps, commands, exit status, original filenames and owner reports in evidence/operations.txt; mark anything not directly observed as owner-reported. Finish with completed/missing items and the archive path; do not upload automatically.
+
+The AI handles the computer; the owner handles required native camera controls. Do not add firmware changes, initialization, memory patches or USB shutter control. Explain the actual device and proposed action before any driver replacement; do not replace drivers automatically.
+
 | Data | Purpose | Amount |
 |---|---|---|
 | Ordinary RAW before/after, plus native four-shot sources | Measure the reference displacement pattern, pixel scale and before/after image difference | At least 6 ARWs; a repeated four-shot group brings the total to 10 |
-| Menu photos, phone video and notes | Identify options, interval, completion timing and errors | Firmware/settings photos and one full-cycle video |
+| AI operation log and settings notes | Match commands, original files and owner reports | `evidence/operations.txt`; menu photos optional |
 | Optional USB settings snapshots | Compare native OFF → four-shot selected → OFF settings; optional CP backup shadows | One read command at each state |
 
 **USB collection reads settings snapshots, not CP execution memory or an in-exposure motion/settling trace.** The current pure-read path cannot provide those traces. Actual displacement, settling and return to center require further interpretation of original images and other evidence; the tool does not claim to verify them.
@@ -34,7 +40,7 @@ Keep the camera, lens, composition and settings fixed; disconnect USB during cap
 4. Preferably capture another complete group in the same scene and copy it to `four-shot-repeat`. This group is optional.
 5. Set Pixel Shift back to **OFF**, wait for normal live view, take one ordinary RAW and copy it to `after`. Restore personal settings afterward.
 
-Record the whole cycle with a phone, preferably including the shutter press and camera display, and place the video in `evidence`. Include firmware/menu/interval photos. An optional Sony Imaging Edge ARQ or composition-success screenshot is useful, alongside the original four sources.
+Have the AI record timestamps, owner-confirmed capture steps/interval, source filenames and any errors in `evidence/operations.txt`. No video or menu photos are required. Existing firmware/menu photos or an optional Sony Imaging Edge ARQ can go in `evidence`, alongside the original four sources. An AI log does not establish direct observation of sensor motion.
 
 Keep original filenames and put only the relevant images in each folder. Complete `session.json` with the actual lens/interval, shooting conditions and any movement, restart or error. Set the two `...user_confirmed` fields to `true` after confirming one camera/static scene and fixed settings.
 
@@ -83,7 +89,7 @@ python collect_cr_reference.py check CR-reference
 python collect_cr_reference.py pack CR-reference
 ```
 
-This creates the adjacent `CR-reference.private.zip`. The tool checks model, four-source grouping/ordinals and exposure consistency, preserves originals and uses no firmware-provenance hash gate. Missing optional USB/video evidence is reported. Required RAW errors prevent normal packaging; `pack CR-reference --allow-partial` explicitly produces an `INCOMPLETE` report if only partial data is available.
+This creates the adjacent `CR-reference.private.zip`. The tool checks model, four-source grouping/ordinals and exposure consistency, preserves originals and uses no firmware-provenance hash gate. Missing optional USB snapshots are reported; videos are neither required nor collected. Required RAW errors prevent normal packaging; `pack CR-reference --allow-partial` explicitly produces an `INCOMPLETE` report if only partial data is available.
 
 **Share the ZIP privately, not in a public issue or repository.** Original photos/settings may contain capture times, locations, serial numbers and other camera/owner information. Files are preserved without metadata changes, and nothing is uploaded automatically. Reference CR data must not be written into another body.
 
