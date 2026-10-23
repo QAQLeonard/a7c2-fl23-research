@@ -2,7 +2,7 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
-## 3.0.4 — USB recovery and sound workflow fixes — 2026-10-23
+## 3.0.3 — USB recovery and sound workflow fixes — 2026-10-23
 
 - All desktop sound controls now work from the current selection/body: volume up/down/reset and conversion remain host-only; On/Off use fresh switch transactions; Restore original sound rebuilds only the supported AP sound-loader inverse from current bytes, preserves the switch and looks, and removes the boot call before its reader prerequisites. It no longer searches completed installation records or sends the user to full factory recovery. Sound verification reads currently loaded sound code/resources without a saved installation job. Optional listening/recovery statements can be recorded without an audition job. Stale staging is handled by the same current-request cleanup used by Save/Audition; no old pending task is an eligibility gate.
 - Sound Save/Audition now replace the current selection without old-task, audition-report, recovery-confirmation or boot-ID prerequisites. Save ignores the old RAM audition lease; Audition archives/replaces that fixed temporary marker and registers the current bytes without releasing stale CP handles. Stale sound staging files are archived and cleared from the current namespace; actual execution-entry occupancy and process locking still prevent concurrent execution. The old reconnect-proof gate and its popup were removed from these actions.
@@ -10,7 +10,7 @@
 - The owner confirmed factory recovery works with cp-restore.2; its local transaction reached LOADED after the fresh-boot check. This is one-body physical evidence for recovery. The experimental OUT-fragmentation change remains withdrawn. The recipient has not yet physically tested this scoped revision.
 - Regressed the reported Arabic-horizontal and Croatian-vertical resource sizes (161,360 and 119,160 bytes), including the 132-byte first extension and subsequent renaming, against the real ARM64 worker with synthetic contents. All output bytes matched the host planner. This does not establish filesystem corruption or repair pre-existing damage; the submitted report contains sizes and a replacement result, without the failed files for byte comparison.
 
-## 3.0.3 — important fixes, recommended for everyone — 2026-10-23
+### Earlier fixes in this release
 
 Fixes important bugs: custom looks applied with the wrong base, extra shutter sounds on mechanical capture, USB read errors, and sound or restore actions blocked by old task records. Everyone should update.
 

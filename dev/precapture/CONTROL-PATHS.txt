@@ -2857,3 +2857,11 @@ The combined native journal also passes114 false-success controls, including
 101 incomplete prefixes. A corrupted inverse-status field exposed a missing
 decoder check; final guard return statuses are now checked explicitly before
 any physical use. Raw native evidence was retained; no guest rerun was needed.
+
+Final phase92 main refresh: remote main782785641ca9 corrects release version
+only (desktop manifest/version and EN/ZH changelogs); no transport change.
+The remote's configured fetch tracks only the research branch, so fetching
+"origin main" updated FETCH_HEAD without updating origin/main. Explicit main
+tracking-ref fetch resolves that stale comparison. Latest main is merged here;
+product files outside dev/precapture match it. Private pinned runtime and
+completed camera jobs remain unchanged; no camera action followed this merge.
