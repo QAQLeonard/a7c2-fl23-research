@@ -186,8 +186,14 @@ original-source reports and model results, not just pass new replacement tests.
   5 intentionally retain unexpected replies,1 now rejects the old foreign-type
   source fixture. Positive source fixtures use the own-queue grammar; binding/
   result spans must be private/disjoint.26 added controls give66. No live gate or
-  fresh RPC-context adapter exists. Do not treat a modeled allow callback or
+  physical RPC launcher exists. Do not treat a modeled allow callback or
   the completed never-sent context as permission for a real CP request.
+- Phase97 supplies an OFFLINE fresh RPC-context composition, not a live gate:
+  source comes from its own descriptor info[3], context version2/reserved1
+  marks the operation, and rpc.rpc_attempts is its send counter. Never infer
+  no-send from the unused legacy probe result. Its CPU0 Sony-kernel VM only
+  allocates24/refuses send/cancels/closes, with two native exit observations;
+  no physical CP send or after-send callback lifetime is admitted.
 - Manual in-camera Off/On control is required for completion, initially Off.
   It is NOT implemented. Do not auto-enable pre-capture or reuse the retired
   look display/segment/icon approach to fabricate an entry.

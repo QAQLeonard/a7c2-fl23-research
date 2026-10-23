@@ -2969,3 +2969,34 @@ Original native-library ioctl boundary and default756 returns/12
 supported-mode stop boundaries retained. NO live gate, fresh RPC context or
 physical sender is admitted. Next gate is their real lifetime/source binding;
 manual in-camera switch and real pre-trigger pixel/save/release remain open.
+
+Phase97: main782785641ca9f8b984940c7274b48706219e0da4 reviewed and remains
+an ancestor. Product files outside this research directory unchanged. Extract
+the one fresh transport open/finish implementation into ap_ipc_transport.h;
+legacy248-byte ABI and all39 context/62 combined case reports match baseline.
+Keep the RPC dependency in its separate translation unit; old cancel builds
+still link without RPC. Include the extracted header in new source manifests.
+
+ap_rpc_context.c composes a fresh descriptor, info query, map and guarded
+RPC component. Source comes exclusively from this descriptor's info[3].
+360-byte result is fully private/disjoint, including its112-byte RPC tail.
+Context version2/reserved1 identifies RPC before I/O; inspect rpc.rpc_attempts,
+never the unused legacy probe.send_attempts. Unknown nested ownership or an
+unqualified terminal preserves map/FD/process. No live gate or launcher added.
+
+33 generated-code models cover gate refusal before allocation, refusal after
+allocation BEFORE request writes, cancellation failure, different fresh IDs,
+invalid source, complete-result overlap, changed/default/unchanged replies,
+transport errors and reused state. Prior66 low-level RPC models and original
+library syscall boundary retained;19 shared-boundary/10 child-session tests pass.
+
+Private final candidate under original Sony-kernel CPU0 VM: opens fresh UIPC,
+allocates24 wait0, gate2 refuses with-95, cancels once, unmaps/closes and same
+child is absent twice. Only INFO/ALLOCATE/RELEASE ioctls observed; independent
+VM wrapper hard-denies sync/async. Current candidate and the preceding revision
+both complete their own fresh VM runs. No physical camera I/O, firmware write
+or CP send. CPU0 never qualifies physical CPU2 or a sent callback's lifetime.
+Next native blocker: implement real fresh condition checks and establish the
+callback/loaded-source lifetime contract before admitting any physical request;
+actual CP receipt, pre-S2 exposure/RAW retention/writer/release and menu remain
+unimplemented. Old failed jobs and their immutable evidence stay retired.

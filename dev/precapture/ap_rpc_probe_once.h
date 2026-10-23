@@ -3,7 +3,8 @@
  * isolated lifetime-tracked process, fresh body/source/FD/mapping binding,
  * serialized access and durable job fencing. source must come from that
  * context's independently verified native binding, never a donor constant
- * or allocator sentinel. No adapter/install is supplied.
+ * or allocator sentinel. ap_rpc_context.c supplies an OFFLINE fresh-context
+ * composition; no live gate, physical launcher or install is supplied.
  */
 #ifndef PRECAPTURE_AP_RPC_PROBE_H
 #define PRECAPTURE_AP_RPC_PROBE_H

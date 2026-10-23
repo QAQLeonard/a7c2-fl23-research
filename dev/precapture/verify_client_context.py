@@ -143,7 +143,8 @@ def main():
     cases=[model(elf,header,abi,kind) for kind in kinds]
     report=dict(cases=cases,models_only=True,camera_IO=False,CP_send=False,physical_combined_context=False,
         independent_ABI=dict(context=abi,binding=binding,cpuset=cpuset),
-        sources={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in [*sources,root/'ap_client_context.h',Path(__file__)]})
+        sources={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in [*sources,root/'ap_client_context.h',
+            root/'ap_ipc_transport.h',root/'ap_ipc_context.h',Path(__file__)]})
     with (a.output/'report.private.json').open('x') as stream:json.dump(report,stream,indent=2)
     print(len(cases),'combined generated-code models; no camera/UIPC/CP native operation')
 

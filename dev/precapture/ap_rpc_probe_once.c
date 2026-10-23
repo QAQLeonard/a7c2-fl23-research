@@ -62,8 +62,9 @@ int precapture_rpc_probe_guarded_once(const struct probe_binding*b,volatile stru
     for(probe_u32 i=0;i<24;i++)p[i]=0;
     p[0]=0xe1;put32(p+20,nonce);
     /* Same displacement as original osal_set_msg_src. Source provenance
-     * belongs to the future context adapter; structural checks cannot prove
-     * it. All other allocator metadata, including payload-4, is preserved.
+     * belongs to the context adapter (ap_rpc_context.c derives info[3]);
+     * this low-level component's structural checks cannot prove it.
+     * All other allocator metadata, including payload-4, is preserved.
      */
     put32(p-12,source);
     struct sync_request sync={message,0,0};

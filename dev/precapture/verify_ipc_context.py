@@ -191,6 +191,8 @@ def main():
     report=dict(schema='OFFLINE_ISOLATED_IPC_CONTEXT_MODELS/1',camera_io=False,cases=cases,target_abi=abi,
         independent_target_rejects_wrong_syscall=True,
         source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),ELF_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(),
+        source_headers={name:hashlib.sha256(source.with_name(name).read_bytes()).hexdigest()
+            for name in ('ap_ipc_transport.h','ap_ipc_context.h','ap_linux_aarch64.h','ap_probe_once.h')},
         limits=['All native results are explicit unit models, not real open/init/mmap/allocator successes',
             'Source/kernel/device/isolated-process admission and durable private result writer are not supplied',
             'No send/RPC exists in this orchestration; unknown buffer/map/FD ownership retains process lifetime',
