@@ -34,7 +34,7 @@ def profile(directory):
     return data, dict(entry=entry, root=root, copy=calls[1], predicates=calls[2:])
 
 
-def _snapshot(directory, *, mode, test=0, seed=0):
+def _snapshot(directory, *, mode, test=0, seed=0, source_initializer=None, snapshot_runner=None):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2,
                                    UC_ARM_REG_R3, UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_PC)
@@ -53,6 +53,8 @@ def _snapshot(directory, *, mode, test=0, seed=0):
     synthetic = bytes((index * 37 + seed) & 255 for index in range(0xd64))
     cpu.mem_write(source, synthetic[:0x180])
     cpu.mem_write(source + 0x184, synthetic[0x184:])
+    if source_initializer is not None:
+        source_initializer(cpu, p, d, source)
     before = bytes(cpu.mem_read(source, 0xd64))
     capture_id = 0x12345678
     cpu.mem_write(root, b'\xa5' * 0xe00)
@@ -61,7 +63,7 @@ def _snapshot(directory, *, mode, test=0, seed=0):
     cpu.mem_write(stack, struct.pack('<II', 4, 0x87654321))
     cpu.reg_write(UC_ARM_REG_R0, capture_id)
     cpu.reg_write(UC_ARM_REG_R1, source)
-    cpu.reg_write(UC_ARM_REG_R2, 1)
+    cpu.reg_write(UC_ARM_REG_R2, 1 if snapshot_runner is None else 0xa5a5a5a5)
     cpu.reg_write(UC_ARM_REG_R3, 0)
     cpu.reg_write(UC_ARM_REG_SP, stack)
     cpu.reg_write(UC_ARM_REG_LR, finish | 1)
@@ -74,7 +76,7 @@ def _snapshot(directory, *, mode, test=0, seed=0):
                (p['predicates'][1], p['predicates'][1] + 0x30)]
 
     def hook(uc, address, size, unused):
-        if not any(begin <= address < end for begin, end in regions):
+        if snapshot_runner is None and not any(begin <= address < end for begin, end in regions):
             raise ValueError('Snapshot routine reached unhandled native code: ' + hex(address))
         if address == p['copy']:
             if (uc.reg_read(UC_ARM_REG_R0), uc.reg_read(UC_ARM_REG_R1), uc.reg_read(UC_ARM_REG_R2)) != (root + 0x28, source, 0xd64):
@@ -82,6 +84,8 @@ def _snapshot(directory, *, mode, test=0, seed=0):
             result['native_copy_executed'] = True
 
     def write_hook(uc, access, address, size, value, unused):
+        if snapshot_runner is not None:
+            return  # The original-caller continuation owns its inspected write boundaries.
         if 0x30008000 <= address and address + size <= stack:
             return
         if root + 0x28 <= address and address + size <= root + 0xd8c:
@@ -92,8 +96,12 @@ def _snapshot(directory, *, mode, test=0, seed=0):
 
     code_hook = cpu.hook_add(UC_HOOK_CODE, hook)
     memory_hook = cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
-    cpu.emu_start(p['entry'] | 1, finish, count=10000)
-    if (cpu.reg_read(UC_ARM_REG_PC) != finish or not result['native_copy_executed']
+    stop = finish
+    if snapshot_runner is None:
+        cpu.emu_start(p['entry'] | 1, finish, count=10000)
+    else:
+        stop = snapshot_runner(cpu, p, d, source, capture_id, stack)
+    if (cpu.reg_read(UC_ARM_REG_PC) != stop or not result['native_copy_executed']
             or bytes(cpu.mem_read(root + 0x28, 0xd64)) != before
             or bytes(cpu.mem_read(source, 0xd64)) != before
             or bytes(cpu.mem_read(root + 4, 0x24)) != b'\xa5' * 0x24

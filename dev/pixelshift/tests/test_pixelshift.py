@@ -1636,6 +1636,41 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_original_caller_supplies_capture_gate_to_snapshot_and_trinity_policy(self):
+        from cp_capture_gate_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 96)
+        groups = {}
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            self.assertEqual(result['native_gate'], result['native_snapshot_flag_d88'])
+            self.assertEqual(result['propagated_trinity'], inputs['trinity'])
+            self.assertEqual(result['native_snapshot_copy_bytes'], 0xd64)
+            for field in ('native_snapshot_returned_to_caller', 'live_getter_pointer_matches_snapshot', 'same_ram'):
+                self.assertTrue(result[field], field)
+            for field in ('host_assigned_capture_flag_or_api_returns', 'full_outer_caller_executed',
+                          'automatically_scheduled', 'data_block_9416_used_as_live_source',
+                          'positioning_or_exposure_executed', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+            if result['selected_mode'] == 0x17:
+                self.assertEqual(result['final_trinity'], inputs['trinity'])
+            else:
+                self.assertEqual(result['final_trinity'], 0)
+            self.assertEqual(result['diagnostic_calls_omitted'], int(inputs['trinity'] != result['final_trinity']))
+            if inputs['capture_mode'] == 6:
+                self.assertEqual(result['native_gate'], 0)
+            if inputs['capture_mode'] == 2:
+                enabled = int(bool(inputs['override'] or inputs['pipeline']))
+                self.assertEqual(result['native_gate'], enabled)
+                self.assertEqual(result['selected_mode'], 0x17 if enabled and not inputs['native_state'] else 2)
+            key = tuple(inputs[name] for name in ('capture_mode', 'override', 'pipeline', 'native_state'))
+            groups.setdefault(key, []).append((result['native_gate'], result['selected_mode']))
+        # The flag/mode gate is shared capture behavior, not a TRINITY-only switch.
+        self.assertEqual(len(groups), 48)
+        self.assertTrue(all(len(values) == 2 and values[0] == values[1] for values in groups.values()))
+        self.assertFalse(report['physical_shift_verified'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
