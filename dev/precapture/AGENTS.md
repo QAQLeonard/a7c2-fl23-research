@@ -135,6 +135,36 @@ original-source reports and model results, not just pass new replacement tests.
   Raw VM report's inherited device_open=false label is incorrect: preserve it
   with the explicit qualification recording actual VM UIPC device access.
   Separate physical successes do not admit that composition automatically.
+- Phase93/94 replaces the oversized combined debug image with a12,664-byte
+  symbol-retaining strip-debug candidate; all allocated sections/load extents
+  match its full-debug build.58 exact-worker controls and CPU0 native VM pass.
+  Linker strip-debug initially removed symbols and was rejected, not bypassed.
+- Phase93 stopped before any upload/spawn because current CP differs from the
+  old baseline. Fresh read-only acquisition proves only4 changed bytes at FILE
+  13553a, now stock movw, with AP/UIPC files unchanged and17 named CP spans plus
+  diagnostic constructor/callback matching stock. Preserve those current bytes;
+  never rewrite the old LUT retry hook to match a historical source hash.
+- Phase94's separately reconstructed current-source job spawned PID982/AP518.
+  First observer saw empty cmdline/no journal, therefore UNKNOWN. Continuing
+  full source reads before terminal proof was an orchestration defect; later
+  CP-file selection timed out. One read-only service attachment also timed
+  out, without authentication/upload. Exact USB root cause remains unknown.
+  Retained journal after owner cold boot has102 records/all50 calls, CPU2,
+  masks7->4->7, restored signals and context ownership0, send_attempts0.
+  This proves nested calls/inverses, NOT normal pre-reload process exit or
+  successful end-to-end session closure. Keep the failed job/fence retired.
+- Owner reported full power removal and normal viewfinder. Fixed recovery
+  metadata then proved two old-PID absence samples and fresh boot data; all4
+  source files match pre-test.9 exact archived temp files were cleaned; USB
+  ended normally; owner confirmed ordinary photo/playback. Recovery is not a
+  completed pre-capture test or permission to replay the failed candidate.
+- Future orchestration must defer source reads while a child is UNKNOWN or
+  RUNNING. support/child_session.py enforces that policy;10 focused controls,
+  existing32 support/session tests and15 revised controller models pass.
+  The revised controller is model-only; no new physical job is admitted.
+- Manual in-camera Off/On control is required for completion, initially Off.
+  It is NOT implemented. Do not auto-enable pre-capture or reuse the retired
+  look display/segment/icon approach to fabricate an entry.
 - The owner's October19-23 handoff includes superseded hypotheses. Reuse its
   offline name-array discovery with actual ELF coordinates, not hardcoded
   paths, cross-model IDs or its camera operators. Generated PRM/VAL/FUNC names

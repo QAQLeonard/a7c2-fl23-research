@@ -2865,3 +2865,54 @@ The remote's configured fetch tracks only the research branch, so fetching
 tracking-ref fetch resolves that stale comparison. Latest main is merged here;
 product files outside dev/precapture match it. Private pinned runtime and
 completed camera jobs remain unchanged; no camera action followed this merge.
+
+Phase93/94: final combined child12,664bytes retains symbols/integer ISA after
+objcopy strip-debug; allocated section bytes/VA and all load extents match its
+full-debug build. Linker strip-debug output lost symbols and was rejected.
+58 actual-worker models include all50 call failures, short moves/inverse,
+partial journal writes and final fsync/close failures that PARK despite a
+success-looking file. Same final worker completes102 records under CPU0 VM.
+25 parent/48 observer,23 adapter,16 corruption+2 reusedBSS,15 operator and10
+follow-up controls pass. Native/model journals each reject166 false successes,
+including101 incomplete prefixes and all50 corrupted AFTER operation results.
+
+Original phase93 current-source guard stops before any upload/child because
+CP now hashes1a25eee5 instead of eb72a5a6. Fresh separately constrained read-only
+acquisition is stable over four full source rereads and mirrored on E/P. Only
+four CP bytes at FILE13553a differ: old retry branch is now original movw.
+AP/kernel UIPC/library exact prior hashes;17 named CP spans and diagnostic
+constructor/callback140bytes match stock. Six-slot native-ST-dual-domain-v2
+structure remains; actual loaded look effects untested here. No normalization,
+old hook restoration or source-hash relaxation. Independent current-source
+scope retains same VM-tested binaries;325 frozen members verified twice.
+
+Physical current-source job: AP518/child982. First metadata shows R, empty
+cmdline, no journal, starttime302575: remains UNKNOWN. The old operator then
+continued full source reads; later CP-file SELECT times out, host exits without
+reauthentication/rescue/inverse/cleanup. One new explicit existing-service-only
+read attempt (no auth/start/stop/upload/native execution) times out too. UI
+remains normal according to owner. Do not infer a crash, CP request or cause.
+
+Owner confirms full power removal/normal viewfinder/reconnect. Fixed metadata
+reader (8 generated controls,10 operator cases) reads oldPID twice absent,
+fresh boot UUID/uptime63.78s, AP519. Four full sources match pre-test, USB ends
+normally. Read-only retained files contain exact102-record success journal:
+50 native calls, CPU2, affinity7->4->7, signals0->catchable->0, UIPC query/map/
+allocate16 wait0/cancel/unmap/close with all inverse statuses0;61 inheritedFDs
+closed; send_attempts0. Normal exit BEFORE reload was NOT observed; neither
+file success nor after-reload absence supplies that missing evidence.
+Nine exact retained temporary files archived and unlinked with readback;
+5 cleanup fault cases; USB_FINISHED. Owner confirms normal photo/playback.
+No old job/fence replay, parameter/ROM/existing-RAM write or historical restore.
+
+Correct the source-read ordering defect separately from the unknown USB cause:
+support/child_session.py permits source verification only after independently
+qualified terminal process+journal evidence.10 focused tests + prior32 pass.
+15 revised actual-controller models assert UNKNOWN/RUNNING/corrupt journals
+make no post-launch source reads and preserve the same child/fence. Revised
+controller has no runnable/admitted physical entry. This correction is NOT
+physical USB-fix proof. Next gate: qualify reliable exit/session completion
+before reviewing a first CP send. Main7827856 product files remain unchanged.
+
+Completion additionally requires a manual in-camera Off/On entry, initially
+Off. No menu or live switch binding exists; document that gap explicitly.

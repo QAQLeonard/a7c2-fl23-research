@@ -20,8 +20,16 @@ slices with synthetic inputs. They do not emulate the complete camera,
 sensor, ISP, RTOS scheduling or SD storage. Original external-service calls
 remain stop boundaries; separate slices are not a continuous execution.
 
+User-facing completion also requires an independent in-camera **Pre-capture:
+Off / On** control, initially Off and enabled manually. No such menu or live
+control binding exists yet. Turning Off must complete native cancellation,
+fencing and release; after S2, already-triggered saves must finish before the
+feature reports disabled. A hidden background enable is not the requested
+product. Menu/resource/parameter bindings need their own safety validation.
+
 | Stage | What the emulator checks | Missing connection or evidence |
 |---|---|---|
+| Manual in-camera switch | Requirement only; no menu implementation | Independent Off/On entry, default Off, actual enabled-state binding and verified disable/release behavior |
 | Load and initialize | Linked code, runtime publication checks, rejection of incompatible sources | Real executable-page ownership, loader integration and fresh loaded-source admission |
 | Configure | Request encoding, disabled-only configuration, generation matching, error states | Live AP/CP transaction and safe context lifetime/teardown |
 | Half-press | Start/stop predicate and request13 command construction | Native admission, timer/sensor execution and actual pre-trigger exposures |
@@ -61,6 +69,11 @@ and [CONTROL-PATHS](CONTROL-PATHS.txt) for source contracts.
 2026 年 10 月 21 日重新执行了 28 组离线检查，覆盖加载、配置、半按、帧参数、
 保留策略、全按路由、结束清理和还原模型。检查通过，但连续拍摄流程尚未走通。
 这里使用的是 ARM 指令模拟器，没有完整相机的传感器、ISP、实时系统与存储硬件。
+
+完整交付还需要独立的机内“预拍摄：关／开”入口，初始为关闭，由用户手动启用。
+目前没有实现这个菜单，也没有接通其真实状态。关闭时必须完成取消、终态栅栏和释放；
+若已全按触发，则先完成已触发的保存，再报告已关闭。不能默认在后台启用。
+菜单资源、参数绑定与界面安全需要单独验证。
 
 主要断点是：真实加载与通信生命周期、参数刷新及传感器启动、RAW 像素所有权和
 跨任务保留、实际保存预触发照片，以及取消后的所有资源释放。已复现“启用开关
