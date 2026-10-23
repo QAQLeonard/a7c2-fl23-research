@@ -3146,3 +3146,27 @@ program files unchanged, USB_FINISHED. This is a necessary initialized-state
 sample, NOT CP receipt, whole UIPC code or callback-lifetime admission. Stage2
 still refuses. Next: qualify remaining loaded UIPC send spans and assemble a
 separately reviewed isolated original-default request with same-child fencing.
+
+Phases105-107 finish more of that loaded-send-code prerequisite: two separately
+scoped8-file regular-only probes obtain UIPC and PCIe rodata/string/text/BSS
+addresses (12 models/4 corruptions and10 host/5 guards each). No device opens.
+The next code reader compares9 full send/finish fragments,82 CALL26/ABS64 sites
+rebuilt from those observed bases and pinned original symbols; no masks.147
+generated-reader cases cover65 bounded RAM reads and every failure/short read,
+plus5 output-corruption controls and10 host/5 adapter controls.
+
+Native Sony-kernel CPU0 child214 completes65 reads and is independently absent
+twice. The host collector incorrectly retained the old6920-byte header constant
+after the bounded trace array grew to80 entries/7432 bytes. Complete raw output
+was saved before that assertion. A separate OFFLINE retained-result qualifier
+checks7432 bytes, both native absence samples and all9 exact code spans/82
+relocations. Preserve the original failed collector report; no guest/child
+replay. Physical candidate then completes65 reads/3,612 RAM bytes, every code
+fragment and relocation matching exactly. Descriptor/root rechecks, exact3
+owned-file cleanup, four source files unchanged and USB_FINISHED. No CP send.
+
+Phase108 extracts a necessary-condition sampler with a deliberately different
+argument order/type from probe_rpc_gate. The original public gate still denies
+stage2. All133 before/after case reports match exactly. Sampling success alone
+never supplies source/lifetime/epoch admission. Work now prepares a separately
+scoped isolated original-default request; no physical sender admitted yet.

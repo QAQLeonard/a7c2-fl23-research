@@ -222,6 +222,13 @@ original-source reports and model results, not just pass new replacement tests.
   No CP response or live sender has been admitted. Code walks require executable
   leaves; only explicitly scoped metadata walks may accept normal NX kernel
   data. Never transfer that data policy to a code comparison implicitly.
+- Phase107 qualifies9 loaded UIPC/PCIe send/finish fragments,82 exact
+  relocations and65 bounded reads; not a whole-image or lifetime proof. Its
+  native VM collector had a stale6920-byte header assertion after growth to
+  7432 bytes. Same child was already absent twice and raw output retained;
+  offline qualification passes with no native replay. Preserve both reports.
+  Phase108's typed sampler only collects necessary facts. Original public
+  gate still denies stage2; sampling success is never send permission.
 - The owner's October19-23 handoff includes superseded hypotheses. Reuse its
   offline name-array discovery with actual ELF coordinates, not hardcoded
   paths, cross-model IDs or its camera operators. Generated PRM/VAL/FUNC names

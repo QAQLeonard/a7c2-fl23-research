@@ -139,8 +139,7 @@ static int collect(struct rpc_conditions_gate *g,volatile struct rpc_condition_s
     if(descriptor_identity(g,s))return RPC_GATE_UNKNOWN_STATUS;
     s->matches=1;s->reason=RPC_CONDITION_NONE;return 0;
 }
-probe_i32 precapture_rpc_conditions_gate(probe_u32 stage,void *context){
-    struct rpc_conditions_gate *g=context;
+probe_i32 precapture_rpc_conditions_sample_stage(struct rpc_conditions_gate *g,probe_u32 stage){
     probe_u64 gp=(probe_u64)(probe_uptr)g;
     if(!g||gp+sizeof(*g)<=gp)return -22;
     if(!g->expected||!g->result||!g->workspace||!g->context||!g->syscall||
@@ -183,9 +182,15 @@ probe_i32 precapture_rpc_conditions_gate(probe_u32 stage,void *context){
         r->phase=RPC_CONDITIONS_UNKNOWN;return RPC_GATE_UNKNOWN_STATUS;
     }
     if(status){r->phase=RPC_CONDITIONS_DENIED;return -95;}
-    if(stage==RPC_GATE_BEFORE_ALLOC){r->phase=RPC_CONDITIONS_CHECKED;return 0;}
+    r->phase=RPC_CONDITIONS_CHECKED;return 0;
+}
+probe_i32 precapture_rpc_conditions_gate(probe_u32 stage,void *context){
+    struct rpc_conditions_gate *g=context;
+    int status=precapture_rpc_conditions_sample_stage(g,stage);
+    if(status||stage==RPC_GATE_BEFORE_ALLOC)return status;
     /* Necessary scheduling samples are not a loaded-text or callback lifetime
      * contract. Keep the actual sender unreachable regardless of the sample. */
-    s->reason=RPC_CONDITION_LIFETIME_UNQUALIFIED;r->status=-95;
+    volatile struct rpc_conditions_result *r=g->result;
+    r->samples[stage-1].reason=RPC_CONDITION_LIFETIME_UNQUALIFIED;r->status=-95;
     r->phase=RPC_CONDITIONS_DENIED;return -95;
 }

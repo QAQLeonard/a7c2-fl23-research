@@ -52,4 +52,10 @@ struct rpc_conditions_gate {
  * Worker PID/starttime are fresh admission inputs, not constants from logs.
  */
 probe_i32 precapture_rpc_conditions_gate(probe_u32 stage,void *context);
+/* Necessary-condition sampler ONLY. Its argument order/type deliberately
+ * differ from probe_rpc_gate. A successful sample is not send admission;
+ * callers still need separately reviewed loaded-source/lifetime/epoch scope.
+ * The existing gate above continues to deny stage2 after successful sampling.
+ */
+probe_i32 precapture_rpc_conditions_sample_stage(struct rpc_conditions_gate *,probe_u32 stage);
 #endif
