@@ -17,6 +17,7 @@
 | --- | --- | --- |
 | A7CR | [lzh2016zzz/a7cr-fl23-research](https://github.com/lzh2016zzz/a7cr-fl23-research) | FL2／FL3 移植研究 |
 | A7CR | [injectiver/a7cr-creative-look-tools](https://github.com/injectiver/a7cr-creative-look-tools) | 固件 2.01 的 FL2／FL3 与自定义外观研究工具（研究源码，不提供刷写命令） |
+| A7CR | [littleben/a7cr-creative-look-tools](https://github.com/littleben/a7cr-creative-look-tools) | 下游通用 agent 扩展：逐机审核的单槽 CC、PRO Neg. Std/ASTIA 增量流程、JSON CLI 与双语文档；一台 A7CR 2.01 / Apple Silicon Mac 实测 |
 | A7R V | [Hearts-Ace/sony-a7r5-custom-firmware](https://github.com/Hearts-Ace/sony-a7r5-custom-firmware) | FL2／FL3 固件适配与 RAW 色彩研究 |
 | A7 IV | [DavidBuchanan314/ILCE-7M4-RE](https://github.com/DavidBuchanan314/ILCE-7M4-RE) | 机身固件逆向研究笔记 |
 | A6700 | [xyzhangxin/sony-a6700-powerful](https://github.com/xyzhangxin/sony-a6700-powerful) | 固件 2.00 中文教程：Pico 接线、进入 Fastboot、备份，以及功能解锁 |
