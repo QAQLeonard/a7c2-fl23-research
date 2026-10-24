@@ -39,3 +39,41 @@ Licenses:
 ## Firmware and data
 
 Sony A7C II 2.01 and Alpha 1 II 4.00 firmware were analysis sources; Sony firmware, trademarks and data remain their owners' material. This project distributes no complete firmware, signed update container, body backup/calibration, photos, credentials or private derived data. The built-in factory reference holds only generic stock bytes for the regions this project changes.
+
+## Risk notice and use statement
+
+### Independent research and device authorization
+
+This is a free, independent project for photographic color research, interoperability, learning and technical discussion. It is not affiliated with, authorized, approved, sponsored or endorsed by Sony, its affiliates or authorized repair providers. Product names identify compatible devices; the corresponding trademarks remain their owners' property.
+
+Only operate a device you lawfully own or for which the lawful owner has given explicit, informed permission. Do not modify rental, display, sale-stock or another person's equipment without authorization.
+
+### Important device risks and liability
+
+**Modifications can cause a camera to fail to boot, repeatedly restart, malfunction or lose images/settings, and may result in repair or replacement costs. They can also affect official updates and warranty or repair eligibility.** Coverage depends on applicable law, the damage and service policies; free repairs are not guaranteed.
+
+**Successful writes, complete readback and offline tests do not establish boot safety or stability in every mode. One-click restoration is not a complete system reinstallation and is not guaranteed to recover damage or an unbootable camera.** Preserve important images, same-body backups and any required official firmware. A backup does not guarantee recovery.
+
+The software is provided as is to the extent permitted by law, without promises of correctness, fitness, safety or successful recovery. Users decide whether to proceed and bear risks that lawfully fall to them. **This statement does not exclude or limit liability that cannot lawfully be excluded**, including applicable non-excludable liability for intentional misconduct or gross negligence.
+
+### Free distribution, paid flashing and false affiliation
+
+**Do not impersonate Sony or claim authorization from the project author.** The author provides no paid flashing service and has not authorized third parties to advertise, charge, promise warranty coverage or give safety guarantees in Sony's or the author's name.
+
+The author opposes paid flashing, paid remote installation, misleading resale bundles, activation keys/dongles and hardware bundles offered by individuals, online sellers, studios or commercial entities, including sellers on Xianyu, Taobao, Pinduoduo and Zhuanzhuan. Third-party fees do not imply the author's involvement, approval or guarantee. Those parties remain responsible for their own transactions and conduct under applicable law.
+
+**Code remains MIT-licensed. This statement expresses the author's service policy and prohibits false affiliation; it does not revoke or narrow MIT rights to commercial use, copying, modification, redistribution or sale.** Third-party components, firmware material and trademarks retain their separate rights and licenses; MIT grants no additional rights to them.
+
+### Firmware sources, copyright and DMCA considerations
+
+To respect firmware copyright and reduce distribution and anti-circumvention risks, including those under the US Digital Millennium Copyright Act (DMCA), the project does not supply complete Sony firmware, signed official update packages, original voice packs or other bodies' backups for download. Where a complete recovery source is required, use your own same-body backup or obtain a compatible **ILCE-7CM2 2.01 `BODYDATA.DAT`** from Sony for local processing.
+
+This is a project distribution policy, not a claim that the DMCA requires every user to download firmware. Device ownership, backups, personal research or non-commercial purpose do not automatically authorize circumvention; applicable restrictions and exceptions depend on the law and conduct involved.
+
+Some implementations contain or process small instruction/data fragments derived from firmware research and generic stock references; it would be inaccurate to claim that the project contains no Sony-derived bytes. Rights remain with their owners, and authorization for every implementation is not guaranteed. **This statement, the research purpose and user consent neither confer Sony authorization nor prevent objections, takedown requests or litigation.**
+
+### Confirmation and rights-holder contact
+
+Each normal desktop launch requires manually checking the agreement and selecting the continue button. Leaving it unchecked, declining or closing the dialog does not open the operation interface. Confirmation provides risk notice; it does not waive rights that cannot lawfully be waived.
+
+Rights holders may identify disputed content and the basis of their claim through [project Issues](https://github.com/QAQLeonard/a7c2-fl23-research/issues); the author will review and address the report.

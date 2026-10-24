@@ -9,6 +9,7 @@ from . import VERSION
 from . import jobs
 from . import presets
 from . import reloadguide
+from .disclaimer import require_consent
 
 DRIVER_HINT = ('\n驱动或连接没有成功：先在“连接与驱动”页卸载驱动后重装；仍不行，'
                '可点该页的“用 Zadig 手动安装驱动”，按说明给 0E8A 和 0336 两个身份分别装 libusbK。')
@@ -189,6 +190,15 @@ class Window(W.QMainWindow):
             self.setup_presets.toggled.connect(self.setup_preset_summary.setEnabled)
         layout.addWidget(self.setup_preset_summary)
         for check in (self.setup_fl23, self.setup_sound, self.setup_vertical, self.setup_plugin):layout.addWidget(check)
+        source_notice=W.QLabel('备份与恢复来源：建议在“恢复原厂功能”页可选备份当前项目；清理语音前可另外备份语音。'
+            '为尊重原厂版权、降低包括 DMCA 在内的法律风险，安装包不附带完整官方固件或原厂语音包。'
+            '清理语音后要补回文件，需使用同机语音备份，或自行从索尼官方下载 ILCE-7CM2 2.01 BODYDATA.DAT。'
+            '普通安装不强制先备份或下载；恢复也不保证能救回无法开机的相机。')
+        source_notice.setObjectName('setupRecoverySourceNotice');source_notice.setWordWrap(True)
+        layout.addWidget(source_notice)
+        recovery_source=W.QPushButton('查看可选备份与官方固件恢复来源')
+        recovery_source.clicked.connect(lambda:self.nav.setCurrentRow(2))
+        layout.addWidget(recovery_source);self.buttons.append(recovery_source)
         self.setup_button=self.button(layout, '开始新的一键安装' if prior.get('phase')=='COMPLETE' else '继续安装' if prior else '一键安装',
                                       'setup_all', self.setup_args, primary=True)
         self.setup_result_button=W.QPushButton('查看上次安装结果（不连接相机）')
@@ -398,6 +408,10 @@ class Window(W.QMainWindow):
         layout = self.page('恢复原厂功能', '恢复本项目修改，六个自订栏位设为 ST，快门设回机械、静音模式关闭，并关闭新增电子快门音效。保留机身校准和未涉及的个人设置；旧配方不找回。清理过语音包时，需用官方 2.01 文件先补回资源。')
         original=self.box(layout,'语音包恢复来源（清理过语音时选择）')
         self.field(original,'factory_voice_firmware','Sony BODYDATA.DAT',kind='file',filter='Sony firmware (*.DAT *.bin);;All files (*)')
+        source_notice=W.QLabel('为尊重原厂版权并降低包括 DMCA 在内的法律风险，工具不附带完整固件及原厂语音包。'
+            '此处使用你自行从索尼取得的 ILCE-7CM2 2.01 文件，在本地提取恢复资源；也可使用同机语音备份。'
+            '这不是普通安装的前置要求。')
+        source_notice.setWordWrap(True);layout.addWidget(source_notice)
         download=W.QPushButton('打开索尼官方 2.01 固件下载页')
         from .screenreader import DOWNLOAD_URL
         download.clicked.connect(lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(DOWNLOAD_URL)))
@@ -1026,6 +1040,8 @@ def main():
             QtGui.QFontDatabase.addApplicationFont(str(font))
     app.setApplicationName('A7C2Tools')
     app.setOrganizationName('QAQLeonard')
+    if '--smoke-test' not in sys.argv and not require_consent():
+        return 0
     window = Window()
     if '--preview-gate-test' in sys.argv:
         window.nav.setCurrentRow(3)

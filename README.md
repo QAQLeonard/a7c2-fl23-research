@@ -28,6 +28,10 @@ For other models, these independent projects may help. They are not part of this
 > [!IMPORTANT]
 > This tool modifies programs and settings in the camera firmware. Read the whole [step-by-step guide](#step-by-step-guide) before you start. If the app reports an error, **export a diagnostic bundle first. Do not keep retrying the write.**
 
+Each normal desktop launch shows a risk summary and requires manually accepting it before the interface opens. The linked [risk notice and use statement](docs/en/notices.md#risk-notice-and-use-statement) provides the full text. The tool is free and unofficial. The author opposes paid flashing and prohibits false claims of Sony/author authorization; code remains MIT-licensed.
+
+**Backups and recovery sources:** ordinary installation does not require a backup or a full firmware download. The recovery page offers an optional current-project backup, with voice data saved separately. To respect firmware copyright and reduce legal risks, including DMCA considerations, packages omit complete official firmware and original voice packs. Restoring deleted voice files requires a same-body voice backup or **ILCE-7CM2 2.01 `BODYDATA.DAT`** obtained from Sony for local extraction. This policy does not establish authorization for every modification, guarantee recovery, or prevent litigation.
+
 The interface is in Simplified Chinese. Button names below are given in Chinese with an English translation, so you can match them on screen.
 
 ## Contents

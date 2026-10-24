@@ -4,6 +4,8 @@
 
 ## Unreleased — restore native LUT upload conditions
 
+- Require explicit, unchecked-by-default consent before constructing the normal GUI on every launch. Show material risks and a local full-statement link; declining/closing exits. Preserve MIT rights, prohibit false Sony/author affiliation and state opposition to paid flashing. Explain optional backup and user-supplied official recovery sources as a copyright/DMCA risk-reduction policy, without adding installation prerequisites or promising immunity from litigation. Worker and offline-smoke entry points keep their existing noninteractive behavior.
+
 - Extend voice cleanup to keep its five native menu controls visible but unselectable: change the thirteen supported mode flags from 1 to 2, leaving the unsupported mode hidden. Replay the original visibility/selectability predicates offline; require these data flags loaded before deletion. Restore voice files from older code-only candidates without requiring the newer menu flags, and restore the original menu flags when unlocking. Actual camera menu appearance remains untested.
 
 - Complete the local recovery/voice-space candidate: factory recovery selects mechanical shutter and silent mode OFF, removes the custom sound hook, and requires cold-reload verification before deleting fixed private sound files and reporting complete. The sound page explicitly controls electronic-only effects; its reset removes the custom hook and mutes the electronic capture branch in one plan, with file cleanup at the post-reload check. AF beeps remain outside these targets.

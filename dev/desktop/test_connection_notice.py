@@ -18,6 +18,7 @@ def test_notice_distinguishes_camera_prompt_from_actual_tool_failure():
 def test_gui_start_schedules_notice_after_show_before_any_operation():
     app=Mock();app.exec.return_value=0
     with patch.object(window.W.QApplication,'instance',return_value=app), \
+         patch.object(window,'require_consent',return_value=True), \
          patch.object(window,'Window') as ctor, \
          patch.object(window.QtCore.QTimer,'singleShot') as timer, \
          patch.object(sys,'argv',['A7C2Tools.exe']):

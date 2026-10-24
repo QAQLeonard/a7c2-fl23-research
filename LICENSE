@@ -21,4 +21,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 This license covers newly authored software. Upstream software and Sony
-firmware-derived data retain their respective rights; see NOTICE.md.
+firmware-derived data retain their respective rights; see docs/en/notices.md
+and docs/zh-CN/notices.md.
