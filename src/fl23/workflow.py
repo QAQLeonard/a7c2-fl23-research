@@ -61,20 +61,33 @@ class Job:
 
     # ---------- 备份来源 ----------
     def attach_backup(self, serial_sha256=None):
-        report = backup_mod.verified_backup(serial_sha256)
+        if serial_sha256 is None:
+            serial_sha256 = self.state.get('identity', {}).get('serial_sha256')
+        if self.backup is not None:
+            report = self.backup.require()
+            if serial_sha256 and report.get('serial_sha256') != serial_sha256:
+                raise ValueError('指定备份与当前机身不同，拒绝继续')
+            report = dict(report, backup=self.backup)
+        else:
+            report = backup_mod.verified_backup(serial_sha256)
         if report is None:
             return None
         self.backup = report['backup']
+        self.state.setdefault('format', 2)
+        self.state.setdefault('model', core.MODEL)
+        self.state.setdefault('version', core.VERSION)
+        self.state.setdefault('identity', {'model': core.MODEL,
+                                          'serial_sha256': report.get('serial_sha256')})
         self.state['backup'] = {'path': str(self.backup.path),
                                 'created': report.get('created'),
                                 'serial_sha256': report.get('serial_sha256')}
         return report
 
     def units(self):
-        """原厂色彩单元：优先用工作目录里的，没有就用备份库里的。"""
+        """Use the selected verified backup before any old workspace units."""
         local = self.root / 'original'
         have = all((local / layout.UNIT_FILES[k]).is_file() for k in core.CP_KEYS)
-        source = local if have else self.backup.path
+        source = self.backup.path if self.backup is not None else (local if have else None)
         if source is None:
             raise ValueError('既没有本机备份也没有可用备份库')
         originals = {k: (source / layout.UNIT_FILES[k]).read_bytes() for k in core.CP_KEYS}
@@ -99,6 +112,7 @@ class Job:
         if session.read('/tmp/jiritsu/../../etc/ld.so.preload', True):
             raise RuntimeError('发现既有预载配置，停止')
         created = []
+        launched = False
         try:
             created.append('a7c2-preview-staged.so')
             session.temp(created[-1], blob)
@@ -114,6 +128,7 @@ class Job:
             created.extend(['libJit.so', result])
             if name == 'runtime':
                 created.append('a7c2.probe.result')
+            launched = True
             session.temp('libJit.so', blob)
             raw = session.read('/tmp/jiritsu/' + result)
             dest = self.root / 'evidence' / f'{datetime.now():%Y%m%d-%H%M%S-%f}-{name}.bin'
@@ -122,6 +137,10 @@ class Job:
             parsed = core.parse_native(name, raw, mode)
             self.audit('native_verified', module=name, mode=mode, result=parsed)
             return parsed
+        except BaseException:
+            if launched:
+                session.healthy = False
+            raise
         finally:
             for item in reversed(list(dict.fromkeys(created))):
                 if not session.healthy:
@@ -345,6 +364,11 @@ class Job:
     def verify(self):
         from transport import Session
         self.load()
+        recorded = self.state.get('backup', {}).get('path')
+        if self.backup is None and recorded:
+            self.backup = backup_mod.Backup(recorded)
+        if self.attach_backup() is None:
+            raise ValueError('没有通过校验的备份，无法核对')
         with Session(self.state.get('identity')) as session:
             self.files(session, core.FINAL)
             current = core.backup_records(session.call(session.camera.getBackupPresetData, True))
@@ -355,7 +379,7 @@ class Job:
                 raise ValueError('重启后 AP 绑定不符')
             runtime = self.module(session, 'runtime')
             candidate = core.patch_program(
-                (self.root / 'original' / layout.PROGRAM_FILES['appFw.so']).read_bytes(), 0)
+                (self.backup.path / layout.PROGRAM_FILES['appFw.so']).read_bytes(), 0)
             for span in runtime['spans']:
                 expected = candidate[span['offset']:span['offset'] + span['length']].hex()
                 if span['memory'] != expected or span['disk'] != expected:
