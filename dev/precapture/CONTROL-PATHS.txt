@@ -3801,3 +3801,66 @@ same-shot image/request/S2 correlation. Old runtime96 and zero/padding memory
 cannot host this state by assumption. No deployment authorization is requested
 for an unplaced candidate. Real pretrigger RAW/save/cancel/release and default-Off
 in-camera menu remain unimplemented native bindings, not passed tests.
+
+## Phase137: small physical AP metadata diagnostic and bounded trace export
+
+Main782785641ca9f8b984940c7274b48706219e0da4 was refreshed and remains an
+ancestor; product/main/releases stay unchanged. Owner allowed reviewed small
+hardware diagnostics. A fresh fixed-proc initializer used new names/nonce/fence,
+not the failed phase135 ordinary-file proc job. Its15408-byte integer-only
+AArch64 artifact passed independent target-header ABI checks,24 generated-code
+syscall cases and7 result/receipt corruption refusals before execution.
+
+The body returned boot_id, iomem and49 module rows. The49288-byte result has
+three bounded16KiB parts; a separate48-byte exclusive receipt records the
+actual result write length,fsync and close returns. Source reads are fixed
+regular proc inodes only. There is no child,device open,ioctl,mmap,CP message,
+parameter/ROM/existing-code patch or address-following. The native loader
+request returned, both files decoded, exact owned files were checked/removed,
+all five current program/module files reread unchanged and USB_FINISHED.
+Evidence was mirrored/readback-verified on E:/P:. Owner subsequently confirmed
+normal viewfinder/photo/playback without a restart. This is AP metadata only;
+it does not prove CP allocation,loaded bytes,exposure or global quiescence.
+
+Earlier phase23 already read passive DMM unit/extent lists, without finding
+main CP code ownership. Those results were reviewed rather than replayed.
+The dmm_info endpoint remains excluded because it makes a synchronous CP call.
+Fresh loaded-module presence does not cure that boundary or grant DMA access.
+
+cp_trace_export.c/h now implement a fixed24-byte packet adapter for a frozen
+owner lane. Requests carry only a bounded byte offset and nonce, never an
+address. Other modes leave the packet untouched for original dispatch; bad
+input/header,active/busy lane or bounds mismatch return a zero-payload refusal.
+Each success carries at most12 bytes;262 ordered replies cover3136 bytes.
+Selected header rechecks detect selected drift, not ABA or writer exclusion.
+Export never freezes,resets,allocates,frees,sends,waits or clears overflow.
+The supplied lane must be allocated,actually owner-frozen,immutable and alive
+across the entire export. No native callback is registered or patched here.
+
+support/trace_export.py reconstructs exact locally supplied packets, rejecting
+missing/duplicate/reordered/truncated/nonce/status/padding errors before the
+existing record guard/binding/finalization checks. There is no automatic
+sorting,retry or partial-success path. Overflow exports remain incomplete.
+verify_trace_export.py executes generated Thumb/AArch64 code on synthetic
+lanes and proves identical record/packet bytes,15 native refusal cases,5
+untouched modes,6 invalid-pointer/alias cases and10 host corruption refusals.
+No native service or physical export executes. Initial buildr1 failed because
+u16 was not defined by the shared header; explicit unsigned short fixed the
+ABI, with the original size and integer-ISA checks retained. Failed artifacts
+are preserved. This is an export implementation, not storage or hook admission.
+
+audit_dma_reader.py additionally executes12 original2.01 kernel slices.
+The native ioctl prepares a stack descriptor and callback cookie atframe+48;
+the callback stores cond/error before its first spin-lock boundary. Separate
+post-wait/post-unlock timeout tails restore the stack and return-110 without
+changing that request cookie or establishing DMA cancellation. All copy,
+transfer,lock,wakeup and scheduler services remain pre-call boundaries. No
+late callback or actual use-after-free was reproduced. This closes off a
+guessed direct-ioctl reader; it does not assert a new physical camera defect.
+
+Next native blocker remains allocated CP code/lane placement with a qualified
+owner/IRQ/stack/clock,callback/export/lifetime and exact inverse. Then observe
+consistent runtime backing ownership,actual terminal completions and same-shot
+exposure-end/S2 timing. Half-press RAW,full-press save,cancel/release and the
+default-Off menu remain unfinished. No full pre-capture hardware candidate is
+admitted by the metadata diagnostic or packet tests.

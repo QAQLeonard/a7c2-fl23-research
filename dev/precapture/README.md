@@ -49,7 +49,20 @@ and real capture trace are needed before any of those verdicts can pass.
 The observer now has a compiled trace core and uninstalled task/pool/exposure
 wrappers. Thumb/AArch64 tests check bounded recording, corruption/overflow and
 original entry preservation. It still lacks qualified native placement, IRQ/
-stack/clock admission and export; it is **not ready to install on the camera**.
+stack/clock admission and native export binding; it is **not ready to install
+on the camera**. The new fixed24-byte packet adapter reconstructs a frozen
+3136-byte lane through262 bounded replies in both ISAs, but is not registered
+or executed on the camera. It requires genuinely frozen, owned storage that
+stays alive for the entire export; packet validity does not establish that.
+
+A later small AP-only metadata diagnostic read boot ID, memory resources and49
+loaded modules. The result file's fsync/close receipt, exact temporary cleanup,
+five unchanged source files and normal USB exit were checked. The owner then
+confirmed ordinary viewfinder/photo/playback without restarting. This admits
+only that diagnostic, not CP pools, pixels or hooks. The original kernel DMA
+ioctl was also checked offline: its timeout tail returns with a stack callback
+cookie still in the request, without establishing cancellation/quiescence.
+It is not admitted as a shortcut for reading CP memory.
 
 Two preceding jobs sent nothing: source drift stopped the first before upload;
 the second rejected a changed boot epoch, restored itself and exited. Their
@@ -100,6 +113,8 @@ do not add up to physical pre-capture.
 | `support/capture_validation.py`, `audit_capture_validation.py` | Combined pool/completion/exposure source checks bound to a completed read-only snapshot; physical verdicts stay unverified |
 | `cp_trace.c/h`, `cp_trace_native.c`, `cp_trace_hooks.S` | Bounded owner-lane recording core, uninstalled native metadata/edge adapters and exposure entry wrappers; no loader/storage/export admission |
 | `support/trace.py`, `decode_cp_trace.py`, `verify_cp_trace.py` | Offline record decoder and compiled cross-ISA/entry-wrapper checks; no camera entry or physical validation |
+| `cp_trace_export.c/h`, `support/trace_export.py`, `verify_trace_export.py` | Uninstalled24-byte frozen-lane packet adapter and exact offline reconstruction; no native registration/lifetime admission |
+| `audit_dma_reader.py` | Original kernel DMA ioctl/stack-cookie/timeout boundaries, executed on synthetic RAM; no live reader or successful service stubs |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
 | `vm/cp_boot/config_rmw/qemu_source_word.h`, `vm/cp_boot/mtg_select/` | Shared restricted single-word storage and the optional MTG selector fixture; no timing edges, frame IRQ or sensor |
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
@@ -228,5 +243,10 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 最新一轮只读采集确认五个当前程序／模块文件与保留来源一致，会话正常结束。资源池来源、异步完成、
 曝光时序已合并检查，但三项实机结论仍为未验证：还缺同次开机／拍摄的CP观测与曝光结束/S2时间证据。
 观测器已新增可编译记录核心、任务／资源池／曝光入口绑定原型与离线解码器；溢出和损坏记录不会被当成
-完整证据。仍缺实机代码及存储位置、任务／中断／栈／时钟核对和读出方案，目前不能安装，五项功能尚未完成。
+完整证据。新增24字节分块导出原型，两种指令集都能从262个报文还原3136字节记录；尚未注册或在机身执行，
+必须先证明记录区确实冻结、归本功能所有，并在完整读出期间保持存活。仍缺实机代码及存储位置、任务／中断／
+栈／时钟及原生读出绑定，目前不能安装，五项功能尚未完成。
+后续一次小型AP元数据实测已读到开机标识、内存区域和49个模块；结果文件收尾、临时文件清理、五个来源未变及
+USB正常退出均已核对，机主随后未重启直接确认取景／拍摄／回放正常。这不代表CP资源池或曝光已验证。
+离线还确认原厂DMA ioctl超时返回路径没有建立取消／回调终止证据，不能把它直接用作猜地址的CP内存读取器。
 详细证据保留在 [CONTROL-PATHS.txt](CONTROL-PATHS.txt)，公开工具继续只做离线研究。

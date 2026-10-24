@@ -81,6 +81,24 @@ preserve busy/torn/overflow data without reset or automatic replay. Native pool
 reader only samples exact metadata indices after a task256 check, not backing
 pixels. A header cookie or test-supplied task result never grants native admission.
 
+Phase137 completes one small AP-only metadata diagnostic on the physical body:
+boot_id/iomem/modules via fixed regular-proc reads, result fsync/close receipt,
+exact temporary cleanup, five unchanged source files and normal USB exit. The
+owner confirmed ordinary viewfinder/photo/playback directly afterward. No CP
+request, device open, DMA, parameter or existing-code patch occurred.49 loaded
+modules and AP RAM resources do not establish CP pool/code ownership. The
+failed phase135 proc job stays retired;137 uses fresh names/nonce/fence.
+The new24-byte trace packet exporter is UNINSTALLED: it copies at most12 bytes
+from a supplied frozen lane, never a request-selected pointer.262 packets can
+reconstruct3136 bytes in both ISAs. Actual owner freeze, allocated lifetime,
+callback/packet-size binding and transport remain native prerequisites. Never
+use modee2 on the body simply because the offline protocol tests pass.
+audit_dma_reader.py shows original kernel ioctl descriptors retain a caller-
+stack callback cookie across the timeout-return tail. It does not establish
+transfer cancellation or a physically late callback; do not use that ioctl
+as a guessed CP reader. The first blocker remains qualified CP code/lane
+placement and native ownership/export lifetime, followed by real RAW/timing.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that
