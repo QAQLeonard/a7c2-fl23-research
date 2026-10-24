@@ -95,6 +95,12 @@ Sony-kernel VM run: 58 RAM reads / 704 bytes including page-table checks, all
 eight source/literal spans exact, two independent child-absence observations.
 The VM and body reader use identical C source with separately scoped inputs.
 No physical camera execution or CP request is admitted by this result.
+After the owner confirmed exclusive read-only access, fresh body snapshots and
+metadata matched the retained boot/source/mapping inputs. A separately scoped
+physical read then verified all eight spans and both relocations: 58 reads /
+704 bytes including table/root checks. Exact temporary-file cleanup, four
+unchanged program/driver files and normal USB exit were verified. This is loaded
+source evidence only; no CP request, patch or pre-capture exposure occurred.
 
 ## Earlier startup studies
 
@@ -239,6 +245,10 @@ Phase111 又核对了这些指令直接读取的位址常量，补入2个未覆�
 Phase112 已把读取程序编译并运行于新的 Sony 原厂核心虚拟机：58次RAM读取/704字节
 （含页表检查），8段内容及两处重定位全部吻合；两次独立确认同一个子进程已不存在。
 141项指令模型也通过。VM与机身候选的C代码相同，输入范围独立；实机尚未执行，也未发送CP请求。
+随后在用户确认独占只读操作后，Phase113–115重新核对了机身来源、启动识别和段位址，
+与既有已验证输入一致。单独限定范围的实机读取已完成：8段内容/两处重定位全部吻合，
+58次读取共704字节（含页表与根指针检查）；临时文件精确清理，四个程序/驱动文件未变，
+USB正常结束。这只补齐本批载入代码证据，没有发送CP请求、打补丁或产生预拍摄曝光。
 
 本目录是未完成的预拍摄研究，公开工具只做离线验证，没有可安装的预拍摄版本。
 

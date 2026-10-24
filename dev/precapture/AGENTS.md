@@ -99,6 +99,14 @@ original-source reports and model results, not just pass new replacement tests.
   bases; never copy those bounds or the body's historical addresses into a
   current live admission. Physical camera ownership and fresh state remain
   prerequisites. This phase performed no physical camera operation or CP send.
+- The later owner-confirmed read-only session completes source113, map114 and
+  sections115, then the separately admitted scope112 physical reader. Fresh
+  boot/metadata/section bases match the retained epoch; the binary is unchanged
+  from VM/model review. All8 spans/2 ABS64 values match with58 RAM reads/704
+  bytes and descriptor/root rechecks; exact temporary cleanup, four unchanged
+  sources and normal USB exit. This admits only those loaded code/literal
+  observations, not CP sending, callback lifetime or an installation. Do not
+  replay completed scopes or infer authority to write from exclusive read access.
 - The new phase84 seal admits metadata preflight ONLY: files/proc reads and
   device stat, no child/device open/ioctl. Its parent/observer models are not
   a physical execution. The stock diagnostic audit stops before registration

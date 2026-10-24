@@ -3263,3 +3263,31 @@ awaiting confirmation; no physical reader operator or admission was created.
 Fresh body source/boot/mapping checks are still required before a read on the
 body; existing image/calibration state must be preserved. Main782785641ca9f8b
 remains the reviewed ancestor.
+
+Owner then explicitly confirmed this conversation exclusively owns the camera
+for read-only verification. Phase113 uses the pinned existing-file-only host
+transport: normal/service body identity matched; no loader/preload state found;
+AP,CP,UIPC kernel/library and PCIe files acquired and independently reread equal,
+compressed copies verified on E/P; USB_FINISHED. Four previously retained source
+files are exact matches; PCIe matches its original source hash. No upload occurs
+in this acquisition and no source/calibration change is restored or overwritten.
+
+Fresh map114 and sections115 scopes have unique paths/nonces/fences,15/12 native
+instruction models,4 result corruptions each,10 operator/5 adapter guards each.
+Both physical regular-file-only probes complete and clean their exact owned
+artifacts; four sources unchanged, both USB sessions normal. Fresh boot UUID
+and kernel metadata plan equal the retained bootstrap epoch; current UIPC/PCIe
+section bases also match. The existing96-byte bootstrap observation is reused
+ONLY for this confirmed same epoch; the subsequent reader checks the actual
+root pointer before/after and all page descriptors independently.
+
+The VM-tested scope112 binary is unchanged. A separate physical-read scope pins
+fresh map114/sections115 evidence plus native/model results;10 operator and5
+adapter guards pass before deployment. All pre-execution evidence is mirrored
+and verified on E/P. The physical reader then completes58 RAM reads/704 bytes:
+six code fragments288 bytes and two ABS64 literal words16 bytes all match
+exactly. Table paths/root rechecked; no masked comparisons. Three exact owned
+temporary files are removed and absence verified, all four source files reread
+unchanged, USB_FINISHED. No CP request/ioctl, firmware/parameter/existing-RAM
+patch, capture, restart or retry occurs. Physical callback lifetime, real CP
+receipt, pre-S2 exposure/RAW retention/save/release and manual menu remain open.
