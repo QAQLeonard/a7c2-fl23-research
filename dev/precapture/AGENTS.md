@@ -4,6 +4,25 @@ Read README.md for current state and CONTROL-PATHS.txt for detailed evidence.
 This directory is not a camera installer. Keep main/releases untouched when
 working on the pre-capture feature branch.
 
+Latest physical checkpoint: one explicitly approved original-default CP query
+completed in phase129 (mode e1,24 bytes,392 journal records,one sync call). Exact
+reply, context/free/CPU/signal restoration, same-child absence, exact owned-file
+cleanup and four unchanged sources were verified; both USB sessions ended
+normally. The owner confirmed ordinary viewfinder/photo/playback afterward.
+That one-query authorization is consumed, not blanket permission for further
+sends or patches. Physical exposure/RAW/save/cancel/menu integration is still
+unfinished. Keep all retired job fences and unknown-state rules intact.
+
+Current CP source supersedes phase113:333 changed bytes exactly reconstruct
+from the existing nine-window LUT-preview repair;17 original spans and the
+diagnostic constructor/callback/registration are unchanged. Preserve that
+repair. Phase117 stopped before upload on source drift. Phase119 then refused
+the new boot epoch, restored/exited and sent nothing. Neither is a failed CP
+send to retry. Fresh metadata120-123/source reads124-127 bind the new boot;
+query128 uses new paths/nonce, worker start132 and14 verified evidence entries.
+Its successful physical host job is phase129; never reuse the old epoch or
+restore the older preview behavior as a pre-capture prerequisite.
+
 At each phase boundary and before device preparation, refresh origin/main
 and review its shared-runtime changes. Keep main as an ancestor of this
 feature branch; retain main's product files outside this research directory.

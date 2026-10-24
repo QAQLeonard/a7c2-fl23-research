@@ -4,6 +4,10 @@ This branch does **not** implement working camera pre-capture. This audit
 identifies original code that can inform an implementation; it generates
 private evidence and never connects to or modifies a camera.
 
+Latest physical milestone: phase129 completes exactly one owner-approved
+original-default CP query and cleanup. See the final checkpoint below. This
+does not complete pre-capture; the public audit command below remains offline.
+
 Run with Capstone and private original firmware:
 
 ```text
@@ -3334,3 +3338,61 @@ missing live admission correctly refuses before connection. No permission or
 execution-intent file was created; the owner's exclusive read-only authorization
 does not by itself authorize this first physical CP request. Main782785641ca9f8b
 remains the reviewed ancestor. Physical pre-capture remains incomplete.
+
+Phases117-129: the owner explicitly approves exactly one original-default CP
+query plus necessary manual recovery, then reconnects the body. First source
+check stops BEFORE upload: CP differs from phase113. Phase118's fresh existing-
+file snapshot and reread preserve all5 sources on E/P. AP/UIPC/PCIe match; CP
+has333 changed bytes. AST-extracted constants from the existing LUT-preview
+repair independently reconstruct the ENTIRE new image from9 exact windows;
+all context guards,17 original spans and diagnostic constructor/callback/
+registration remain unchanged. Never restore the old preview code or silently
+relax its fingerprint. Retire the stopped host job; it created no child or query.
+
+Fresh host119 retains the approved, previously never-uploaded binary. Initial
+observation is UNKNOWN/empty journal; source reads are deferred and USB ends
+normally. Same-child follow-up proves PID968/AP518 absent,108 journal records,
+status-95 and exact boot-epoch refusal before allocation/send. CPU2 self masks
+7->4->7, signal restoration and context close all match. Owned files are cleaned,
+four sources unchanged, USB_FINISHED. Its complete no-send proof leaves the
+single-query allowance unused; do not replay this consumed native scope.
+
+New read-only map120,sections121,scheduling122 and bootstrap123 bind current
+boot and worker start132. Header/root/image-offset and all9 module section
+bases qualify. Four fresh bounded source readers124-127 recheck the prior
+35 code/state fragments, associated relocations, every descriptor/root path
+and necessary sender state.23+29+65+58 RAM reads; all exact, every owned file
+cleaned and four sources unchanged after each session. Their algorithms are
+unchanged apart from fresh scope identity; original model case outcomes remain
+identical. Successful native VM references are retained, including the qualified
+range/report that superseded old failed collector attempts.
+
+Query128 uses new paths/nonce, the new boot, current worker start and14 verified
+RAM evidence entries (including the additional literal-page mapping). Request
+semantics remain24 bytes/e1/route908f084b; only rebinding and the corresponding
+read-count guard change.209 exact-worker models pass; a fresh Sony-kernel VM
+executes its epoch-refusal/restoration path and observes the same child absent
+twice. Parent25/observer50, operator17/follow-up13, adapter23/metadata13 and290
+journal-corruption controls pass. Current-source reconstruction and all
+pre-execution artifacts are sealed and verified on E/P; no old job is replayed.
+
+Physical host129 starts exactly one new child1304/AP518. Initial UNKNOWN is
+retained; the follow-up observes that SAME child absent in both proc samples.
+Its complete392-record/195-call journal contains exactly one info query,
+one24-byte wait0 allocation, ONE synchronous CP request and one release.
+The original response is exact modee1/status80/zero middle/matching tail nonce;
+native status0 alone was never accepted. Both condition samples,4 boot reads,
+28 bounded evidence reads and descriptor/worker identities match. Physical
+CPU2, masks7->4->7, signals restored, FD/map/message ownership NONE. The exact
+owned files are cleaned before final source verification; all4 files match the
+CURRENT preview-repaired source, and both USB sessions end normally. The owner
+then confirms ordinary viewfinder, photography and playback following the
+requested direct test sequence. No firmware, parameter or existing-code patch
+was written. The approved allowance of one CP request is now consumed.
+
+This is the first completed physical original-CP request/reply/cleanup result,
+NOT physical pre-capture or broad stability. It does not grant more requests,
+RAM/ROM patches or general recovery authority. Actual pre-S2 exposure, RAW
+ownership/retention, full-press recording, cancellation/release and the manual
+default-Off menu remain unfinished. Public tools still run offline and main
+remains unchanged. Preserve current CP preview repair and all prior failures.
