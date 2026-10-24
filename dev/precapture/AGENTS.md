@@ -52,6 +52,14 @@ Worker14 writes category-selector state and invokes a notifier. Do not present
 or deploy it as a read-only capacity query; physical use needs separate review
 and authorization even when only a returned configured value is wanted.
 
+Phase134 runs original cached-free-block allocation/unlink/bind/pin/unpin/return
+and original worker20/client reply, plus provider23/release reply, on synthetic
+RAM. Queue delivery/accounting/notifier remain explicit omitted boundaries.
+Native free-pool selection trusts address/size data; it is not physical address
+validation. An unresolved backing path can already consume a metadata slot
+without publishing a handle: preserve that allocation context, never retry as
+"nothing happened". Growing pools and final parent-backed release are unqualified.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that

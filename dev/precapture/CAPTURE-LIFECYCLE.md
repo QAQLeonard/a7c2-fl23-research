@@ -100,6 +100,11 @@ The service uses a 10-bit slot and a 5-bit native generation that wraps on reuse
 Keep the controller's capture generation separate. Dynamic reply-ID allocation
 (`45dd24`) is also separate from target RAW service `61003c`; sending directly
 to a related handler can select different behavior from its task queue path.
+The original cached-free-block allocator can consume metadata before publishing
+a handle. An unpublished output does not prove that nothing changed. Native
+free lists also assume trusted backing addresses/sizes; the adapter must bind
+actual pool provenance and retain unresolved allocation state, rather than
+retrying or accepting a returned pointer as physical pixel ownership.
 The stock full-press/AF/AE path must continue separately; this test does not
 establish normal camera shooting, FL2/FL3/six-look preservation or boot safety.
 Those requirements and physical pre-capture remain unfinished.

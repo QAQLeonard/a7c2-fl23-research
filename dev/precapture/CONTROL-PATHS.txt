@@ -3627,3 +3627,55 @@ Next blocker: b144d6/b14554 backing allocator policy and address/size admission,
 and source/task-bound resource transaction completion. Native metadata allocation
 or pinning must not be offered as an owned real image. Physical exposure,
 retention, save/cancel/terminal release and default-Off menu remain incomplete.
+
+## Phase134: original cached backing allocation and provider/client composition
+
+Main782785641ca9 was refreshed/reviewed and remains an ancestor; product files
+and camera untouched. No USB session, request, upload, physical test or write.
+Existing private134 preliminary allocator reports/disassembly were found and
+retained; no earlier evidence was overwritten. The new backing_memory fixture
+is called by the existing transition audit with shared NativeCapture helpers.
+
+32 originalb14554 input cases check type/flags/size/owner/busy-bit selection
+against an explicit synthetic free-list node. Rejected cases stop before the
+growing/alternate allocator, not at a fake successful fallback. Actual native
+b1645a ->b144d6 ->b14554 ->b14c58 code selects/unlinks the cached node, binds it
+to the metadata record and publishes8403. Originalb16a52/b16b4c pin/unpin then
+b16bd6 relinks backing and returns the metadata index. It stops BEFORE notifier23.
+An independently entered later allocation reuses that local slot as8803;
+the old8403 is rejected. No notifier success or physical fence is fabricated.
+
+Three linked-list cases select head/middle/tail through original unlink and
+check exact surviving neighbors. Nine owner/node sequence cases require a
+matching non-ffffffff record sequence before binding.36 parent-backed cached
+selection cases test configured category/grant/current-use inputs; these do
+not run final parent-backed release or grow a backing region.
+
+Five adversarial free-node address/size inputs still pass selection: this
+allocator assumes its pool is trusted and does not itself validate physical
+RAM or advertised pixel extent. Those addresses are NOT dereferenced. A mapped
+synthetic12KiB pixel/canary region is preserved through all metadata paths.
+Its unchanged bytes are not real camera pixel acquisition or DMA evidence.
+
+The original client4088c8 packet stores are copied as explicit queue input to
+workerb12dba. That worker runs the actual cached-block allocator and reference
+code, stopping beforeb15bc2 accounting. A separately identified AFTER-accounting
+slice formats8020/status0/op55 and the original client accepts/copies it. The
+same handle then enters worker23b13236: native unpin/free/relink executes to
+notifier23, AFTER-notifier and AFTER-accounting slices use retained callee-saved
+results, and the original8023 reply/client admission agrees. Neither queue
+delivery, critical section, accounting nor notifier is made successful by a stub.
+This is source execution on explicit synthetic RAM, not physical pre-capture.
+
+An unresolved backing allocation can consume its metadata index/state1 while
+the caller's output remains unpublished. Preserve this context and reservation;
+do not interpret the missing output as zero side effects or retry permission.
+Growing pools, physical pool/address provenance and real terminal notification
+remain unqualified. All old phase133 fields compare exactly outside the new
+backing_memory field and expanded selected-current FILE-span inventory.
+
+Next blocker: source/task-bound pool provenance and native critical/queue/
+accounting/notification completion, plus growing/parent-backed allocation when
+no cached node is suitable. The offline cached-node path supplies no real
+pre-S2 exposure or retained image. Preserve00030072 retirement, current looks,
+all job fences and the consumed one-query authorization boundary.

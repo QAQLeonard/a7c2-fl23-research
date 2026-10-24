@@ -30,6 +30,7 @@ written by this experiment. This is one successful case, not broad stability.
 | Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | Native state feedback | Original feedback stores, masked completion, deferred task/notification dispatch and CAP handle checks;60 input combinations plus negative controls | Hardware feedback provenance, actual exposure/RAW ownership and a generation-bound terminal fence; two commands share event308 |
 | RAW resource path | Staged slots → RAW client → MEMMGR_CP dispatch; native reply-ID, descriptor transfer, handle generation and reference checks | Actual backing pixel allocation and matched terminal release; native handle generation wraps, local invalidation precedes backing free |
+| Existing free-block allocator | Original cached-block unlink/bind/pin/return and worker20/client allocation reply, provider23/release reply, on synthetic RAM | Camera pool provenance, real pixels, queue/accounting/notification completion and growing/parent-backed paths |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
 | Manual in-camera switch | Required independent Off/On control, initially Off | Implementation and safe enable/disable binding |
 
@@ -78,6 +79,7 @@ do not add up to physical pre-capture.
 | `support/capture_native.py` | Shared original CAP object/cancellation fixture; six audits import it directly, with legacy replay exports retained |
 | `support/capture_completion.py` | Original requested/current state comparison, deferred notification and CAP callback boundaries; synthetic inputs only, no hardware completion or camera adapter |
 | `support/capture_resources.py`, `resource_service.py` | Resource preparation, RAW service/task routing, dynamic reply IDs, descriptor/handle/reference lifetime; no native service success or camera I/O |
+| `support/backing_memory.py` | Original cached-free-node allocator and request/reply composition on synthetic memory; explicit queue/accounting/notifier boundaries |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
 | `vm/cp_boot/config_rmw/qemu_source_word.h`, `vm/cp_boot/mtg_select/` | Shared restricted single-word storage and the optional MTG selector fixture; no timing edges, frame IRQ or sensor |
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
@@ -198,5 +200,7 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 还需连接实际像素分配、保留、保存及终止释放；软件事件、描述符复制或本地标识无效都不能作为完成证明。
 两个命令共用事件308，原厂句柄也只有会回绕的5位代次，接入时必须独立核对请求／拍摄代次与资源归属。
 更正：45dd24分配的是动态回复队列身份，RAW目标服务是61003c；直接／任务队列分派表的行为不同。
+原厂已有空闲块的分配、绑定、引用和归还，以及分配／释放请求回复，已在测试内存中执行通过；
+实机内存来源、实际像素、队列与通知完成仍未验证，不能据此上机启用预拍摄。
 这些检查都不连接相机，也不代表实机预拍摄可用。
 详细证据保留在 [CONTROL-PATHS.txt](CONTROL-PATHS.txt)，公开工具继续只做离线研究。

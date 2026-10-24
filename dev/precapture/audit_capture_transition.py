@@ -21,6 +21,7 @@ from support.capture_native import NativeCapture, BASE, OWNER, WIRE, STACK, STOP
 from support.capture_completion import audit as audit_completion, SPANS as COMPLETION_SPANS
 from support.capture_resources import audit as audit_resources, SPANS as RESOURCE_SPANS
 from support.resource_service import audit as audit_resource_service, SPANS as SERVICE_SPANS
+from support.backing_memory import audit as audit_backing, SPANS as BACKING_SPANS
 
 
 READOUT_SPANS = ((0xa186ba,0x66),(0xa1872c,0xae),(0xa19fbc,0x10),
@@ -268,9 +269,10 @@ def main():
     report['software_state_completion']=audit_completion(cp)
     report['resource_preparation']=audit_resources(cp)
     report['resource_service']=audit_resource_service(cp)
+    report['backing_memory']=audit_backing(cp)
     if a.current_cp:
         current=a.current_cp.read_bytes()
-        selected_spans=(*READOUT_SPANS,*COMPLETION_SPANS,*RESOURCE_SPANS,*SERVICE_SPANS)
+        selected_spans=(*READOUT_SPANS,*COMPLETION_SPANS,*RESOURCE_SPANS,*SERVICE_SPANS,*BACKING_SPANS)
         if any(current[at:at+size]!=cp[at:at+size] for at,size in selected_spans):
             raise ValueError('Current CP differs in selected readout-admission FILE spans')
         report['current_readout_spans']=dict(sha256=hashlib.sha256(current).hexdigest(),
@@ -279,7 +281,7 @@ def main():
     with a.output.open('x', encoding='utf-8') as stream:
         json.dump(report, stream, indent=2)
         stream.write('\n')
-    print('Original CAP/readout/resource checks preserved; RAW service dispatch, reply-ID and handle/reference checks passed. No camera I/O.')
+    print('Original checks preserved; native cached-block allocation, worker/client reply and resource return verified on synthetic RAM. No camera I/O.')
 
 
 if __name__ == '__main__':
