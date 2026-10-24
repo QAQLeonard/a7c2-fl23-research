@@ -3864,3 +3864,118 @@ consistent runtime backing ownership,actual terminal completions and same-shot
 exposure-end/S2 timing. Half-press RAW,full-press save,cancel/release and the
 default-Off menu remain unfinished. No full pre-capture hardware candidate is
 admitted by the metadata diagnostic or packet tests.
+
+## Phases138–154: existing-extent diagnostic, four physical pointers and inverse
+
+Owner reiterated continuation until a reviewed hardware experiment was ready.
+Main782785641ca9 remains ancestor and unchanged. A smaller placement route was
+implemented instead of treating zero gaps or an unallocated trace lane as spare:
+equivalently shorten the original diagnostic callback's cache alignment prefix.
+The unchanged cache call stays at FILE45e7a4. Its34-byte replacement preserves
+all r0-r12/SP/LR/APSR values there;22 bytes of reclaimed ORIGINAL instructions
+hold a bounded e2..e5 handler. Changed windows are45e6f4/2 and45e76c/56,52 actual
+bytes different. There is no new page,heap state,boot hook or exposure request.
+
+The handler reads exactly one of four aligned BSS words1a8c558/55c/560/564,
+using immediate base plus a bounded index. It never follows the returned value.
+Private status5b prevents confusing the reply with native status1/log address-
+length data. Source-controlled callback/cache spans and the original section
+header must match before construction; inverse exactly reconstructs the current
+CP, preserving FL23,all six looks,their preview repair and unrelated calibration.
+
+verify_cp_metadata_probe.py runs12,288 low-bit/boundary partitions and512 full-
+word cases. All registers and APSR match at the unchanged cache call.256 mode
+cases preserve original paths or explicitly stop before native services;16
+raw-value cases do not follow even MMIO-like values. Six entire original mode1
+prefixes reach the original cache boundary with identical state. Early models
+found initially omitted r12=64 and r3=0 preservation; the candidate was corrected
+before any upload, retaining strict comparisons. Direct-reference inventory
+found only the original45e722 branch into the region and no raw pointer there;
+indirect-xref absence and full physical cache/MMU behavior are not claimed.
+
+Fresh existing-file acquisition captured five files twice with identical bytes
+and three verified archive copies. The exact32,048-byte integer-only installer
+passed18 compiled fault cases; host transaction checks passed24 controls. Its
+physical mode0 completed phase9,writes0,status0,inode49 andCP size18,090,880;
+exact temporary cleanup,four/five source preservation and USB finish followed.
+One global numeric rename in the first offline metadata preparation changed a
+syscall assertion and was rejected by target ABI compilation. No native job
+was sent. Fresh narrowly named profiles replaced that failed offline attempt.
+
+Owner explicitly approved the private written review, including the58-byte
+file modification,necessary vendor reload preparation,at most four fixed queries
+and precise inverse; reported battery99. The first host invocation failed
+decoding UTF8 approval under GBK BEFORE USB or any staging intent. Original
+approval bytes were retained and ASCII JSON serialization corrected. No device
+write was retried. The actual single-use install then completed two windows,
+full CP/AP/driver readback,original drop1->mode0 reload preparation,readonly
+verification and exact cleanup. Owner cold-reloaded and confirmed ordinary
+viewfinder/photo/playback normal. No retained-image preparation is called a
+shooting-parameter write or proof of loaded CP text.
+
+Fresh source/boot metadata and96 bootstrap bytes bind the NEW boot. The native
+worker is nowPID406/start137,not the old407/start132. Existing ELF sections match
+freshly observed bases. Four bounded loaded readers acquired/rechecked35 code/
+metadata spans,relocations and page-table paths under that boot. The same14
+bounded source/table/state evidence words are freshly reconstructed,not copied
+from the old epoch. Source139 ABI failure and unused148 stale-name candidate
+were retired before execution; fresh142–147/149/150 jobs use new names/nonces.
+
+Four private version5 clients are derived from the immutable original guarded
+RPC source. Only literal e2,e3,e4,e5 exist; their result8 word is raw data,never
+a dereferenced address. Exact5b/padding/tail-nonce qualifies metadata. Exact
+original80 absence is a known refused native transaction; other replies keep
+UNKNOWN ownership. The public version4 gate/source stay unchanged and closed.
+152 protocol cases and209 standalone child cases PER mode cover refusal,
+wrong reply,partial journals,final-close/fsync parking and failure at each call.
+New version/worker-ID test mismatches were fixed offline,not bypassed. Exact
+e2 child also ran under original Sony Linux in the VM: fresh epoch refusal,
+own inverse and two absent samples,no CP transaction. Other modes have their
+own unit models; they are not falsely described as the same VM-executed worker.
+
+Fresh parents/observers passed25 parent,50 generated-observer,16 malformed/
+2 reused-BSS,23 adapter,17 operator and13 follow-up controls per job. An
+permanently recorded intent budget restricts151->152->153->154,one child/send each and
+requires previous success/cleanup before the next. Unknown first observations
+retained the same child and deferred program reads. Follow-ups observed those
+same children absent,not re-executed,then qualified392-record/195-call journals,
+one allocation/send/release,CPU2/affinity/signal inverse and exact owned cleanup.
+All four returned status5b and actual BSS values:
+  e2 1a8c558 ->22a4760
+  e3 1a8c55c ->22b4720
+  e4 1a8c560 ->22b4728
+  e5 1a8c564 ->22b4730
+Every session ended normally and source files stayed unchanged. This is actual
+execution of the installed diagnostic and live pointer bindings. It is NOT a
+coherent allocator snapshot,backing memory/pixel lease,exposure trace or shooting.
+
+After the fourth completed query,the already-authorized precise inverse was
+executed once. Complete CP readback matches the pre-experiment current source,
+AP/three drivers unchanged;vendor reload preparation and exact cleanup complete.
+Final manual cold-reload ordinary shooting/look selection check is pending.
+The four-query allowance is consumed. No retired job,old source image or forced
+parameter00030072 was used. Continuous trace placement/lifetime,real RAW
+retention,S2 save,cancel/release and default-Off menu remain unfinished.
+
+## Phase155: next single-callback sample, offline and unapproved
+
+While awaiting the owner's final cold-reload check after inverse,added
+support/cp_pool_probe.py/verify_cp_pool_probe.py. It uses the same58-byte
+callback envelope but saves two more alignment bytes via SUB for address low6
+bits. Three fixed LDRs read tail22b4728,count22b4730,head22b4720 and return them
+in one24-byte e2/status5c response. It does not dereference wire-selected
+addresses,invoke native services,allocate state,add pages or change the camera.
+
+12,288 original/new arithmetic cases preserve every register/APSR at the
+unchanged cache call.256 mode comparisons,8 bounded/wrapped/inconsistent ring
+inputs and5 malformed packet controls pass. A prior offline packet test used
+nonzero request padding that native callbacks intentionally preserve; the host
+correctly refused it. The new request fixture explicitly zeros its reserved
+bytes rather than weakening the parser. All failed offline artifacts retained.
+
+Even a valid bounded ring relationship is only a sample: the three reads are
+not an atomic owner transaction and cannot exclude concurrent/IRQ changes or
+ABA. They do not identify backing pixels or prove completion. This candidate
+is separate from the now-consumed four-pointer approval,has no deployment
+operator/admission and was NOT installed. Actual owner-coherent pool/resource
+and exposure observations remain the next native blockers.

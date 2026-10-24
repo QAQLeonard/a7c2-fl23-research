@@ -4,7 +4,7 @@ Read README.md for current state and CONTROL-PATHS.txt for detailed evidence.
 This directory is not a camera installer. Keep main/releases untouched when
 working on the pre-capture feature branch.
 
-Latest physical checkpoint: one explicitly approved original-default CP query
+Earlier physical checkpoint: one explicitly approved original-default CP query
 completed in phase129 (mode e1,24 bytes,392 journal records,one sync call). Exact
 reply, context/free/CPU/signal restoration, same-child absence, exact owned-file
 cleanup and four unchanged sources were verified; both USB sessions ended
@@ -12,6 +12,22 @@ normally. The owner confirmed ordinary viewfinder/photo/playback afterward.
 That one-query authorization is consumed, not blanket permission for further
 sends or patches. Physical exposure/RAW/save/cancel/menu integration is still
 unfinished. Keep all retired job fences and unknown-state rules intact.
+
+Latest physical checkpoint: owner approved the exact58-byte diagnostic plus
+vendor retained-image reload preparation,four fixed-word queries and inverse.
+The callback arithmetic is shortened equivalently;52 bytes change, no added
+page/state/hook. The owner confirmed normal shooting after its cold load.
+Queries151–154 each completed once, returning22a4760/22b4720/22b4728/22b4730,
+with392 journal records, one send/release, same-child absence and exact cleanup.
+The explicit four-query budget is consumed. Exact inverse/full program readback
+and reload preparation completed; final cold-reload shooting check is pending.
+Do not replay those jobs or treat this as arbitrary CP reads, coherent pools,
+actual pixel ownership, exposure timing or a pre-capture installation. A future
+candidate needs a new concrete scope; preserve all source/epoch/fence evidence.
+Phase155's head/tail/count single-callback sample is a NEW UNINSTALLED prototype.
+It returns three fixed words/status5c without following pointers. Bounded ring
+checks do not prove atomicity,IRQ/task serialization,ABA exclusion or backing
+pixel ownership. It is outside the consumed four-pointer experiment approval.
 
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
