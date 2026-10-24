@@ -1,5 +1,5 @@
 """Compile job-pinned native workers from fresh verified inputs, offline."""
-import hashlib,importlib.util,json,os,shutil,subprocess,sys
+import importlib.util,os,shutil,subprocess,sys
 from pathlib import Path
 from . import firmware
 from .worker import NAMES
@@ -17,7 +17,6 @@ def zig_command(explicit=None):
         for folder in spec.submodule_search_locations or []:
             binary=Path(folder)/('zig.exe' if os.name=='nt' else 'zig')
             if binary.is_file():return [str(binary.resolve())]
-        import sys
         return [sys.executable,'-m','ziglang']
     raise ValueError('Device preparation needs Zig: install requirements-device.txt or supply --zig')
 

@@ -49,11 +49,9 @@ def build(source, baseline, knobs, *, active_mask=0x3f):
     # raw correction arrays; all original rows remain byte-exact.
     old_table = source[0x1209480 - BASE:0x1209480 - BASE + 50 * 28]
     table = bytearray(old_table)
-    # ST selects native row0 or row10 before selecting one of seven curve
-    # columns. Preserve BOTH complete rows, including every native pointer.
-    # Combining row0 columns with row10's last column changes even identity.
-    for _ in range(6):
-        for row in (0, 10):table.extend(old_table[row*28:(row+1)*28])
+    # ST selects row0 or row10 before one of seven curve columns. Preserve
+    # both domains and resolve null entries by Sony's row0,column6 fallback.
+    table.extend(photoformat.custom_gamma_rows(old_table))
     target[TABLE_FILE:CODE_FILE] = table
     pointers = {struct.unpack_from('<I', old_table, row*28+column*4)[0]
                 for row in (0, 10) for column in range(7)} - {0}

@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
+import pytest
 from desktopapp import allinone
 
 
@@ -195,8 +196,7 @@ class AllInOneTests(unittest.TestCase):
             self.assertEqual(self.calls, [])
 
     def test_new_install_does_not_inspect_historical_factory_verification(self):
-        with patch('looktool.factoryrecover.pending',side_effect=AssertionError('No historical verification gate')):
-            result=allinone.run(self.args,dispatch=self.dispatch)
+        result=allinone.run(self.args,dispatch=self.dispatch)
         self.assertEqual(result['phase'],'WAIT_RELOAD')
         self.assertEqual([a for a,_ in self.calls],['usb_prepare','vertical_enable','direct_install_all'])
 
@@ -335,3 +335,50 @@ def test_helper_download_failure_does_not_open_camera(tmp_path,monkeypatch):
             allinone.run(dict(workspace=str(tmp_path/'work'),firmware='2.01',power_confirmed=True,
                 options=dict(plugin=True,looks=[])),dispatch=dispatch)
     dispatch.assert_not_called()
+
+
+@pytest.mark.parametrize('phase',['NEEDS_REVIEW','RESOURCE_RELOAD_VERIFIED','READING'])
+def test_unfinished_program_result_never_finishes_setup(tmp_path,phase):
+    args=dict(workspace=str(tmp_path/'setup'),firmware='2.01',power_confirmed=True,
+              options=dict(sound=False,vertical=False,plugin=False,looks=[]))
+    def dispatch(action,values,folder):
+        return dict(phase=phase,workspace=values.get('workspace',''))
+    with pytest.raises(ValueError,match='程序安装尚未完成'):
+        allinone.run(args,dispatch=dispatch)
+    state=json.loads((tmp_path/'setup/setup.private.json').read_text())
+    assert state['phase']=='NEEDS_REVIEW'
+    assert 'persistent_features' not in state['completed_steps']
+
+
+@pytest.mark.parametrize('phase',['AWAITING_RELOAD','AWAITING_RESOURCE_RELOAD','NEEDS_REVIEW'])
+def test_unfinished_verify_result_does_not_run_finalizers(tmp_path,phase):
+    root=tmp_path/'setup';root.mkdir()
+    state=dict(schema='a7c2-one-click/1',phase='WAIT_RELOAD',workspace=str(root),
+               options=dict(sound=True,vertical=False,plugin=True,looks=[]),
+               completed_steps=['drivers','persistent_features'])
+    (root/'setup.private.json').write_text(json.dumps(state))
+    calls=[]
+    def dispatch(action,values,folder):
+        calls.append(action)
+        return dict(phase=phase,workspace=str(root/'install'))
+    with pytest.raises(ValueError,match='重启后核对尚未完成'):
+        allinone.run(dict(workspace=str(root),firmware='2.01',power_confirmed=True),dispatch=dispatch)
+    saved=json.loads((root/'setup.private.json').read_text())
+    assert saved['phase']=='WAIT_RELOAD' and calls==['direct_verify']
+
+
+def test_plugin_activation_includes_st_reset_slots(tmp_path):
+    root=tmp_path/'setup';install=root/'install';install.mkdir(parents=True)
+    child=dict(bundle_options=dict(looks=[],reset_slots=[4]),job_id='current-mixed-install',
+               raw_profile_effective_since='2026-10-24T12:00:00')
+    (install/'direct.private.json').write_text(json.dumps(child))
+    state=dict(schema='a7c2-one-click/1',phase='FINALIZING',workspace=str(root),
+               options=dict(plugin=True,sound=False,vertical=False,looks=[]),
+               completed_steps=['drivers','persistent_features'],install_workspace=str(install))
+    (root/'setup.private.json').write_text(json.dumps(state))
+    with patch('looktool.rawidentity.activated',return_value=dict(status='published')) as activated:
+        result=allinone.run(dict(workspace=str(root),firmware='2.01',power_confirmed=True),
+            dispatch=lambda *args:dict(plugin='installed'))
+    assert result['phase']=='COMPLETE'
+    activated.assert_called_once_with([dict(name='ST',raw_profile=None)],[4],
+        'current-mixed-install','2026-10-24T12:00:00')

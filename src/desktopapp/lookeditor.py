@@ -140,5 +140,6 @@ class LookEditor(W.QWidget):
         self.summary.setText('本次更改 %d 个槽位：%d 项写入 · %d 项恢复'%(len(values),writes,len(values)-writes))
         kept=[str(n) for n in range(1,7) if n not in used]
         self.preserved.setText('保持原样：'+('自订 '+'、'.join(kept) if kept else '无（六个槽位均在本次清单中）'))
-        self.validation.setText(' '.join(self.errors()));self.validation.setVisible(bool(self.errors()))
+        errors=self.errors()
+        self.validation.setText(' '.join(errors));self.validation.setVisible(bool(errors))
         if not self._loading:self.changed.emit()

@@ -307,7 +307,6 @@ def audition(root, state, zig=None):
     if not conversion:
         raise ValueError('请先点「转换所选片段」，转换成功后再试听。')
     # The current request reconciles the actual marker once, before adoption.
-    previous=None
     payload = (Path(conversion) / 'custom-native.private.bin').read_bytes()
     previous_native=load_job(state['native_job']) if state.get('native_job') else None
     if not previous_native or not previous_native.get('electronic_only_gate'):
@@ -320,11 +319,10 @@ def audition(root, state, zig=None):
             Path(state['backup_root']) / adoption.name, zig,
             expected=expected, adopt_only=True))
     original, _ = native_job(state)
-    replace_jobs=()  # The new request replaces the marker; no old audition proof is required.
     job = new_path(root, 'audition')
     state['audio_job'] = str(job)
     result = operate(root, state, 'audition', job, lambda: buffer_trial.run(job, original,
-        zig, payload=payload, register=True, wire_format=0, recovered_job=previous,replace_jobs=replace_jobs))
+        zig, payload=payload, register=True, wire_format=0, recovered_job=None,replace_jobs=()))
     print('USB I/O ended. Unplug USB WITHOUT switching off, removing the battery or changing Audio Signals. '
           'Take one electronic exposure; check volume/distortion/pitch/speed and normal shooting/playback. '
           'Then record confirm --result correct (or the actual failure). No ROM was written.')
@@ -363,15 +361,14 @@ def install(root, state, battery, zig=None, *, power_confirmed=False):
     import boot_trial
     require_idle(state,root)
     conversion=selected_conversion(root,state)
-    audio=Path(state['audio_job']) if state.get('audio_job') else None
-    if audio and not (audio/'payload.private.bin').is_file():audio=None
     if conversion:
         payload=(Path(conversion)/'custom-native.private.bin').read_bytes()
-        if audio and (not (audio/'payload.private.bin').is_file() or (audio/'payload.private.bin').read_bytes()!=payload):audio=None
-    elif audio:
-        payload=(audio/'payload.private.bin').read_bytes()
     else:
-        return installation_step('sound_conversion_required','import')
+        # Older CLI workspaces may have only an audition payload.
+        audio=Path(state['audio_job'])/'payload.private.bin' if state.get('audio_job') else None
+        if audio is None or not audio.is_file():
+            return installation_step('sound_conversion_required','import')
+        payload=audio.read_bytes()
     # Conversion deliberately has no camera/workspace dependency. Saving its
     # output must prepare/adopt native support itself, including after a reset.
     boot_trial.require_dependencies()
@@ -382,9 +379,6 @@ def install(root, state, battery, zig=None, *, power_confirmed=False):
         print('自动准备电子快门声支援；已有开关直接接入，不要求先手动开启或关联旧任务。',flush=True)
         on(root,state,battery,zig,power_confirmed=power_confirmed,defer_reload=True)
     original, _ = native_job(state)
-    # Current selected bytes are sufficient. Do not use an old audition record
-    # as installation provenance or as a prerequisite for replacement.
-    audio=None
     # Each Save derives the current hook/files from the camera. A previous
     # completed installation is not a restore/old-job prerequisite.
     from looktool.power import require_power
@@ -394,7 +388,7 @@ def install(root, state, battery, zig=None, *, power_confirmed=False):
     state['boot_job'] = str(job)
     options = {'power_confirmed': True} if power_confirmed else {}
     result = operate(root, state, 'install', job, lambda: boot_trial.install(job,
-        Path(state['backup_root']) / job.name, original, audio, payload, battery, zig, **options))
+        Path(state['backup_root']) / job.name, original, None, payload, battery, zig, **options))
     print(RELOAD)
     return result
 

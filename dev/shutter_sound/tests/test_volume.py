@@ -69,7 +69,8 @@ def test_failed_gain_keeps_previous_selection_and_removes_partial_folder(convert
 
 
 def test_cli_and_desktop_volume_need_no_backup_or_camera(converted):
-    from desktopapp import worker,jobs,macadmin
+    from desktopapp import worker,jobs
+    from desktopapp.platforms import macos_authorization as macadmin
     with patch.object(cli,'workspace',side_effect=AssertionError('No camera workspace')):
         result=worker.run('sound_volume',{'workspace':str(converted),'decibels':3},converted)
         assert result['volume_gain_db']==3 and result['camera_io'] is False

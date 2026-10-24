@@ -1,5 +1,4 @@
 """Explicit manual-test entry for data-only portrait frame references."""
-from pathlib import Path
 import sys
 import uuid
 

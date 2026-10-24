@@ -13,7 +13,8 @@ sys.path.insert(0,str(ROOT/'src'))
 
 def run(app):
     if sys.platform!='darwin':raise RuntimeError('Run on an Apple Silicon Mac')
-    from desktopapp import macadmin,jobs
+    from desktopapp import jobs
+    from desktopapp.platforms import macos_authorization as macadmin
     uid,gid=os.getuid(),os.getgid()
     if uid==0:raise RuntimeError('Start the smoke check as the normal login user')
     app=Path(app).resolve()

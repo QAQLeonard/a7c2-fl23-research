@@ -22,7 +22,7 @@ Licenses:
 
 ## Code and research sources
 
-- [Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE), pinned commit `a82f5baaa8e9c3d9f28f94699e860fb2e48cc8e0`: vendored service/USB Python code under `src/fl23/vendor/pmca` and `src/camera_runtime/vendor/pmca`; [original MIT text](../../src/fl23/licenses/Sony-PMCA-RE-MIT.txt).
+- [Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE), pinned commit `a82f5baaa8e9c3d9f28f94699e860fb2e48cc8e0`: vendored service/USB Python code under `src/fl23/vendor/pmca`; [original MIT text](../../src/fl23/licenses/Sony-PMCA-RE-MIT.txt).
 - [fwtool](https://github.com/ma1co/fwtool.py): parses an optional stock DAT; vendored under `src/desktopapp/vendor/fwtool`, license in `src/desktopapp/vendor/fwtool-LICENSE.txt`.
 - [MDHan/a7c2-fl23-macos](https://github.com/MDHan/a7c2-fl23-macos), commit `1491f734df07f02fb77da6ea7062828bce0e30e7`: informed the macOS order for identifying camera storage and claiming USB; MIT notice kept in [docs/licenses](../licenses/a7c2-fl23-macos-MIT.txt).
 - [A7CR FL2/FL3 research](https://github.com/lzh2016zzz/a7cr-fl23-research/tree/43ba74441c8f10459ade41e84a379ad8005e6ef4): parameter, label and WBI methodology. A7C II offsets were located independently; A7CR offsets are not flashed directly.

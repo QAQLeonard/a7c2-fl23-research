@@ -11,7 +11,6 @@ import array
 import json
 import math
 from pathlib import Path
-import struct
 import sys
 import wave
 

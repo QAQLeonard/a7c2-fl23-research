@@ -2,7 +2,6 @@
 
 Only edited bytes have conflict guards; full readback compares bytes.
 """
-from pathlib import Path
 import sys
 import core
 

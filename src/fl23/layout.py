@@ -8,7 +8,6 @@
 """
 from datetime import datetime
 import json
-import re
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parent
@@ -95,7 +94,3 @@ def sorted_sessions():
     if not WORKDIR.is_dir():
         return []
     return sorted((p for p in WORKDIR.iterdir() if p.is_dir()), reverse=True)
-
-
-def serial_tail(text):
-    return re.sub(r'[^0-9a-fA-F]', '', text or '')[:SERIAL_LENGTH] or 'unknown'

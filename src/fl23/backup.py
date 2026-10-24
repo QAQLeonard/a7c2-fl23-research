@@ -180,11 +180,6 @@ class Backup:
         self.require()
         return {key: (self.path / name).read_bytes() for key, name in layout.UNIT_FILES.items()}
 
-    def load_program(self, chip):
-        self.require()
-        name = layout.PROGRAM_FILES[core.PROGRAMS[chip]]
-        return (self.path / name).read_bytes()
-
     def load_settings(self):
         self.require()
         return (self.path / layout.SETTINGS_FILE).read_bytes()
@@ -206,9 +201,3 @@ def verified_backup(serial_sha256=None):
         report['backup'] = backup
         return report
     return None
-
-
-def summarise(report):
-    if not report:
-        return '无可用备份'
-    return '备份已验证（%s）' % (report.get('created') or report['path'])

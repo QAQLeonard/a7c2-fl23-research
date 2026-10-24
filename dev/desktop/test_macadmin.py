@@ -8,7 +8,8 @@ import subprocess
 from types import SimpleNamespace
 from unittest.mock import Mock,patch
 import pytest
-from desktopapp import macadmin,worker
+from desktopapp import worker
+from desktopapp.platforms import macos_authorization as macadmin
 from desktopapp.paths import write_json
 
 

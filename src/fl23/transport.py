@@ -4,7 +4,6 @@ import time
 
 import core
 import usbdev
-import usb.util
 from pmca.usb.driver.generic import GenericUsbDriver, MscBbbDriver
 from pmca.usb.driver.generic.libusb import UsbBackend
 from pmca.usb.sony import (SonySenserAuthDevice, SonySenserDevice, SonySenserCamera,

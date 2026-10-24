@@ -1,6 +1,5 @@
 """One job per child process. Full tracebacks stay in the GUI's private log."""
 import contextlib
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,32 +9,13 @@ import uuid
 from .paths import ROOT, data_root, write_json
 
 
-def module(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    value = importlib.util.module_from_spec(spec)
-    sys.modules[name] = value
-    spec.loader.exec_module(value)
-    return value
-
-
 def setup_runtime():
     sys.path[:0] = [str(ROOT / 'src/looks'), str(ROOT / 'src/camera_runtime'),
-                   str(ROOT / 'src/camera_runtime/vendor')]
+                   str(ROOT / 'src/fl23/vendor')]
     os.environ['A7C2_VERBOSE_ERRORS'] = '1'
     os.environ.setdefault('A7LOOK_AUTO_SETTINGS', str(data_root() / 'raw-profiles/settings.json'))
     if getattr(sys, 'frozen', False):
         os.environ['A7C2_DESKTOP_EXECUTABLE'] = sys.executable
-
-
-def register_backup(path):
-    # Backup indexing is a convenience. If its disk is full, preserve the
-    # successfully completed camera job and show the indexing error separately.
-    try:
-        from .recovery import register
-        register(path)
-    except Exception:
-        print('Backup completed, but automatic recovery indexing failed. Select the backup manually.', flush=True)
-        traceback.print_exc()
 
 
 def run(action, args, job):
@@ -43,9 +23,7 @@ def run(action, args, job):
     from .jobs import POWER_ACTIONS
     if action in POWER_ACTIONS:
         from looktool.power import require_power
-        power = require_power(args.get('battery'), confirmed=args.get('power_confirmed', False))
-        write_json(job / 'power-confirmation.private.json', power)
-        print('Power:', json.dumps(power), flush=True)
+        require_power(args.get('battery'), confirmed=args.get('power_confirmed', False))
     if action=='mac_authorization_self_test':
         if sys.platform!='darwin' or os.geteuid()!=0:raise RuntimeError('Self-test requires an authorized Mac worker')
         write_json(data_root()/'authorization-self-test.private.json',dict(euid=os.geteuid(),camera_io=False))
@@ -192,23 +170,6 @@ def run(action, args, job):
     if action=='usb_stability':
         from .usbcheck import run as check_usb
         return check_usb(job)
-    if action.startswith('fl23_'):
-        # The tested flexible planner, with PR #5's revised color/curve assets.
-        # The PR's original standalone GUI/CLI remains untouched in src/fl23.
-        from looktool.devicelock import DeviceLock
-        app = module('desktop_fl23', ROOT / 'src/camera_runtime/app.py')
-        work = Path(args['workspace'])
-        with DeviceLock():
-            obj = app.Job(work)
-            if action == 'fl23_prepare':
-                obj.prepare(Path(args['backup']), args['firmware'])
-                register_backup(Path(args['backup']) / 'checkpoint.private.zip')
-            elif action == 'fl23_install':
-                obj.load()
-                obj.install(args.get('battery'), power_confirmed=args.get('power_confirmed', False))
-            else:
-                obj.verify()
-        return {'workspace': str(work), 'phase': obj.state.get('phase')}
     if action == 'backup_inspect':
         from looktool import checkpoint
         manifest, target = checkpoint.load_target(args['backup'])
@@ -230,30 +191,6 @@ def run(action, args, job):
         else:
             result = obj.verify(accept_photos=bool(args.get('accepted')))
         return {'workspace': str(obj.root), 'phase': result.get('phase')}
-    if action.startswith('look_'):
-        from looktool.devicecli import main
-        work = str(args['workspace'])
-        if action == 'look_prepare':
-            argv = ['import', args['look'], '--slot', str(args['slot']),
-                    '--name', args['name'], '--work-dir', work,
-                    '--backup-dir', args['backup']]
-        elif action == 'look_install':
-            argv = ['install', work]
-            argv += ['--power-confirmed'] if args.get('power_confirmed') else ['--battery-percent', str(args['battery'])]
-        elif action == 'look_restore':
-            restored_work = str(data_root() / 'work' / ('slot-restore-' + uuid.uuid4().hex[:12]))
-            argv = ['restore-slot', work, '--work-dir', restored_work, '--backup-dir', args['backup']]
-            argv += ['--power-confirmed'] if args.get('power_confirmed') else ['--battery-percent', str(args['battery'])]
-            work = restored_work
-        else:
-            argv = ['verify', work] + (['--accept-photos'] if args.get('accepted') else [])
-        code = main(argv)
-        if code:
-            raise RuntimeError('A7Look operation stopped; see the complete backend log above.')
-        state = json.loads((Path(work) / 'job.private.json').read_text(encoding='utf-8'))
-        if action == 'look_prepare' and state.get('initial_checkpoint'):
-            register_backup(state['initial_checkpoint'])
-        return {'workspace': work, 'phase': state['phase']}
     if action == 'compile_look':
         from .actions.look_compiler import run as compile_look
         return compile_look(args)

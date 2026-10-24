@@ -1,6 +1,5 @@
 """Automatically apply a captured custom-slot's source DCP when importing RAW."""
 import argparse
-from datetime import datetime
 import json
 from pathlib import Path
 import shutil

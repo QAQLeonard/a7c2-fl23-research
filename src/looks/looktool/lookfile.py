@@ -73,10 +73,10 @@ def write(path, name, table, *, method, attribution, metrics=None, native_photo=
     if raw_profile is not None:document['raw_profile']=raw_profile
     if source_reference is not None:document['source_reference']=source_reference
     validate(document)
+    content=json.dumps(document, ensure_ascii=False, allow_nan=False, indent=2)+'\n'
     # Never overwrite a previous fitted look implicitly.
     with Path(path).open('x', encoding='utf-8', newline='\n') as stream:
-        json.dump(document, stream, ensure_ascii=False, allow_nan=False, indent=2)
-        stream.write('\n')
+        stream.write(content)
     return document
 
 

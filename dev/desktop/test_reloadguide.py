@@ -9,8 +9,7 @@ class ReloadGuideTests(unittest.TestCase):
             ('direct_fl23_disable','AWAITING_RELOAD'), ('direct_look_import','AWAITING_RELOAD'),
             ('direct_slot_default','AWAITING_RELOAD'), ('direct_factory_reset','AWAITING_RELOAD'),
             ('direct_resume_factory','AWAITING_RELOAD'), ('restore','RESTORED_AWAITING_RELOAD'),
-            ('restore_auto','RESTORED_AWAITING_RELOAD'), ('look_install','AWAITING_RELOAD'),
-            ('look_restore','RESTORED_AWAITING_RELOAD'), ('fl23_install','installed_pending_cold_start'),
+            ('restore_auto','RESTORED_AWAITING_RELOAD'),
             ('sound_on','written'), ('sound_off','restored'), ('sound_install','installed_cold_test_pending'),
             ('sound_restore_sound','restored_cold_test_pending')]
         cases += [('sound_confirm', phase) for phase in reloadguide.SOUND_PHASES['sound_confirm']]

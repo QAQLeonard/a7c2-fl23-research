@@ -1,9 +1,7 @@
 """A7C II 2.01 preview installer. Per-body backup, explicit phases, no retries."""
 import argparse
 from datetime import datetime
-import json
 from pathlib import Path
-import shutil
 import struct
 import core
 

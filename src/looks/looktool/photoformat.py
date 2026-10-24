@@ -195,6 +195,31 @@ class PhotoBank:
         return PhotoBank(tone(self.regular_curve), tone(self.still_curve), matrices, chroma)
 
 
+def custom_gamma_rows(original, *, resolve_null=True):
+    """Copy ST's two domains, preserving the native null-record fallback.
+
+    Native gamma 0x42b44c resolves a null row/column through row0,column6.
+    The custom wrapper copies the selected record before entering that
+    function, so its added rows must already contain the effective pointer.
+    Keep the fifty native rows unchanged. The legacy variant is solely for
+    recognizing an exact old installed layout during an in-place upgrade.
+    """
+    if len(original) != 50*28:
+        raise ValueError('Expected fifty native gamma rows')
+    fallback = struct.unpack_from('<I', original, 24)[0]
+    result = bytearray()
+    for _ in range(6):
+        for row in (0, 10):
+            for column in range(7):
+                pointer = struct.unpack_from('<I', original, row*28+column*4)[0]
+                if resolve_null and not pointer:
+                    if not fallback:
+                        raise ValueError('Native ST gamma fallback is unavailable')
+                    pointer = fallback
+                result.extend(struct.pack('<I', pointer))
+    return bytes(result)
+
+
 def extract_bank(cp, chroma_unit, matrix_unit, *, gamma_table_va,
                  regular_row, still_row, color_parameter, link_base=0x108000):
     """Extract explicit native bindings; do not infer ownership of unused slots."""

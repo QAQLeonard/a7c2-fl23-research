@@ -253,7 +253,7 @@ def install(root, backup_copy, native_job, audio_job, payload, battery, zig=None
     root.mkdir(parents=True, exist_ok=False)
     state = {'schema': 'a7c2-native-boot-sound-job/1', 'phase': 'preparing',
              'identity': original['identity'], 'camera_firmware_written': False,
-             'battery_percent_reported': power['battery_percent'], 'power_confirmation': power, 'journal': [],
+             'power_confirmation': power, 'journal': [],
              'owner_audio_job': str(Path(audio_job).resolve()) if audio_job else None,
              'owner_listening_confirmed':bool(evidence.get('owner_audio_correct')),
              'original_file_absence_required': list(PATHS)}

@@ -162,30 +162,6 @@ def uniform_all_slots(matrix):
   return len(values) == 3 * SLOTS_PER_ENDPOINT and all(v == values[0] for v in values)
 
 
-def counts_toward_reference(matrix, look):
-  """回傳符合參考端點值的槽數，以及未符合的 (端點, 槽) 位置。"""
-  want = endpoint_ab(look)
-  matched, missing = 0, []
-  for index, slot, value in slot_values(matrix):
-    if value == want[index]:
-      matched += 1
-    else:
-      missing.append(f'{ENDPOINT_NAMES[index]}:{slot}')
-  return matched, missing
-
-
-def counts_toward_r5(matrix, look):
-  """0.3.x 相容：只比較 A1 端點值是否鋪滿 48 槽。"""
-  want = tuple(look['matrix_ab'])
-  matched, missing = 0, []
-  for index, slot, value in slot_values(matrix):
-    if value == want:
-      matched += 1
-    else:
-      missing.append(f'{ENDPOINT_NAMES[index]}:{slot}')
-  return matched, missing
-
-
 def counts_toward_donor(matrix, parameter):
   """回傳與供體逐槽目標相符的槽數，以及未符的 (端點, 槽)。"""
   want = donor_matrix(parameter)

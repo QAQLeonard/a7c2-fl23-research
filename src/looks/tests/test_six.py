@@ -55,9 +55,7 @@ class SixTests(unittest.TestCase):
             with self.source(),contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(main(args),0);first=(root/'out/forward.private.json').read_bytes();self.assertEqual(main(args),2)
             self.assertEqual(first,(root/'out/forward.private.json').read_bytes())
-    def test_retired_bootstrap_and_unknown_preview_source_rejected(self):
-        from looktool.bootstrap6 import build
-        with self.assertRaisesRegex(ValueError,'Retired'):build(b'',b'',[],b'')
+    def test_unknown_preview_source_rejected(self):
         with self.assertRaises(ValueError):six.prepare_preview_retry(self.ap,self.cp)
 
 if __name__=='__main__':unittest.main()

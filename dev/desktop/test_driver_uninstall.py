@@ -8,7 +8,7 @@ from unittest.mock import patch
 from contextlib import redirect_stdout
 import io
 
-from desktopapp import drivers
+from desktopapp.platforms import usb_drivers as drivers
 
 
 class DriverUninstallTests(unittest.TestCase):

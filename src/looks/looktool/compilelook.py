@@ -4,22 +4,10 @@ import json
 import os
 from pathlib import Path
 import shutil
-import sys
 
 
 def save(path, value):
     path.write_text(json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False)+'\n',encoding='utf-8')
-
-
-def color_reference_settings(metadata, config):
-    """Keep spatial lens correction out of numerical color compilation."""
-    settings=dict(WhiteBalance='Custom',Temperature=5000,Tint=10,Exposure2012=0,
-        LensProfileEnable=0,Sharpness=0,ColorNoiseReduction=0,LuminanceSmoothing=0)
-    settings.update(metadata.get('reference_settings',{}))
-    settings.update(config.get('reference_settings',{}))
-    if float(settings.get('LensProfileEnable',0))!=0:
-        raise ValueError('A7Look color compilation requires LensProfileEnable=0; spatial lens correction is a separate stage')
-    return settings
 
 
 def cube_targets(source,path,input_space,bridge=None):

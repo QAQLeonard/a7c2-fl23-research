@@ -159,10 +159,10 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
     elif mode in ('slot_default', 'look_import'):
         identity = device_layout.structural(ap, cp)
         wanted[0] = recipe_defaults(ap, [slot])
-        bank = photoformat.extract_bank(cp, records[1][0x02a40001].data,
-            records[1][0x02a4000d].data, gamma_table_va=0x1209480,
-            regular_row=0, still_row=10, color_parameter=0)[0] if photoio.present(cp) else None
         if mode == 'slot_default':
+            bank = photoformat.extract_bank(cp, records[1][0x02a40001].data,
+                records[1][0x02a4000d].data, gamma_table_va=0x1209480,
+                regular_row=0, still_row=10, color_parameter=0)[0] if photoio.present(cp) else None
             raw = bytes(six.TABLE_BYTES)
             if identity['kind'] != 'legacy-six' and not identity.get('first_install'):
                 target.update(device_layout.deactivate(ap, cp, slot, raw, hash_checks=False, native_bank=bank, transitions=False)[2])
@@ -311,7 +311,7 @@ class DirectJob(Rollback):
     def resume_install_settings(self,failed_workspace,*,power_confirmed):
         """Finish a known completed-program install, without a program writer."""
         from . import settingsresume,bundle
-        require_power(confirmed=power_confirmed)
+        power = require_power(confirmed=power_confirmed)
         prior_root,prior=settingsresume.source(failed_workspace)
         if self.root.exists() and any(self.root.iterdir()):
             raise ValueError('Use a fresh settings continuation directory')
@@ -319,7 +319,7 @@ class DirectJob(Rollback):
         self.state=dict(schema='a7c2-direct-job/1',mode='install_all',slot=None,name=None,
             job_id=uuid.uuid4().hex[:16],journal=[],backup_created=False,
             bundle_options=prior['bundle_options'],settings_resume_from=str(prior_root),program_builds=[],
-            power_confirmation=require_power(confirmed=True))
+            power_confirmation=power)
         if prior.get('names_cleanup_pending'):
             self.state.update(names_cleanup_pending=True,forward_name_build=prior['forward_name_build'])
             header=self.root/'names/names.private.h';header.parent.mkdir()
@@ -402,69 +402,11 @@ class DirectJob(Rollback):
             decode=lambda raw: nameworker.validate(raw, mode, build,allow_completed_busy=True), record=self.record,
             save_raw=lambda raw: self.raw('names-forward-' + str(mode) + '.bin', raw))
 
-    def resume_factory_names(self, failed_workspace, *, power_confirmed, factory_values):
-        """A new, user-selected continuation; completed program batches never run."""
-        from . import directresume
-        require_power(confirmed=power_confirmed)
-        prior_root, prior, raw = directresume.source(failed_workspace)
-        if self.root.exists() and any(self.root.iterdir()):
-            raise ValueError('Use a fresh continuation directory')
-        self.root.mkdir(parents=True, exist_ok=True)
-        self.state = dict(schema='a7c2-direct-job/1', mode='factory_reset', slot=None, name=None,
-            factory_path=prior['factory_path'], identity=prior['identity'], job_id=uuid.uuid4().hex[:16],
-            resume_from=str(prior_root), journal=[], backup_created=False,
-            power_confirmation=require_power(confirmed=True))
-        self.save('READING')
-        try:
-            with self.factory(prior['identity']) as camera:
-                current = self.capture(camera)
-                directresume.program_bytes(current, prior_root, prior)
-                target, wanted, _ = plan(current, camera.records(current['settings-ram.bin']),
-                    'factory_reset', factory=factory_values)
-                if any(current[p] != target[p] for p in checkpoint.PROGRAM_PATHS):
-                    raise ValueError('Factory program regions differ; continuation will not write programs')
-                prepared = self.settings(camera, current, wanted)
-                names = checkpointworker.build_names(current, target, self.root / 'worker', self.state['job_id'], self.zig)
-                directresume.cleanup(camera, prior_root, prior, raw, self.record)
-                from .factoryrecover import supersede_temporary
-                supersede_temporary(camera,self.root/'evidence/superseded-temporary',self.record)
-                self.prepare_vertical(camera)
-                runtime = self.native(camera, 'runtime', 0)
-                if runtime['image_mode'].strip() not in ('0', '2') or not runtime.get('boot_id', '').strip():
-                    raise ValueError('Runtime state is unavailable; no restoration started')
-                previous = next(r['result'] for r in prior['journal'] if r.get('event') == 'native_result_verified'
-                    and 'spans' in r.get('result', {}))
-                old_spans = {(s['offset'], s['length']): s['memory'] for s in previous['spans']}
-                for span in runtime['spans']:
-                    target_bytes = target['appFw.so'][span['offset']:span['offset'] + span['length']].hex()
-                    if span['disk'] != target_bytes or span['memory'] not in (target_bytes, old_spans.get((span['offset'], span['length']))):
-                        raise ValueError('Unexpected loaded application state; no restoration started')
-                self.state['source_boot_id'] = runtime['boot_id'].strip()
-                self.purge_stale_backups(camera)
-                if names:
-                    self.native(camera, 'names', 4, names)
-                self.save('PREFLIGHT_VERIFIED', program_builds=[], inverse_name_build=names, forward_name_build=None)
-                print('只继续名称、设置与重新加载准备，不重复写入程序。', flush=True)
-                self.save('WRITING')
-                prepared=self.prepare_factory_settings(camera,prepared)
-                if names:
-                    self.native(camera, 'names', 2, names)
-                self.readback(camera, target)
-                self.restore_settings(camera, prepared)
-                if runtime['image_mode'].strip() == '2':
-                    self.native(camera, 'wbi', 0)
-                    self.native(camera, 'wbi', 1)
-            self.save('AWAITING_RELOAD')
-            print('续接写入和读回已结束，恢复尚未完成：请拔 USB 和其他外部供电，等存取灯停止闪烁，再正常关机并等屏幕和灯完全熄灭；取下电池至少一分钟，再装回开机、接回 USB，点击“重启后核对并完成恢复”。', flush=True)
-            return self.state
-        except BaseException as exc:
-            self.save('NEEDS_REVIEW', error=str(exc))
-            raise
 
     def run_direct(self, mode, *, version, power_confirmed, factory_values=None,
                    factory_path=None, slot=None, look_path=None, name=None, bundle_options=None,
-                   recovery_identity=None,recovery_source=None):
-        require_power(confirmed=power_confirmed)
+                   recovery_source=None):
+        power = require_power(confirmed=power_confirmed)
         if version != '2.01':
             raise ValueError('Direct operations support ILCE-7CM2 2.01 only')
         if self.root.exists() and any(self.root.iterdir()):
@@ -482,14 +424,13 @@ class DirectJob(Rollback):
             (self.root / 'reference.a7look').write_bytes(Path(look_path).read_bytes())
         self.state = dict(schema='a7c2-direct-job/1', mode=mode, slot=slot, name=name,
             factory_path=factory_path, job_id=uuid.uuid4().hex[:16], journal=[], backup_created=False,
-            power_confirmation=require_power(confirmed=True))
+            power_confirmation=power)
         if mode=='factory_reset' and recovery_source:self.state['supersedes_workspace']=str(recovery_source)
         if mode == 'install_all':self.state['bundle_options'] = bundle_options
         self.save('READING')
         resource_pause=False
         try:
-            context=(self.recovery_session(recovery_identity) if mode=='factory_reset' and recovery_identity else self.factory())
-            with context as camera:
+            with self.factory() as camera:
                 self.state['identity'] = camera.identity
                 if mode in ('sound_enable','sound_disable','sound_restore'):
                     import sys
@@ -605,22 +546,21 @@ class DirectJob(Rollback):
                     self.readback(camera, target)
                     self.save('RESTORING_SETTINGS')
                     self.restore_settings(camera, prepared)
-                    changed = planned_change
                     self.save('PREPARING_RELOAD')
-                    if changed and runtime['image_mode'].strip() == '2':
+                    if planned_change and runtime['image_mode'].strip() == '2':
                         self.native(camera, 'wbi', 0)
                         self.native(camera, 'wbi', 1)
-                    if not changed and self.vertical_stage:self.vertical_stage.verify_loaded()
-                    if not changed and mode=='factory_reset':
+                    if not planned_change and self.vertical_stage:self.vertical_stage.verify_loaded()
+                    if not planned_change and mode=='factory_reset':
                         self.state['readonly_after_reload_verified']=True
             if resource_pause:
                 self.save('AWAITING_RESOURCE_RELOAD')
                 print('所有读写已结束。68 个名称已完整核对，程序和配方尚未写入。旧资源仍被占用，需要断电重开释放后，再点同一按钮继续；不重复写名称。',flush=True)
                 return self.state
-            self.save('AWAITING_RELOAD' if changed else 'LOADED', raw_profile_effective_since=datetime.now().isoformat(timespec='microseconds'))
-            if changed and mode in ('fl23_enable','fl23_disable'):
+            self.save('AWAITING_RELOAD' if planned_change else 'LOADED', raw_profile_effective_since=datetime.now().isoformat(timespec='microseconds'))
+            if planned_change and mode in ('fl23_enable','fl23_disable'):
                 print('安装／关闭任务已结束，没有后续待写入步骤。以下断电仅用于让相机加载已写入的程序，电脑端核对可选。',flush=True)
-            print('所有读写已结束。拔 USB 和其他外部供电，等存取灯停止闪烁，再正常关机并等屏幕和灯完全熄灭；取下电池至少一分钟，再装回开机、检查功能并核对。' if changed else '磁盘与设置已符合目标，本次没有重复写入；实际预览、照片和声音仍需在机身检查。', flush=True)
+            print('所有读写已结束。拔 USB 和其他外部供电，等存取灯停止闪烁，再正常关机并等屏幕和灯完全熄灭；取下电池至少一分钟，再装回开机、检查功能并核对。' if planned_change else '磁盘与设置已符合目标，本次没有重复写入；实际预览、照片和声音仍需在机身检查。', flush=True)
             return self.state
         except BaseException as exc:
             self.save('NEEDS_REVIEW', error=str(exc))
@@ -629,7 +569,7 @@ class DirectJob(Rollback):
     def prepare_names_reload(self,failed_workspace,*,power_confirmed):
         """Recover the completed-name/RO-busy boundary without program writes."""
         from . import namespause
-        require_power(confirmed=power_confirmed)
+        power = require_power(confirmed=power_confirmed)
         prior_root,prior,raw=namespause.source(failed_workspace)
         if prior['phase']!='NEEDS_REVIEW':raise ValueError('Use the saved resource reload checkpoint')
         if self.root.exists() and any(self.root.iterdir()):raise ValueError('Use a fresh recovery directory')
@@ -637,7 +577,7 @@ class DirectJob(Rollback):
         self.state={k:v for k,v in prior.items() if k not in ('journal','phase','error','job_id')}
         self.state.update(job_id=uuid.uuid4().hex[:16],journal=[],resume_from=str(prior_root),
             program_source_workspace=str(prior_root),readonly_deferred_busy=True,names_cleanup_pending=False,
-            power_confirmation=require_power(confirmed=True))
+            power_confirmation=power)
         if prior['mode']=='look_import':
             (self.root/'reference.a7look').write_bytes((prior_root/'reference.a7look').read_bytes())
         self.save('READING');self.raw('names-forward-1.bin',raw)
@@ -676,91 +616,6 @@ class DirectJob(Rollback):
         self.save('RESOURCE_RELOAD_VERIFIED',resource_reload_verified=True,resource_boot_id=runtime['boot_id'].strip())
         return self.state
 
-    def continue_factory(self, failed_workspace, *, power_confirmed, factory_values):
-        """Re-plan an interrupted factory reset from fresh bytes, stage by stage."""
-        from . import factoryrecover
-        require_power(confirmed=power_confirmed)
-        history = factoryrecover.chain(failed_workspace)
-        prior_root, prior = history[-1]
-        if prior['phase'] in factoryrecover.FINISHED:
-            raise ValueError('恢复写入已结束，请核对重新加载状态，不重复写入')
-        if self.root.exists() and any(self.root.iterdir()):
-            raise ValueError('Use a new continuation directory; keep earlier evidence')
-        self.root.mkdir(parents=True, exist_ok=True)
-        self.state = dict(schema='a7c2-direct-job/1', mode='factory_reset', slot=None, name=None,
-            factory_path=prior['factory_path'], identity=prior['identity'], job_id=uuid.uuid4().hex[:16],
-            resume_from=str(prior_root), journal=[], backup_created=False,
-            power_confirmation=require_power(confirmed=True))
-        self.save('READING')
-        try:
-            with self.recovery_session(prior['identity']) as camera:
-                current = self.capture(camera)
-                factoryrecover.known_programs(current, history)
-                target, wanted, _ = plan(current, camera.records(current['settings-ram.bin']),
-                    'factory_reset', factory=factory_values)
-                prepared = self.settings(camera, current, wanted)
-                programs = checkpointworker.build_programs(current, target, self.root / 'worker', self.zig,
-                    window_priority=lambda row:(row[0],row[1]))
-                names = checkpointworker.build_names(current, target, self.root / 'worker', self.state['job_id'], self.zig,
-                                                     defer_busy_readonly=True)
-                self.save('PLANNED', program_builds=programs, inverse_name_build=names, forward_name_build=None)
-                content_complete = not programs and names is None
-                if content_complete:
-                    self.readback(camera, target)
-                recovered = factoryrecover.cleanup(camera, history, self.record, self.raw,
-                    allow_completed_name_mount_busy=content_complete) or {}
-                if recovered.get('readonly_deferred_busy'):
-                    self.state['readonly_deferred_busy'] = True
-                    print('已完整读回确认程序与名称均符合原厂目标；只继续设置和重新加载准备，只读挂载将在新开机后核对。', flush=True)
-                factoryrecover.supersede_temporary(camera,self.root/'evidence/superseded-temporary',self.record)
-                runtime = self.native(camera, 'runtime', 0)
-                self.prepare_vertical(camera)
-                if runtime['image_mode'].strip() not in ('0', '2') or not runtime.get('boot_id', '').strip():
-                    raise ValueError('无法确认当前加载状态；尚未开始续接写入')
-                earlier = [r['result']['spans'] for _, state in history for r in state.get('journal', [])
-                    if r.get('event') == 'native_result_verified' and 'spans' in r.get('result', {})]
-                for span in runtime['spans']:
-                    at, size = span['offset'], span['length']
-                    allowed = {s['memory'] for spans in earlier for s in spans if s['offset'] == at and s['length'] == size}
-                    allowed.add(target['appFw.so'][at:at + size].hex())
-                    if span['disk'] != current['appFw.so'][at:at + size].hex() or span['memory'] not in allowed:
-                        raise ValueError('运行中程序与已记录的原状态／目标不符；保留日志，不自动重试')
-                self.state['source_boot_id'] = runtime['boot_id'].strip()
-                for build in programs:
-                    self.native(camera, 'program', 0, build)
-                self.purge_stale_backups(camera)
-                if names:
-                    self.native(camera, 'names', 4, names)
-                self.save('PREFLIGHT_VERIFIED')
-                print('续接计划：剩余程序批次 %d，剩余名称文件 %d；已符合目标的内容不重复写入。' %
-                      (len(programs), names['count'] if names else 0), flush=True)
-                self.save('WRITING')
-                prepared=self.prepare_factory_settings(camera,prepared)
-                for build in programs:
-                    self.native(camera, 'program', 1, build)
-                for program, path in checkpoint.PROGRAM_PATHS.items():
-                    if camera.read(path) != target[program]:
-                        raise ValueError('Complete program readback differs: ' + program)
-                self.record('complete_program_bytes_verified')
-                self.save('RESTORING_NAMES')
-                if names:
-                    name_result = self.native(camera, 'names', 2, names)
-                    if name_result and name_result.get('readonly_deferred_busy'):
-                        self.state['readonly_deferred_busy'] = True
-                        print('名称内容已完成；只读挂载忙碌，待完成设置后断电重开核对。', flush=True)
-                self.readback(camera, target)
-                self.save('RESTORING_SETTINGS')
-                self.restore_settings(camera, prepared)
-                self.save('PREPARING_RELOAD')
-                if runtime['image_mode'].strip() == '2':
-                    self.native(camera, 'wbi', 0)
-                    self.native(camera, 'wbi', 1)
-            self.save('AWAITING_RELOAD')
-            print('恢复完成，所有读写已结束。拔 USB 和其他外部供电，等存取灯停止闪烁，再正常关机并等屏幕和灯完全熄灭；取下电池至少一分钟，再装回开机、检查并核对。', flush=True)
-            return self.state
-        except BaseException as exc:
-            self.save('NEEDS_REVIEW', error=str(exc))
-            raise
 
     @contextmanager
     def recovery_session(self, expected):

@@ -8,7 +8,7 @@ import struct
 import sys
 
 BASE=Path(__file__).resolve().parent
-sys.path.insert(0,str(BASE/'vendor'))
+sys.path.insert(0,str(BASE.parent/'fl23/vendor'))
 MODEL='ILCE-7CM2'
 VERSION='2.01'
 ORIGINAL=['2ea02f7ecbc5bb917316fe8ef4ce5ffd87eb66efaae78ba2ce11420552df539b',

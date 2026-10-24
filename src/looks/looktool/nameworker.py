@@ -1,5 +1,5 @@
 """Prepare and verify the separate, atomic, job-pinned name transaction."""
-import json,re,struct
+import json,re
 from pathlib import Path
 from . import firmware,resources
 from .nativebuild import ROOT,compile_worker

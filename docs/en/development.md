@@ -17,9 +17,9 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `desktop.py` | Entry point: GUI, `--worker`, `--privileged-worker` (macOS), `--raw-profile-worker` (Lightroom), `--offline-self-test` |
 | `src/desktopapp/` | GUI (`window.py`, `lookeditor.py`; colors and states in `theme.py`), jobs (`jobs.py`), worker dispatch (`worker.py`), one-click coordinator (`allinone.py`), dialog texts (`reloadguide.py`, `connectionguide.py`, `lookguide.py`, `completion.py`) |
 | `src/desktopapp/actions/` | `catalog.py`: which actions touch the camera or need power confirmation. `look_compiler.py` and `sound.py`: adapters for offline conversion and the sound runtime |
-| `src/desktopapp/platforms/` | Host-specific code: `usb_drivers.py` (Windows WinUSB via libwdi, UAC, uninstall), `windows_pnp.py`, `macos_authorization.py` (Terminal + sudo), `macos_media.py`. `drivers.py`/`macadmin.py` are compatibility aliases |
-| `src/looks/looktool/` | Core engines: `direct.py` (backup-free transactions), `bundle.py` (combined plan), `factoryrecover.py`, `compilelook.py` (DCP/CUBE → `.a7look`), `rawauto.py`/`rawidentity.py` (Lightroom), plus legacy checkpoint/job modules |
-| `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), vendored Sony-PMCA-RE |
+| `src/desktopapp/platforms/` | Host-specific code: `usb_drivers.py` (Windows WinUSB via libwdi, UAC, uninstall), `windows_pnp.py`, `macos_authorization.py` (Terminal + sudo), `macos_media.py` |
+| `src/looks/looktool/` | Core engines: `direct.py` (backup-free transactions), `bundle.py` (combined plan), `requestcleanup.py`, `compilelook.py` (DCP/CUBE → `.a7look`), `rawauto.py`/`rawidentity.py` (Lightroom), plus legacy checkpoint/job modules |
+| `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), shared Sony-PMCA-RE under `src/fl23/vendor` |
 | `src/shutter_sound/` | Sound conversion/volume, audition, persistent install; `native/` holds the AArch64 camera workers |
 | `src/vertical/` | Vertical Display workers and portrait resources (**being rewritten**) |
 | `src/fl23/` | Standalone legacy FL23 installer; its `native/` workers are reused by the engines |
@@ -31,12 +31,14 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `desktop-assets/` (ignored) | Distribution-only inputs: six default looks, paired profile library, Windows/macOS helpers |
 | `build/`, `dist/` (ignored) | Caches, private evidence and build outputs |
 
+Not every retained source file is a desktop feature. The independent CLI still uses `devicejob.py`, `devicecli.py` and the legacy FL23 modules. `fl23_color.py` rebuilds and checks donor color assets; `standalone.py` and `photobuild.build()` reproduce the bundled instruction templates for offline validation. Native worker sources have one canonical location under `src/fl23/native`. An import without a local variable use may be a public re-export (`jobs` action categories, macOS media helpers) or required path initialization (`files_worker` importing `candidate`). Check those roles before deleting it.
+
 ## How a button becomes a camera write
 
 1. **GUI** (`window.launch`). Write actions show a power/model confirmation; the request then carries `power_confirmed=True`. The UI thread never calls camera, driver or native-worker code.
 2. **Job** (`jobs.new_job`). Creates `<data root>/runs/<UTC time>-<action>-<id>/` with `request.private.json` (schema `a7c2-desktop-job/1`) and `status.private.json`.
 3. **Worker** (`desktop.py --worker`). A fresh child process for every job. On macOS, camera actions first re-run the same worker as root through a per-job Terminal sudo script. The worker writes `worker.log` and sets the status to `RUNNING`, then `SUCCEEDED` with `result`, or `FAILED` with `error`, `error_type` and the full traceback.
-4. **Dispatch** (`worker.run`). Routes the action to an engine (see the table below).
+4. **Dispatch** (`worker.run`). Routes the action to an engine (see the table below). Power confirmation is recorded by the executing backend; the desktop does not measure or print a battery percentage.
 5. **GUI completion** (`window.finished`). Reads the status and `result.phase`, then shows the matching dialog: cold reload, resource reload, sound notice or completion.
 
 `SUCCEEDED` only means the worker returned. The phase says what happens next:
@@ -57,7 +59,7 @@ Data root: `%LOCALAPPDATA%\A7C2Tools` on Windows, `~/Library/Application Support
 | `setup_all` | `allinone.run` | One-click install/continue; calls the other actions in-process |
 | `driver_scan`, `usb_prepare`, `driver_install`, `driver_uninstall`, `mac_unmount` | `platforms.usb_drivers` | Only `054C:0E8A` and `054C:0336`; existing WinUSB/libusbK/libusb0 bindings are kept |
 | `connect`, `usb_stability` | `devicesession.Camera`, `usbcheck` | Read-only |
-| `direct_factory_reset` (→ `direct_resume_factory` / `direct_verify`) | `looktool.direct` | Built-in factory reference; the GUI resolves pending transactions first |
+| `direct_factory_reset` / `direct_verify` | `looktool.direct` | Built-in factory reference; each request plans from current camera bytes |
 | `direct_fl23_enable`, `direct_fl23_disable` | `looktool.direct` | |
 | `direct_looks_import` (→ `direct_resume_looks`) | `lookbatch` + `looktool.direct` (`install_all`) | `operations`: `slot`, `action=write/restore`, `path`, optional `name` |
 | `vertical_enable`, `vertical_disable` | `looktool.direct` (persistent) | Being rewritten |
@@ -66,7 +68,7 @@ Data root: `%LOCALAPPDATA%\A7C2Tools` on Windows, `~/Library/Application Support
 | `sound_audition`, `sound_install`, `sound_verify`, `sound_restore_sound` | `actions.sound` | Camera actions |
 | `compile_look` | `actions.look_compiler` → `looktool.compilelook` | Offline |
 | `plugin_install` | `desktopapp.plugins` | Optional Lightroom plugin; bundles ExifTool |
-| `fl23_*`, `look_*`, `restore*` | Legacy engines | Older backup-based flows, kept for history and CLI parity |
+| `restore`, `restore_auto`, `restore_verify` | `checkpointjob.Rollback` | Optional restoration from a selected or discovered complete backup |
 
 A replacement frontend only needs `jobs.new_job(action, arguments)` plus `jobs.worker_command(...)`, and must interpret phases as above. Keep the argument names used by `Window.common()` and the catalog.
 
@@ -83,7 +85,7 @@ A replacement frontend only needs `jobs.new_job(action, arguments)` plus `jobs.w
 - `FINALIZING` adopts sound, installs the plugin and RAW mapping, and checks the persisted Vertical Display.
 - After a failure, a child that failed before any write gets a fresh `install-retry-*` plan. Unknown results stop with their evidence intact.
 
-**Factory restore:** the built-in reference `src/looks/assets/factory-regions-2.01.json` holds generic stock bytes only for the regions this project changes. It contains no full firmware and no body data. Bytes outside those regions, and body calibration, are preserved. Interrupted restores continue from current bytes (`factoryrecover.pending`).
+**Factory restore:** the built-in reference `src/looks/assets/factory-regions-2.01.json` holds generic stock bytes only for the regions this project changes. It contains no full firmware and no body data. Bytes outside those regions, and body calibration, are preserved. Each restore request plans from current bytes; historical jobs do not gate new recovery (`requestcleanup.py`).
 
 **USB service entry** (`camera_runtime/transport.Session`):
 1. Check the normal USB product string.

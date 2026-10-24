@@ -18,13 +18,15 @@ def refresh_gamma_table(cp):
     """Keep the active native rows in sync after an independent FL23 update.
 
     Native-photo hooks read this relocated table, not the original table
-    changed by FL23. Keep the twelve custom-slot rows and all slot data intact.
-    Reconstruction also accepts the stale table left by older FL23 installs.
+    changed by FL23. Refresh the added ST rows with the native null fallback,
+    keeping all slot controls intact. Accept the exact older nullable layout.
     """
     original=0x1209480-photobuild.BASE
     size=50*28
     result=bytearray(cp)
     result[photobuild.TABLE_FILE:photobuild.TABLE_FILE+size]=cp[original:original+size]
+    result[photobuild.TABLE_FILE+size:photobuild.CODE_FILE]=photoformat.custom_gamma_rows(
+        cp[original:original+size])
     result=bytes(result)
     inspect(result)
     return result
@@ -74,7 +76,7 @@ def build(source,baseline,knobs,*,active_mask):
     """Data-only assembly of the reviewed wrapper; no assembler dependency."""
     value=template();target=bytearray(source)
     original=source[0x1209480-photobuild.BASE:0x1209480-photobuild.BASE+50*28]
-    table=original+(original[:28]+original[10*28:11*28])*6
+    table=original+photoformat.custom_gamma_rows(original)
     for pointer in {struct.unpack_from('<I',original,row*28+column*4)[0]
                     for row in (0,10) for column in range(7)}-{0}:
         for spec in knobs:photobasis.curve(source[pointer-photobuild.BASE:pointer-photobuild.BASE+576],spec.get('tone',(0,0,0)))
@@ -137,8 +139,14 @@ def inspect(cp,baseline=None):
         knobs.append(unpack(cp[at:at+stride]))
     base=underlay(cp);allocation(base)
     expected,report=build(base,baseline or neutral_bank(cp),knobs,active_mask=mask)
+    # Recognize the exact old nullable copies without accepting arbitrary
+    # table/code differences. Every subsequent update builds resolved rows.
+    legacy=bytearray(expected)
+    original=base[0x1209480-photobuild.BASE:0x1209480-photobuild.BASE+50*28]
+    legacy[photobuild.TABLE_FILE+50*28:photobuild.CODE_FILE]=photoformat.custom_gamma_rows(
+        original,resolve_null=False)
     for at,length in report['regions']:
-        if expected[at:at+length]!=cp[at:at+length]:
+        if cp[at:at+length] not in (expected[at:at+length],legacy[at:at+length]):
             raise ValueError('Native-photo runtime bytes conflict at '+hex(at))
     return dict(revision=photobuild.REVISION,mask=mask,knobs=knobs)
 

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import math
 from unittest.mock import patch
 from looktool import lookfile, devicejob, devicecli, photoformat
 
@@ -23,6 +24,13 @@ class PreparedJob(devicejob.Job):
 
 
 class CompiledLookTests(unittest.TestCase):
+    def test_invalid_metrics_leave_no_partial_output(self):
+        output=self.folder/'bad-metrics.a7look'
+        with self.assertRaises(ValueError):
+            lookfile.write(output,'Invalid report',self.raw,method='test',attribution='test',
+                metrics={'error':math.nan})
+        self.assertFalse(output.exists())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

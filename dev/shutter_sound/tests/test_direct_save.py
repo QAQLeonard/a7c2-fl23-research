@@ -40,6 +40,22 @@ def test_direct_save_needs_no_audition_or_confirmations(direct):
     assert not state.get('audio_job')
 
 
+def test_selected_conversion_does_not_read_stale_audition_payload(direct):
+    root,state=direct
+    old=root/'old-audition';old.mkdir()
+    payload=old/'payload.private.bin';payload.write_bytes(b'old bytes')
+    state['audio_job']=str(old)
+    read_bytes=Path.read_bytes
+    def read(path):
+        if path==payload:raise PermissionError('Old audition is unavailable')
+        return read_bytes(path)
+    with patch.object(Path,'read_bytes',read), \
+         patch.object(boot_trial,'install',return_value={'phase':'installed_cold_test_pending'}) as install:
+        assert cli.install(root,state,100)['phase']=='installed_cold_test_pending'
+    assert install.call_args.args[3] is None
+    assert install.call_args.args[4]==bytes(64)
+
+
 def test_missing_dependency_does_not_create_install_intent(direct):
     root,state=direct
     before=(root/'sound.private.json').read_bytes()

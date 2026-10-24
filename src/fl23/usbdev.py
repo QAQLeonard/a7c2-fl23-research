@@ -45,10 +45,6 @@ $out | ConvertTo-Json -Compress
 '''
 
 
-class DriverError(RuntimeError):
-    """驱动缺失或不是可接受的驱动。"""
-
-
 def backend():
     """返回可用的 libusb1 后端；找不到就抛错。"""
     import usb.backend.libusb1

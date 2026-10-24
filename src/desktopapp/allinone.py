@@ -6,7 +6,7 @@ unknown installation is never replayed. Physical power removal remains manual.
 import json
 import uuid
 from pathlib import Path
-from .paths import data_root, write_json
+from .paths import write_json
 from . import lookbatch
 
 
@@ -53,6 +53,15 @@ def run(arguments, *, dispatch):
         step.mkdir(parents=True, exist_ok=True)
         print('执行：' + action, flush=True)
         return dispatch(action, values, step)
+
+    def finish_programs(result):
+        if result['phase'] not in ('AWAITING_RELOAD','LOADED','COMPLETE'):
+            raise ValueError('程序安装尚未完成，不能继续收尾：'+str(result['phase']))
+        state['install_result'] = result
+        state['completed_steps'].append('persistent_features')
+        waiting = result['phase'] == 'AWAITING_RELOAD'
+        save('WAIT_RELOAD' if waiting else 'FINALIZING')
+        return waiting
 
     options = state['options']
     common = dict(firmware='2.01', power_confirmed=True)
@@ -167,20 +176,14 @@ def run(arguments, *, dispatch):
                 from .reloadguide import text
                 print('所有读写已结束。\n'+text(setup=True,mode='resource_reload'),flush=True)
                 return state
-            state['install_result']=result
-            state['completed_steps'].append('persistent_features')
-            if result['phase']=='AWAITING_RELOAD':
-                save('WAIT_RELOAD');return state
-            save('FINALIZING')
-        if state['phase'] == 'READY':
-            save('DRIVERS')
-            result = call('usb_prepare', {}, 'drivers')
-            state['driver_result'] = result
-            state['completed_steps'].append('drivers')
-            save('PREPARED')
-        if state['phase'] == 'DRIVERS':
-            print('上次停在连接准备；本次只测试连接，不重复更换驱动。', flush=True)
-            state['driver_result'] = call('connect', {}, 'driver-recheck')
+            if finish_programs(result):return state
+        if state['phase'] in ('READY', 'DRIVERS'):
+            if state['phase'] == 'READY':
+                save('DRIVERS')
+                state['driver_result'] = call('usb_prepare', {}, 'drivers')
+            else:
+                print('上次停在连接准备；本次只测试连接，不重复更换驱动。', flush=True)
+                state['driver_result'] = call('connect', {}, 'driver-recheck')
             state['completed_steps'].append('drivers')
             save('PREPARED')
         if state['phase'] == 'PREPARED':
@@ -196,19 +199,15 @@ def run(arguments, *, dispatch):
                 save('PREPARED')
             save('INSTALLING')
             result = call('direct_install_all', dict(common, workspace=str(install), options=options), 'install')
-            state['install_result'] = result
             if result['phase']=='AWAITING_RESOURCE_RELOAD':
-                save('WAIT_RESOURCE_RELOAD')
+                save('WAIT_RESOURCE_RELOAD', install_result=result)
                 from .reloadguide import text
                 print('所有读写已结束。\n'+text(setup=True,mode='resource_reload'),flush=True)
                 return state
-            state['completed_steps'].append('persistent_features')
-            if result['phase'] == 'AWAITING_RELOAD':
-                save('WAIT_RELOAD')
+            if finish_programs(result):
                 from .reloadguide import text
                 print('本次程序／外观写入和完整读回已结束。\n' + text(setup=True), flush=True)
                 return state
-            save('FINALIZING')
         if state['phase'] == 'WAIT_RELOAD':
             print('继续已保存的安装计划；先核对新开机，不重新刷写。', flush=True)
             try:
@@ -219,6 +218,8 @@ def run(arguments, *, dispatch):
                     print(str(exc), flush=True)
                     return state
                 raise
+            if result['phase'] not in ('LOADED','COMPLETE'):
+                raise ValueError('重启后核对尚未完成，不能标记安装完成：'+str(result['phase']))
             state['verify_result'] = result
             if 'persistent_features' not in state['completed_steps']:
                 state['completed_steps'].append('persistent_features')
@@ -235,11 +236,13 @@ def run(arguments, *, dispatch):
                 host_step=True
                 state['plugin_result'] = call('plugin_install', {'exiftool': options.get('exiftool')}, 'plugin')
                 child = json.loads((install / 'direct.private.json').read_text(encoding='utf-8'))
-                _, rows = bundle.documents(child['bundle_options'])
-                if rows:
+                selected, rows = bundle.documents(child['bundle_options'])
+                resets=selected.get('reset_slots',[])
+                if rows or resets:
                     from looktool.rawidentity import activated
                     state['raw_profile_result'] = activated(
-                        [dict(r['document'], name=r['name']) for r in rows], [r['slot'] for r in rows],
+                        [dict(r['document'], name=r['name']) for r in rows]+[dict(name='ST',raw_profile=None) for _ in resets],
+                        [r['slot'] for r in rows]+resets,
                         child['job_id'], child['raw_profile_effective_since'])
                 state['completed_steps'].append('plugin')
                 save('FINALIZING')
@@ -263,10 +266,8 @@ def run(arguments, *, dispatch):
             print(state['message'], flush=True)
         return state
     except BaseException as exc:
-        if state['phase']=='FINALIZING' and host_step:
-            save('FINALIZING',error=str(exc))
-        elif state['phase'] not in ('DRIVERS', 'WAIT_RELOAD'):
-            save('NEEDS_REVIEW', error=str(exc))
-        else:
-            save(state['phase'], error=str(exc))
+        phase = state['phase']
+        if phase not in ('DRIVERS', 'WAIT_RELOAD') and not (phase == 'FINALIZING' and host_step):
+            phase = 'NEEDS_REVIEW'
+        save(phase, error=str(exc))
         raise

@@ -306,8 +306,7 @@ class Window(W.QMainWindow):
         return confirm
 
     def show_reload_guide(self, *, setup=False, mode=None):
-        title = ('恢复尚未开始，请断电后重试' if mode=='factory_prewrite_temporary' else
-                 '恢复尚未完成，请重启后核对' if mode=='factory_reset' else
+        title = ('恢复尚未完成，请重启后核对' if mode=='factory_reset' else
                  '试听结果已记录，请断电恢复原声' if mode=='sound_confirm' else '读写已结束，请断电重开')
         W.QMessageBox.information(self, title, reloadguide.text(setup=setup, mode=mode))
 
@@ -864,8 +863,6 @@ class Window(W.QMainWindow):
         if success and status.get('action') == 'restore_auto':
             self.fields['restore_backup'].setText(status['result']['backup'])
             self.fields['restore_work'].setText(status['result']['workspace'])
-        if success and status.get('action') == 'look_restore' and 'look_work' in self.fields:
-            self.fields['look_work'].setText(status['result']['workspace'])
         if success and status.get('action') in ('direct_factory_reset', 'direct_resume_factory'):
             self.settings['factory_direct_work'] = status['result']['workspace']
             self.fields['factory_failed_work'].setText(status['result']['workspace'])
@@ -920,15 +917,6 @@ class Window(W.QMainWindow):
         self.refresh_look_controls()
         self.refresh_setup_controls()
         self.refresh_factory_controls()
-        if not success and status.get('action')=='direct_factory_reset':
-            from looktool.factoryrecover import prewrite_temporary_conflict
-            work=self.settings.get('factory_direct_work')
-            path=Path(work,'direct.private.json') if work else None
-            try:state=json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {}
-            except (OSError,ValueError):state={}
-            if prewrite_temporary_conflict(state) and state.get('error')==status.get('error'):
-                self.status.setText('本次恢复尚未写入。按弹窗完整断电、接回 USB，再点“断电后重试恢复”。')
-                self.show_reload_guide(mode='factory_prewrite_temporary')
         if sound_notice:
             W.QMessageBox.information(self,sound_notice['title'],sound_notice['text'])
         elif status.get('action')=='usb_stability':

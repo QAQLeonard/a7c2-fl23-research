@@ -18,7 +18,7 @@
 | `src/desktopapp/` | 界面（`window.py`、`lookeditor.py`；颜色和状态样式在 `theme.py`）、任务（`jobs.py`）、worker 分发（`worker.py`）、一键安装协调（`allinone.py`）、弹窗文字（`reloadguide.py`、`connectionguide.py`、`lookguide.py`、`completion.py`） |
 | `src/desktopapp/actions/` | `catalog.py`：哪些动作会访问相机、哪些需要确认供电。`look_compiler.py`、`sound.py`：离线转换和声音运行时的适配器 |
 | `src/desktopapp/platforms/` | 系统相关代码：`usb_drivers.py`（Windows 用 libwdi 装 WinUSB、UAC 提权、卸载）、`windows_pnp.py`、`macos_authorization.py`（终端 + sudo）、`macos_media.py`。`drivers.py`、`macadmin.py` 只是兼容别名 |
-| `src/looks/looktool/` | 核心引擎：`direct.py`（不需要备份的事务）、`bundle.py`（组合计划）、`factoryrecover.py`、`compilelook.py`（DCP／CUBE → `.a7look`）、`rawauto.py`／`rawidentity.py`（Lightroom），以及旧版检查点／任务模块 |
+| `src/looks/looktool/` | 核心引擎：`direct.py`（不需要备份的事务）、`bundle.py`（组合计划）、`requestcleanup.py`、`compilelook.py`（DCP／CUBE → `.a7look`）、`rawauto.py`／`rawidentity.py`（Lightroom），以及旧版检查点／任务模块 |
 | `src/camera_runtime/` | USB 服务会话（`transport.py`）、FL23 规划与资源、macOS 主机辅助（`macos_host.py`）、内置 Sony-PMCA-RE |
 | `src/shutter_sound/` | 声音转换／音量、试听、持久安装；`native/` 是 AArch64 相机 worker |
 | `src/vertical/` | 竖屏显示 worker 与竖屏资源（**正在重写**） |
@@ -31,12 +31,14 @@
 | `desktop-assets/`（忽略） | 仅用于发行的输入：默认六款、配对配置库、Windows／macOS 辅助程序 |
 | `build/`、`dist/`（忽略） | 缓存、私有证据和构建产物 |
 
+并非每个保留的源码文件都是桌面功能。独立 CLI 仍使用 `devicejob.py`、`devicecli.py` 和旧 FL23 模块；`fl23_color.py` 用于重建、检查供体彩色资产，`standalone.py` 和 `photobuild.build()` 用于离线重建、核对随包指令模板。原生 worker 源码统一维护在 `src/fl23/native`。某些导入虽未在本模块内使用，却承担对外重导出（`jobs` 动作分类、macOS 卷卸载）或必要的路径初始化（`files_worker` 导入 `candidate`），删除前需核对这些用途。
+
 ## 一次点击如何变成相机写入
 
 1. **界面**（`window.launch`）：写入类动作先弹出供电和机型确认，请求里带上 `power_confirmed=True`。界面线程从不直接调用相机、驱动或原生 worker。
 2. **任务**（`jobs.new_job`）：创建 `<数据目录>/runs/<UTC 时间>-<动作>-<id>/`，写入 `request.private.json`（schema `a7c2-desktop-job/1`）和 `status.private.json`。
 3. **Worker**（`desktop.py --worker`）：每个任务一个新子进程。macOS 上的相机动作会先通过每个任务单独生成的终端 sudo 脚本，以 root 重新运行同一个 worker。Worker 写 `worker.log`，状态依次为 `RUNNING`，然后是带 `result` 的 `SUCCEEDED`，或带 `error`、`error_type` 和完整堆栈的 `FAILED`。
-4. **分发**（`worker.run`）：把动作交给对应引擎，见下方动作表。
+4. **分发**（`worker.run`）：把动作交给对应引擎，见下方动作表。供电确认由实际后端记录，桌面不会测量或输出电量百分比。
 5. **界面收尾**（`window.finished`）：读取状态和 `result.phase`，弹出相应提示：断电重开、资源重开、声音提示或安装完成。
 
 `SUCCEEDED` 只代表 worker 正常返回，下一步要看阶段（phase）：
@@ -57,7 +59,7 @@
 | `setup_all` | `allinone.run` | 一键安装／继续；在同一进程内调用其他动作 |
 | `driver_scan`、`usb_prepare`、`driver_install`、`driver_uninstall`、`mac_unmount` | `platforms.usb_drivers` | 只处理 `054C:0E8A`、`054C:0336`；已有 WinUSB／libusbK／libusb0 绑定直接沿用 |
 | `connect`、`usb_stability` | `devicesession.Camera`、`usbcheck` | 只读 |
-| `direct_factory_reset`（→ `direct_resume_factory`／`direct_verify`） | `looktool.direct` | 内置原厂参考；界面会先识别未完成的事务 |
+| `direct_factory_reset`／`direct_verify` | `looktool.direct` | 内置原厂参考；每次按当前相机字节重新规划 |
 | `direct_fl23_enable`、`direct_fl23_disable` | `looktool.direct` | |
 | `direct_looks_import`（→ `direct_resume_looks`） | `lookbatch` + `looktool.direct`（`install_all`） | `operations`：`slot`、`action=write/restore`、`path`、可选 `name` |
 | `vertical_enable`、`vertical_disable` | `looktool.direct`（持久） | 正在重写 |
@@ -66,7 +68,7 @@
 | `sound_audition`、`sound_install`、`sound_verify`、`sound_restore_sound` | `actions.sound` | 相机操作 |
 | `compile_look` | `actions.look_compiler` → `looktool.compilelook` | 离线 |
 | `plugin_install` | `desktopapp.plugins` | 可选 Lightroom 插件，自带 ExifTool |
-| `fl23_*`、`look_*`、`restore*` | 旧版引擎 | 基于备份的旧流程，为兼容历史和命令行保留 |
+| `restore`、`restore_auto`、`restore_verify` | `checkpointjob.Rollback` | 从所选或发现的完整备份恢复（可选） |
 
 替换前端时，只需调用 `jobs.new_job(action, arguments)` 和 `jobs.worker_command(...)`，并按上表理解阶段。参数名与 `Window.common()` 和动作表保持一致。
 
@@ -83,7 +85,7 @@
 - `FINALIZING` 阶段接入声音、安装插件和 RAW 映射，并核对竖屏的持久化状态。
 - 失败后再点继续：写入前就失败的子事务会改用新的 `install-retry-*` 计划；结果不明的则停止，保留现场。
 
-**恢复原厂**：内置参考 `src/looks/assets/factory-regions-2.01.json` 只包含本项目会修改的区域的通用原厂字节，不含完整固件或机身数据。这些区域以外的字节和机身校准都保持不变。中断后从当前字节继续（`factoryrecover.pending`）。
+**恢复原厂**：内置参考 `src/looks/assets/factory-regions-2.01.json` 只包含本项目会修改的区域的通用原厂字节，不含完整固件或机身数据。这些区域以外的字节和机身校准都保持不变。每次恢复都从当前字节重新规划，历史任务不拦截新请求（`requestcleanup.py`）。
 
 **USB 服务入口**（`camera_runtime/transport.Session`）：
 1. 检查普通 USB 的产品字符串。

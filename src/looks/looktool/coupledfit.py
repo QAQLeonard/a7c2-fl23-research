@@ -70,13 +70,6 @@ def metrics(actual, target):
             'RGB_P95_8bit': float(np.percentile(error, 95))}
 
 
-def require_validation(actual, expected):
-    report = metrics(actual, expected)
-    if report['RGB_MAE_8bit'] > 2.5 or report['RGB_P95_8bit'] > 8:
-        raise ValueError('Coupled response fails retained camera-table prediction: ' + str(report))
-    return report
-
-
 def solve(response, coordinates, target_rgb, *, smooth, bounded=True,
           refine=False, max_evaluations=25, initial_coefficients=None):
     """Joint solve, with an optional refinement against predicted encoded RGB.

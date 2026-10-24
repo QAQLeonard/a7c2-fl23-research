@@ -3,7 +3,7 @@
 No device is opened at import time. Unknown native outcomes are never replayed.
 """
 from datetime import datetime,timezone
-import gzip,json,os,shutil,struct,uuid
+import gzip,json,os,struct,uuid
 from pathlib import Path
 from . import backupstore,calibration,device_layout,devicesettings,firmware,nameworker,native,nativebuild,project,resources,six,uploadgate,worker
 from .devicesession import Camera,invoke

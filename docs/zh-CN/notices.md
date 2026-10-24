@@ -22,7 +22,7 @@
 
 ## 代码与研究来源
 
-- [Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE)，固定提交 `a82f5baaa8e9c3d9f28f94699e860fb2e48cc8e0`：服务／USB 的 Python 源码位于 `src/fl23/vendor/pmca` 和 `src/camera_runtime/vendor/pmca`；保留[原 MIT 文本](../../src/fl23/licenses/Sony-PMCA-RE-MIT.txt)。
+- [Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE)，固定提交 `a82f5baaa8e9c3d9f28f94699e860fb2e48cc8e0`：服务／USB 的 Python 源码位于 `src/fl23/vendor/pmca`；保留[原 MIT 文本](../../src/fl23/licenses/Sony-PMCA-RE-MIT.txt)。
 - [fwtool](https://github.com/ma1co/fwtool.py)：用于解析可选的原厂 DAT，位于 `src/desktopapp/vendor/fwtool`；许可见 `src/desktopapp/vendor/fwtool-LICENSE.txt`。
 - [MDHan/a7c2-fl23-macos](https://github.com/MDHan/a7c2-fl23-macos)，提交 `1491f734df07f02fb77da6ea7062828bce0e30e7`：参考了 macOS 上识别相机存储卷并接管 USB 的顺序；MIT 声明保留在 [docs/licenses](../licenses/a7c2-fl23-macos-MIT.txt)。
 - [A7CR FL2／FL3 研究](https://github.com/lzh2016zzz/a7cr-fl23-research/tree/43ba74441c8f10459ade41e84a379ad8005e6ef4)：参考了参数、标签和 WBI 方法。A7C II 的偏移是另行定位的，没有直接刷入 A7CR 偏移。

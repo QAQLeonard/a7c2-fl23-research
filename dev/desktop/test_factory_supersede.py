@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from test_checkpoint import Camera,values,fake_compile,KEYS
 from test_direct import SimDirect
-from looktool import direct,checkpointworker,factoryrecover
+from looktool import direct,checkpointworker,requestcleanup
 
 
 @pytest.mark.parametrize('platform',['win32','darwin'])
@@ -57,7 +57,7 @@ def test_active_loader_is_not_overwritten_or_archived(tmp_path):
     camera.files.update({'/tmp/jiritsu/lut-names-staged.so':b'old','/tmp/jiritsu/libJit.so':b'active'})
     before=copy.deepcopy(camera.files)
     with pytest.raises(ValueError,match='执行插件仍存在'):
-        factoryrecover.supersede_temporary(camera,tmp_path/'archive',lambda *a,**k:None)
+        requestcleanup.supersede_temporary(camera,tmp_path/'archive',lambda *a,**k:None)
     assert camera.files==before and not (tmp_path/'archive').exists()
 
 
@@ -82,9 +82,9 @@ def test_empty_namespace_needs_no_old_report_or_archive(tmp_path):
 def test_archive_failure_never_deletes_camera_work_files(tmp_path):
     camera=Camera(values());camera.files['/tmp/jiritsu/lut-names-staged.so']=b'old'
     before=copy.deepcopy(camera.files)
-    with patch.object(factoryrecover.os,'fsync',side_effect=OSError('disk full')):
+    with patch.object(requestcleanup.os,'fsync',side_effect=OSError('disk full')):
         with pytest.raises(OSError,match='disk full'):
-            factoryrecover.supersede_temporary(camera,tmp_path/'archive',lambda *a,**k:None)
+            requestcleanup.supersede_temporary(camera,tmp_path/'archive',lambda *a,**k:None)
     assert camera.files==before
 
 
@@ -93,7 +93,7 @@ def test_changing_temporary_state_is_not_deleted(tmp_path):
     def record(event,**kwargs):
         if event=='factory_temporary_archived':camera.files['/tmp/jiritsu/a7c2.names.result']=b'new-report'
     with pytest.raises(ValueError,match='仍在变化'):
-        factoryrecover.supersede_temporary(camera,tmp_path/'archive',record)
+        requestcleanup.supersede_temporary(camera,tmp_path/'archive',record)
     assert camera.temp_read('lut-names-staged.so')==b'old'
     assert camera.temp_read('a7c2.names.result')==b'new-report'
 
@@ -174,7 +174,6 @@ def test_restore_buttons_never_discover_read_or_verify_an_old_task(tmp_path,monk
             raise AssertionError('Old task must not be read')
         return original_read(path, *args, **kwargs)
     with patch('looktool.direct.DirectJob', return_value=job), \
-            patch('looktool.factoryrecover.pending', side_effect=AssertionError('No history discovery')), \
             patch('desktopapp.official.load', return_value={'builtin': True}), \
             patch.object(Path, 'read_text', reject_old_read):
         result = worker.run(action, dict(workspace=str(job.root), firmware='2.01',

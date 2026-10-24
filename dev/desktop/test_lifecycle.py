@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from desktopapp import worker
 from desktopapp.paths import data_root
-from looktool import bundle, checkpointworker, direct, factoryrecover, lookfile
+from looktool import bundle, checkpointworker, direct, lookfile
 from test_checkpoint import Camera, KEYS, fake_compile, values
 from test_direct import SimDirect
 
@@ -44,7 +44,6 @@ class LifecycleTests(unittest.TestCase):
                 # Already original: no write, restart or extra verification needed.
                 first=run('direct_factory_reset','original')
                 self.assertEqual(first['phase'],'LOADED')
-                self.assertIsNone(factoryrecover.pending(work))
                 original_bytes=(work/'original/direct.private.json').read_bytes()
                 for cycle in (1,2):
                     install='install-'+str(cycle)
@@ -55,7 +54,6 @@ class LifecycleTests(unittest.TestCase):
                     self.assertEqual(result['workspace'],str(work/restore))
                     self.assertEqual(result['phase'],'AWAITING_RELOAD')
                     self.assertEqual(boot_and_verify(restore,cycle*2+1)['phase'],'LOADED')
-                    self.assertIsNone(factoryrecover.pending(work,work/'original'))
                     state=json.loads((work/restore/'direct.private.json').read_text())
                     self.assertFalse(state['physical_checks_accepted'])
                 self.assertEqual((work/'original/direct.private.json').read_bytes(),original_bytes)

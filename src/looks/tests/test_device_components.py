@@ -75,6 +75,46 @@ class NativeInvocationTests(unittest.TestCase):
         with self.assertRaises(ValueError):self.run_native(camera,invalid)
         self.assertFalse(camera.healthy);self.assertEqual(camera.writes.count('libJit.so'),1)
         self.assertIn('a7c2.install.request',camera.files);self.assertIn('a7c2.install.result',camera.files)
+    def test_invalid_auxiliary_result_marks_session_unknown_and_preserves_all_files(self):
+        from types import SimpleNamespace
+        camera=self.Camera();write=camera.temp_write
+        def launch(name,data):
+            write(name,data)
+            if name=='libJit.so':camera.files['a7c2.probe.result']=b'incomplete auxiliary report'
+        camera.temp_write=launch
+        camera.core=SimpleNamespace(parse_native=lambda *args:(_ for _ in ()).throw(ValueError('bad auxiliary report')))
+        with self.assertRaisesRegex(ValueError,'bad auxiliary report'):
+            invoke(camera,b'worker',stage='lut-program-staged.so',request='a7c2.install.request',
+                result='a7c2.install.result',contents=b'request',mode=1,decode=lambda raw:{'valid':True},
+                record=lambda *args,**kwargs:None,save_raw=lambda raw:None,extras=('a7c2.probe.result',))
+        self.assertFalse(camera.healthy)
+        self.assertEqual(set(camera.files),{'lut-program-staged.so','a7c2.install.request',
+            'a7c2.install.result','a7c2.probe.result'})
+        self.assertEqual(camera.writes.count('libJit.so'),1)
+    def test_changed_worker_preserves_report_and_request_before_any_cleanup(self):
+        camera=self.Camera();write=camera.temp_write
+        def launch(name,data):
+            write(name,data)
+            if name=='libJit.so':camera.files['lut-program-staged.so']=b'unexpected worker'
+        camera.temp_write=launch
+        with self.assertRaisesRegex(ValueError,'unexpected temporary contents'):
+            self.run_native(camera,lambda raw:{'valid':True})
+        self.assertFalse(camera.healthy)
+        self.assertEqual(camera.files,{'lut-program-staged.so':b'unexpected worker',
+            'a7c2.install.request':b'request','a7c2.install.result':b'valid report'})
+        self.assertEqual(camera.writes.count('libJit.so'),1)
+    def test_cleanup_disconnect_stops_before_removing_reports(self):
+        camera=self.Camera();removed=[]
+        def disconnect(name):
+            removed.append(name)
+            raise TimeoutError('cleanup disconnected')
+        camera.temp_remove=disconnect
+        with self.assertRaisesRegex(TimeoutError,'cleanup disconnected'):
+            self.run_native(camera,lambda raw:{'valid':True})
+        self.assertFalse(camera.healthy)
+        self.assertEqual(removed,['lut-program-staged.so'])
+        self.assertIn('a7c2.install.result',camera.files)
+        self.assertIn('a7c2.install.request',camera.files)
     def test_existing_foreign_temporary_blocks_before_invocation(self):
         camera=self.Camera();camera.files['a7c2.install.result']=b'foreign'
         with self.assertRaises(ValueError):self.run_native(camera,lambda raw:{})
