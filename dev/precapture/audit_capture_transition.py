@@ -19,6 +19,7 @@ from support.cp_mapping import PINNED
 
 from support.capture_native import NativeCapture, BASE, OWNER, WIRE, STACK, STOP, DEBUG, words
 from support.capture_completion import audit as audit_completion, SPANS as COMPLETION_SPANS
+from support.capture_resources import audit as audit_resources, SPANS as RESOURCE_SPANS
 
 
 READOUT_SPANS = ((0xa186ba,0x66),(0xa1872c,0xae),(0xa19fbc,0x10),
@@ -264,17 +265,19 @@ def main():
             'No cached parameter refresh event or cross-task synchronization is supplied'])
     report['readout_admission']=readout_admission(cp)
     report['software_state_completion']=audit_completion(cp)
+    report['resource_preparation']=audit_resources(cp)
     if a.current_cp:
         current=a.current_cp.read_bytes()
-        if any(current[at:at+size]!=cp[at:at+size] for at,size in (*READOUT_SPANS,*COMPLETION_SPANS)):
+        selected_spans=(*READOUT_SPANS,*COMPLETION_SPANS,*RESOURCE_SPANS)
+        if any(current[at:at+size]!=cp[at:at+size] for at,size in selected_spans):
             raise ValueError('Current CP differs in selected readout-admission FILE spans')
         report['current_readout_spans']=dict(sha256=hashlib.sha256(current).hexdigest(),
-            spans=[dict(file_offset=hex(at),bytes=size) for at,size in (*READOUT_SPANS,*COMPLETION_SPANS)],
+            spans=[dict(file_offset=hex(at),bytes=size) for at,size in selected_spans],
             loaded_source_proven=False)
     with a.output.open('x', encoding='utf-8') as stream:
         json.dump(report, stream, indent=2)
         stream.write('\n')
-    print('Original CAP/readout checks preserved; masked feedback, completion notification and CAP callback boundaries checked. No camera I/O.')
+    print('Original CAP/readout checks preserved; resource setup, RAW descriptor transfer and release checks passed. No camera I/O.')
 
 
 if __name__ == '__main__':

@@ -29,6 +29,7 @@ written by this experiment. This is one successful case, not broad stability.
 | [Shooting controller](CAPTURE-LIFECYCLE.md) | Continuous save/cancel/restore logic and eight VM virtual-pixel transactions | Native exposure, RAW references, durable photo writing and terminal release fencing |
 | Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | Native state feedback | Original feedback stores, masked completion, deferred task/notification dispatch and CAP handle checks;60 input combinations plus negative controls | Hardware feedback provenance, actual exposure/RAW ownership and a generation-bound terminal fence; two commands share event308 |
+| RAW resource path | Original staged-slot copy → prefetch task → RAW client; reply checks and512 slot-consumption cases, with source clearing/repeat-consume refusal | Actual allocation, pixel references and matched release; local invalidation does not prove resource release |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
 | Manual in-camera switch | Required independent Off/On control, initially Off | Implementation and safe enable/disable binding |
 
@@ -76,6 +77,7 @@ do not add up to physical pre-capture.
 | `support/ipc_journal.py`, `verify_ipc_journal.py` | Shared bounded never-sent context journal decoder and private-input corruption controls; file success never grants process cleanup |
 | `support/capture_native.py` | Shared original CAP object/cancellation fixture; six audits import it directly, with legacy replay exports retained |
 | `support/capture_completion.py` | Original requested/current state comparison, deferred notification and CAP callback boundaries; synthetic inputs only, no hardware completion or camera adapter |
+| `support/capture_resources.py` | Original resource preparation, staged/active descriptor transfer, RAW request/reply and release boundaries; no native service success or camera I/O |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
 | `vm/cp_boot/config_rmw/qemu_source_word.h`, `vm/cp_boot/mtg_select/` | Shared restricted single-word storage and the optional MTG selector fixture; no timing edges, frame IRQ or sensor |
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
@@ -198,4 +200,7 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 原厂反馈／完成链路另已完成60个离线组合及反例检查。两个读出命令共用事件308，通知包没有命令／代次，
 待通知槽还会在投递前清空；不能将收到这个事件当作本次预拍摄或RAW释放完成。拍摄回调的句柄与引用
 分支已核对，下一步继续连接实际读出／像素服务；这些结果仍不代表实机预拍摄。
+资源链路进一步完成952个离线输入组合：暂存槽到预取任务／RAW服务入口、容量与RAW回复、描述符一次消费、
+照片对象记录与释放检查。原厂预取回复可以复制某些空描述信息，照片对象也会不检查释放结果便清掉本地标识；
+因此描述符复制、本地标识无效都不能证明已经取得或释放真实RAW。这轮没有相机操作。
 详细证据保留在 [CONTROL-PATHS.txt](CONTROL-PATHS.txt)，公开工具继续只做离线研究。

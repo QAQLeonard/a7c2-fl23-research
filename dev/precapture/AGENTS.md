@@ -30,6 +30,15 @@ unwatched current words can differ when the local check succeeds. This is not
 physical sensor/RAW quiescence. Native CAP continuation still stops before
 a05976 or a06e5e under explicit synthetic configuration/reference inputs.
 
+Phase132 reaches original staged-slot copy/prefetch/RAW-client lookup and
+descriptor consumption. Sixteen initialized descriptor positions are not16
+retained photographs. Flags11/31 can copy zero-count/zero-address reply metadata;
+source-copy success is not a pixel lease. Originala04fe6 invalidates local ID
+and descriptor aftera13a60 without checking its return. Never complete release
+from invalid local ID, a zero metadata count or that caller's return alone.
+Keep native locks/waits/endpoint lookup as unexecuted boundaries; post-service
+slices never supply successful native returns or qualify physical allocation.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that

@@ -90,6 +90,12 @@ ingress by exposure end, and deliver the real S2 edge before post-edge ingress.
 Generation/epoch/serial fields only enforce a supplied contract; they do not
 prove native source identity, clock meaning, task ownership or quiescence.
 An adapter that invents those completions would invalidate the test's meaning.
+Original frame release `a04fe6` clears the local RAW ID/descriptor after calling
+`a13a60` without checking its return. Local ID `ffffffff` therefore cannot
+complete this controller's release action: the adapter still needs the matched
+resource-service result and the lease's terminal ownership evidence. The native
+prefetch slot consumer can transfer a descriptor once and clear its source,
+but that metadata transfer alone does not establish retained pixel ownership.
 The stock full-press/AF/AE path must continue separately; this test does not
 establish normal camera shooting, FL2/FL3/six-look preservation or boot safety.
 Those requirements and physical pre-capture remain unfinished.

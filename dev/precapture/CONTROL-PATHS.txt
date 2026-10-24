@@ -3502,3 +3502,70 @@ The common event308 is not a substitute for the workflow's generation/lease/
 serial terminal fence. Dynamic configuration rows, real exposure/retention,
 writer/cancel/release and manual default-Off menu remain unfinished. No new
 physical admission follows from these offline results.
+
+## Phase132: RAW resource setup, one-time descriptor transfer and release
+
+Reviewed/refreshed main782785641ca9, still an ancestor; product files unchanged.
+No camera session, service request, diagnostic upload, parameter or firmware
+write. The existing transition audit now imports support/capture_resources.py;
+no new CLI transport or installer. Phase131 result fields compare identically,
+excluding the new resource_preparation field and expanded FILE-span inventory.
+
+24 originala05976 configuration cases stop before CAM callback enqueue or the
+original profile diagnostic. Modes are raw synthetic fields, not UI drive or
+shutter settings; raw22 is a deliberately incomplete profile negative. The
+nativea06e5e entry stops at logging then critical-section entry.21 independent
+postcritical cases retain native callee-saved context and stop before resource
+stop/cleanup.3 held-state cases preserve the prior descriptor; state1 selects
+a06b80, others reach371708. No critical section or service return is fabricated.
+
+The stop/start helpers have real event/wait boundaries; two slices preserve
+those before any wait/stop succeeds. Capacity wrappera13b3a ->40a63c requests
+endpoint2a/class5 and operation55/request14. Five query entries,4 independent
+post-allocation packet builders and24 reply cases check8014/status0/op55 and
+the16-bit output. This value is not an acquired RAW handle or photograph count.
+An earlier progress message counted48 capacity cases; the actual Cartesian
+reply matrix has24 cases. The final report is authoritative.
+
+Original staged configuration at17205d0 uses16 positions at48-byte strides.
+Three source-qualified flows execute real slot setters, the320-byte copy into
+17202b0, staged reset and thea074f0 prefetch functor on task87/queue37. The
+prefetch callback advances original local state then reaches3708e8 ->408870
+and the first45dd24 endpoint lookup. Normal/special resource IDs preserve native
+request flags11/31. No endpoint, allocation, reply or owned pixel is supplied.
+
+288 independent synthetic RAW reply cases execute original4089b4 decisions
+and actual d8-byte memcpy, stopping before message release. Flags11/31 can copy
+zero-count/zero-address metadata; only flag1 has the additional nonzero check.
+Five original post-reply slot-copy cases preserve the full returned count but
+copy at most2 address records. Count>2 is not extra admitted image capacity.
+
+512 native slot-take cases cover16 positions, active/raw states/readiness and
+matching identifiers. Only matching ready state2 transfers the40-byte native
+descriptor and clears source readiness/type/ID/count. Every positive case also
+rejects repeat consumption from that same cleared slot. All other bytes and
+neighbors are preserved.32 frame-allocator continuations execute actual37019c
+entry then an independent post-log slice, consuming only its existing synthetic
+descriptor and stopping before further lock/wait/special-resource operations.
+These cases do not produce acquired pixel contents or a completed allocation.
+
+Five frame-handle cases verify existing-ID allocation avoidance, invalid-ID
+release avoidance and independenta04ffe metadata clearing. That caller ignores
+the release result: arbitrary negative/unknown input is overwritten immediately
+before local ID and descriptor invalidation. This is not proof of a physical
+failure or freed pixels; never use the invalidated ID as a terminal lease fence.
+24 separate release-reply cases require transport0/status0/header8023/op55;
+wrong header8020 is rejected despite appearing in a native diagnostic literal.
+The original release wrapper also reaches class5 endpoint lookup, never send.
+
+All952 resource cases are synthetic/original-instruction checks. Existing
+source/metadata/feedback tests remain unchanged. Source comparisons use selected
+captured-current CP FILE spans and preserve the LUT preview repair; no fresh
+loaded-state, actual sensor or native asynchronous scheduling claim follows.
+
+Next native blocker: actual resource-service transaction and terminal reply
+ownership, followed by frame/pixel lease integration. The existing completed
+unsupported-mode CP query does not authorize that different service or patches.
+Prepare a concrete source/owner-bound candidate before any new physical request;
+real pre-trigger exposures, retained RAW, save/cancel/release and default-Off
+menu remain unfinished. Keep retired00030072 and all prior jobs untouched.
