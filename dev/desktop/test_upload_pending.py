@@ -45,6 +45,28 @@ def test_only_declared_code_windows_change_and_inverse_is_exact():
     assert target == expected
 
 
+def test_trial2_candidate_remains_reversible_and_upgrades_to_current_candidate():
+    source = uploadgate.restore(synthetic())
+    previous = bytearray(source)
+    for _, at, _, after in uploadpending.TRIAL2_WINDOWS:
+        raw = bytes.fromhex(after)
+        previous[at:at + len(raw)] = raw
+    previous = bytes(previous)
+    assert uploadpending.active(previous)
+    assert uploadpending.normalize(previous) == source
+    assert uploadpending.install(previous) == uploadpending.install(source)
+
+
+def test_checked_in_instruction_bytes_match_reviewable_assembler():
+    from evf_pending_asm import build
+    blocks = build()
+    windows = {name: bytes.fromhex(after) for name, _, _, after in uploadpending.WINDOWS}
+    assert windows['consumer_copy'][56:] == blocks['resolver']
+    assert windows['consumer_override_copy'] == blocks['override']
+    assert windows['consume'] == blocks['consume']
+    assert windows['unlock_hook'] == blocks['unlock_hook']
+
+
 @pytest.mark.parametrize('index', range(len(uploadpending.WINDOWS)))
 def test_unknown_or_partial_code_is_rejected(index):
     source = synthetic()
@@ -121,15 +143,38 @@ def test_direct_trial_writes_one_batch_and_can_revert_from_a_fresh_request(tmp_p
 
 
 @pytest.fixture
-def native_images():
+def native_images(monkeypatch):
     if not os.environ.get('A7C2_RESEARCH_FIXTURES'):
         pytest.skip('Optional private firmware; never reads USB')
     from test_uploadgate_native import Replay
     import test_preview_native as native
+    # The shared-state regressions also use the real owner address. The
+    # two-frame cases below independently exercise copies and publication.
+    cpu_for = native.cpu_for
+    def mapped_cpu(image):
+        cpu = cpu_for(image)
+        cpu.mem_map(0x2000000, 0x10000)
+        return cpu
+    monkeypatch.setattr(native, 'cpu_for', mapped_cpu)
+    monkeypatch.setattr(native, 'STATE', 0x2003738 + 0x664)
     index = Path(os.environ['A7C2_RESEARCH_FIXTURES'])
     paths = json.loads(index.read_text(encoding='utf-8'))
     old = (index.parent / paths['v4_cp']).read_bytes()
     return native, Replay, old, uploadgate.restore(old), uploadpending.install(old)
+
+
+def test_real_trial1_to_trial3_plan_is_cp_only_and_reversible(native_images):
+    _, _, _, first, candidate = native_images
+    index = Path(os.environ['A7C2_RESEARCH_FIXTURES'])
+    paths = json.loads(index.read_text(encoding='utf-8'))
+    current = {'appFw.so': (index.parent / paths['six_ap']).read_bytes(), 'cpapp-b.bin': first}
+    target, wanted, names = direct.plan(current, None, 'preview_pending')
+    assert target['appFw.so'] is current['appFw.so']
+    assert target['cpapp-b.bin'] == candidate
+    assert wanted == [{}, {}] and names is None
+    restored, wanted, names = direct.plan(target, None, 'preview_native')
+    assert restored == current
+    assert wanted == [{}, {}] and names is None
 
 
 def test_native_missed_consumption_recovers_and_stable_cycles_stop_repeating(native_images):
@@ -327,3 +372,170 @@ def test_native_ack_is_inside_existing_unlock_and_other_callers_keep_their_abi(n
     replay.cpu.hook_add(UC_HOOK_CODE, hook)
     replay.consume()
     assert observed == [0x83]
+    assert struct.unpack('<I', replay.cpu.mem_read(native.MMIOS[0] + 0xad40, 4))[0] == 0
+
+
+def test_native_consumer_accepts_a_bounded_parameter_copy(native_images):
+    """The original consumer reads a 28-byte parameter, not a producer object.
+
+    Place the copy at the end of mapped memory so an invented source+0x17c
+    read cannot silently pass as it did in the original shared-state model.
+    This checks the function's read extent; it does not prove camera aliasing.
+    """
+    native, Replay, _, before, candidate = native_images
+    from unicorn import UC_PROT_READ
+    for image in (before, candidate):
+        replay = Replay(image)
+        replay.prepare(249)
+        parameter = 0x30020000 - 28
+        raw = bytes(replay.cpu.mem_read(native.STATE + 0xc, 28))
+        replay.cpu.mem_write(parameter, raw)
+        replay.cpu.mem_write(0x3001f000, bytes(8))
+        replay.cpu.mem_protect(0x3001f000, 4096, UC_PROT_READ)
+        native.call(replay.cpu, 0x42cd28, native.DEV, native.DEV, native.CONTROL, parameter)
+        assert replay.matches(249)
+
+
+class FrameReplay:
+    """Native two-frame copies and controller/consumer calls, without USB.
+
+    Only the frame-copy instruction slice is executed, not the surrounding
+    scheduler. Publication/consumption order is deliberately selected by tests.
+    """
+    FRAME = 0x2003738
+    STRIDE = 0x19fc
+    STATE_OFFSET = 0x664
+    INDEX = 0x1acd713
+
+    def __init__(self, images, image):
+        self.native, Replay = images[:2]
+        self.replay = Replay(image)
+        self.cpu = self.replay.cpu
+        self.index = 0
+        self.cpu.mem_write(self.state(0), bytes(self.cpu.mem_read(self.native.STATE, 0x190)))
+        self.publish(0)
+
+    def state(self, index):
+        return self.FRAME + index * self.STRIDE + self.STATE_OFFSET
+
+    def publish(self, index):
+        self.index = index
+        self.cpu.mem_write(self.INDEX, bytes([index]))
+
+    def clone(self, destination):
+        from unicorn.arm_const import UC_ARM_REG_R5, UC_ARM_REG_R8, UC_ARM_REG_LR
+        self.cpu.reg_write(UC_ARM_REG_R5, self.FRAME + self.index * self.STRIDE + 0x2dc)
+        self.cpu.reg_write(UC_ARM_REG_R8, self.FRAME + destination * self.STRIDE + 0x2dc)
+        self.cpu.reg_write(UC_ARM_REG_LR, 0x31000001)
+        self.cpu.emu_start(0x23cf37, 0x23cf5a, count=100)
+        assert bytes(self.cpu.mem_read(self.state(destination), 0x190)) == bytes(
+            self.cpu.mem_read(self.state(self.index), 0x190))
+
+    def prepare(self, marker, destination=None, consumer=0):
+        if destination is None:
+            destination = self.index
+        self.cpu.mem_write(self.native.OUTPUT + 8, struct.pack('<I', self.state(destination)))
+        self.replay.prepare(marker, consumer)
+
+    def consume(self, source=None, consumer=0):
+        if source is None:
+            source = self.index
+        self.cpu.mem_write(self.native.DEV + 0x184, struct.pack('<I', self.native.MMIOS[consumer]))
+        self.cpu.mem_write(0x3001f000, bytes(8))
+        self.native.call(self.cpu, 0x42cd28, self.native.DEV, self.native.DEV,
+                         self.native.CONTROL, self.state(source) + 0xc)
+
+
+@pytest.mark.parametrize('publication', ('before_consume', 'after_consume'))
+def test_native_frame_copy_does_not_lose_hardware_ack(native_images, publication):
+    frames = FrameReplay(native_images, native_images[-1])
+    frames.prepare(249)
+    for _ in range(6):
+        source, destination = frames.index, 1 - frames.index
+        frames.clone(destination)
+        frames.prepare(249, destination)
+        if publication == 'before_consume':
+            frames.publish(destination)
+        frames.consume(source)
+        if publication == 'after_consume':
+            frames.publish(destination)
+        assert frames.replay.matches(249)
+    assert frames.replay.counts['builds'] == 1
+    assert frames.replay.counts['uploads'] == 1
+
+
+@pytest.mark.parametrize('publication', ('before_consume', 'after_consume'))
+def test_native_frame_switches_and_dropped_consumption_recover(native_images, publication):
+    frames = FrameReplay(native_images, native_images[-1])
+    for marker in (249, 250, 251, 252, 253, 254, 249):
+        frames.prepare(marker)
+        for consumer in range(4):
+            count = frames.replay.counts['uploads']
+            for cycle in range(5):
+                source, destination = frames.index, 1 - frames.index
+                frames.clone(destination)
+                frames.prepare(marker, destination, consumer)
+                if publication == 'before_consume':
+                    frames.publish(destination)
+                # Miss two controller/consumer handoffs before an upload.
+                if cycle >= 2:
+                    frames.consume(source, consumer)
+                    assert frames.replay.matches(marker, consumer)
+                if publication == 'after_consume':
+                    frames.publish(destination)
+            assert frames.replay.counts['uploads'] == count + 1
+
+
+def test_native_reused_readonly_parameter_copy_does_not_repeat_uploads(native_images):
+    native, Replay, _, _, candidate = native_images
+    from unicorn import UC_PROT_READ
+    replay = Replay(candidate)
+    replay.prepare(249)
+    parameter = 0x30020000 - 28
+    replay.cpu.mem_write(parameter, bytes(replay.cpu.mem_read(native.STATE + 0xc, 28)))
+    replay.cpu.mem_write(0x3001f000, bytes(8))
+    replay.cpu.mem_protect(0x3001f000, 4096, UC_PROT_READ)
+    for consumer in range(4):
+        replay.cpu.mem_write(native.DEV + 0x184, struct.pack('<I', native.MMIOS[consumer]))
+        for _ in range(3):
+            native.call(replay.cpu, 0x42cd28, native.DEV, native.DEV, native.CONTROL, parameter)
+            assert replay.matches(249, consumer)
+    assert replay.counts['uploads'] == 4
+
+
+@pytest.mark.parametrize('destination', (0xf3b30000, 0xf3d30000, 0xf3e30000, 0xf3f30000))
+def test_native_other_destination_does_not_borrow_a_custom_ack_bit(native_images, destination):
+    native, Replay, _, _, candidate = native_images
+    replay = Replay(candidate)
+    replay.prepare(249)
+    replay.cpu.mem_map(destination, 0x10000)
+    replay.cpu.mem_write(native.DEV + 0x184, struct.pack('<I', destination))
+    replay.cpu.mem_write(0x3001f000, bytes(8))
+    for _ in range(2):
+        native.call(replay.cpu, 0x42cd28, native.DEV, native.DEV, native.CONTROL, native.STATE + 0xc)
+    assert replay.counts['uploads'] == 2
+    assert replay.cpu.mem_read(native.STATE + 0x24, 1)[0] == 0x81
+
+
+def test_native_override_copy_preserves_read_order_and_hardware_registers(native_images):
+    native, Replay, _, before, candidate = native_images
+    from unicorn import UC_HOOK_MEM_READ
+    for seed in range(5):
+        results, accesses = [], []
+        for image in (before, candidate):
+            replay = Replay(image)
+            replay.cpu.mem_write(native.DEV + 0x184, struct.pack('<I', native.MMIOS[0]))
+            replay.cpu.mem_write(native.CONTROL + 4, b'\x01')
+            replay.cpu.mem_write(0x1795bbd, b'\x01')
+            replay.cpu.mem_write(0x1795c45, random.Random(seed).randbytes(18))
+            replay.cpu.mem_write(native.STATE + 0x24, b'\0')
+            reads = []
+            def hook(cpu, access, address, size, value, data):
+                if 0x1795c45 <= address < 0x1795c57:
+                    reads.append((address, size))
+            replay.cpu.hook_add(UC_HOOK_MEM_READ, hook)
+            replay.consume()
+            results.append(bytes(replay.cpu.mem_read(native.MMIOS[0], 0x10000)))
+            accesses.append(reads)
+        assert results[0] == results[1]
+        assert accesses[0] == accesses[1]

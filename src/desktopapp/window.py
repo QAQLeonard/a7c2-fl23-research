@@ -20,7 +20,7 @@ from .theme import WINDOW as STYLE
 class Window(W.QMainWindow):
     def __init__(self, *, demo=False):
         super().__init__()
-        self.setWindowTitle('A7C II Tools · LUT Preview Test 2' if '--preview-gate-test' in sys.argv else
+        self.setWindowTitle('A7C II Tools · LUT Preview Test 3' if '--preview-gate-test' in sys.argv else
                             'A7C II Tools · Desktop Preview')
         self.resize(1130, 850)
         self.setMinimumSize(960, 730)
@@ -483,11 +483,11 @@ class Window(W.QMainWindow):
                     lambda: self.direct_verify_args('fl23', self.fl23_accept.isChecked()))
         if '--preview-gate-test' in sys.argv:
             preview = layout
-            preview.addWidget(W.QLabel('取景器横线＋实时预览：第 2 版候选（等待实机验收）'))
-            hint = W.QLabel('第 1 版横线消失，但切槽预览可能停在上一个外观。第 2 版在未提交时补传，'
-                           '按硬件目标去重；不改色表、名称或配方。应用后按弹窗断电重开，再检查横线和六槽切换。')
+            preview.addWidget(W.QLabel('取景器横线＋实时预览：第 3 版候选（等待实机验收）'))
+            hint = W.QLabel('第 1 版横线消失，但切槽预览可能停在上一个外观。第 3 版补传未提交的色表，'
+                           '并修正第 2 版的重复上传问题。应用后按弹窗断电重开，再检查横线和六槽切换。')
             hint.setWordWrap(True); preview.addWidget(hint)
-            self.button(preview, '应用横线＋实时预览修复候选（第 2 版）', 'direct_preview_pending',
+            self.button(preview, '应用横线＋实时预览修复候选（第 3 版）', 'direct_preview_pending',
                         lambda: self.direct_args('preview'), primary=True)
             self.button(preview, '切回第 1 版：原生刷新（预览可能滞留）', 'direct_preview_native',
                         lambda: self.direct_args('preview'))
@@ -782,7 +782,11 @@ class Window(W.QMainWindow):
                       '自动选择已连接机身最早可用的完整备份' if action == 'restore_auto' else
                       arguments.get('backup') if action == 'restore' else arguments.get('look') or arguments.get('workspace'))
             if action in jobs.DIRECT_ACTIONS:
-                target = ('；'.join('自订 %s → %s' % (r['slot'], '恢复 ST 默认' if r['action']=='restore' else '写入 '+r['name']) for r in arguments.get('operations', []))
+                target = ({'direct_preview_pending': '取景器与实时预览第三版候选',
+                           'direct_preview_native': '第一版原生刷新条件',
+                           'direct_preview_legacy': '测试前的旧版刷新方式'}[action]
+                          if action in ('direct_preview_pending', 'direct_preview_native', 'direct_preview_legacy') else
+                          '；'.join('自订 %s → %s' % (r['slot'], '恢复 ST 默认' if r['action']=='restore' else '写入 '+r['name']) for r in arguments.get('operations', []))
                           if action == 'direct_looks_import' else
                           '继续已写好名称的外观安装：'+arguments.get('failed_workspace','') if action=='direct_resume_looks' else
                           ('核对上次恢复；相机内容若已改变，则按当前字节重新恢复：' if factory_finished else

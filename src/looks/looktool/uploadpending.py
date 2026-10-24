@@ -5,12 +5,13 @@ byte stays truthy, with bit 7 marking this live custom path and bits 1/2/3/5
 acknowledging the four native hardware destinations. Building a bank resets
 the acknowledgments. Copying to a host buffer does not acknowledge hardware.
 
-The native uploader's saved frame identifies our caller and source state.
-Its final callback acknowledges a matching bank before the existing multi-core
-unlock. Returning from these synchronous writes is not a frame-display ack.
-An equivalent loop replaces the original unrolled config-byte copy; its exact
-code range hosts initialization and the callback. No zero-filled storage is
-treated as an allocation. The original native repeat bit bypasses tagging.
+The native uploader's saved frame identifies our caller. Its final callback
+acknowledges matching banks in both native parameter frames before the existing
+multi-core unlock. The filter reads the published owner, not acknowledgment bits
+in an older parameter copy. Returning from these synchronous writes is not a
+frame-display ack. Equivalent loops replace two original unrolled config-byte
+copies; their exact code ranges host the scoped helpers. No zero-filled storage
+is treated as an allocation. The original native repeat bit bypasses tagging.
 """
 import struct
 from . import uploadgate
@@ -18,7 +19,7 @@ from . import uploadgate
 BASE = 0x108000
 
 # Exact reviewed before/after instructions. Names identify the storage audit.
-WINDOWS = (
+TRIAL2_WINDOWS = (
     ('producer_islands', 0x1354bc,
      '00bf00bf00bf00bf00bf00bf00bf',
      '05e0f2f12698eff145fc42e000bf'),
@@ -45,6 +46,21 @@ WINDOWS = (
      'a2f453f9'),
 )
 
+
+# Trial 3 reads acknowledgment state from the published native frame and
+# mirrors completed uploads into both native frames. Trial 2 remains reversible.
+_REPLACEMENTS = {
+    'consumer_copy': '03a90022022a02d0b05c01f8010b0132132af7d32ae074b9b5f88811a1f2012149b942f6b011c0f27911097d490602d4812180f824107047010638d51ff33bfa00f2646595f82400010630d5296a726991422cd16168c1f30251032927d0042925d802228a4010423cd121e0',
+    'consume': 'd8b1c4e700227069b8b100210191029001a92046144600bf00bf00bf00bf00bf5df30cfe09e000bf00bf00bf00bf00bf00bf00bf00bf00bf00bf',
+    'unlock_hook': 'a2f4e3f9',
+}
+WINDOWS = tuple((name, at, before, _REPLACEMENTS.get(name, after))
+                for name, at, before, after in TRIAL2_WINDOWS) + (
+    ('consumer_override_copy', 0x324e62,
+     '90f895108df80c1090f896108df80d1090f898108df80e1090f899108df80f1090f89a108df8101090f89b108df8111090f89c108df8121090f89d108df8131090f89e108df8141090f89f108df8151090f8a0108df8161090f8a1108df8171090f8a2108df8181090f8a3108df8191090f8a4108df81a1090f8a5108df81b1090f8a61090f897008df81c108df81d00',
+     '90f895108df80c1090f896108df80d1000f298000df10e010f2210f8013b01f8013b013af9d110f8100c8df81d002fe0d0b50998aff28f01884214d1059e96b143f6a852c0f200220223107e010605d551696c68a14201d13043107641f6fc142244013bf1d1daf17cead0bd00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf'),
+)
+
 # Unchanged context proves the source frame layout, pending-byte producer,
 # copied-buffer path, uploader body and native device mapping used above.
 GUARDS = (
@@ -63,12 +79,18 @@ GUARDS = (
      '80b56f4690b190f86026002a18bf022200ebc200d0f88421002a0bd000f5c0703df628fe'
      '03280ad8c0b280bd012906d10ca002e0012902d102a017f3fcf2042080bd00bf'
      '43433a2047657443616d204465764c7574536574746572204e554c4c00000000'),
+    (0x162bb8, '406800f1406000f5fa004fea3050042803d803a151f8200070470420704700bf0000000001000000020000000400000003000000'),
+    # Native two-frame owner, state offset and publication, not guessed RAM.
+    (0x6441f0, '4df2137043f2387141f6fc12c0f2ac10c0f20021007810fb02107047'),
+    (0x134f36, '08f5597b4ff4b56205f559715846e1f362eb08f60c1a05f60c114ff488725046e1f35aeb'),
+    (0x135012, '08f5627617901a9608f614161c9603f17c061b9605f52c761d9601f110061e96'),
+    (0x64429e, '4df2137543f238714bf2383441f6fc12c0f2ac15c0f20021c0f22814287880f0010010fb02112046f0f613f654f8c82f2878636880f0010061692870'),
 )
 
 
 def active(cp):
     return any(cp[at:at + len(bytes.fromhex(after))] == bytes.fromhex(after)
-               for _, at, _, after in WINDOWS)
+               for _, at, _, after in WINDOWS + TRIAL2_WINDOWS)
 
 
 def normalize(cp):
@@ -83,12 +105,20 @@ def normalize(cp):
         if source[at:at + len(raw)] != raw:
             raise ValueError('Pending LUT trial context differs at ' + hex(at))
     result = bytearray(source)
+    layout = WINDOWS
+    if pending:
+        layout = next((rows for rows in (WINDOWS, TRIAL2_WINDOWS)
+                       if all(source[at:at + len(bytes.fromhex(after))] == bytes.fromhex(after)
+                              for _, at, _, after in rows)), None)
+        if layout is None:
+            raise ValueError('Incomplete or conflicting pending LUT trial')
+    expected = {at: bytes.fromhex(after) for _, at, _, after in layout} if pending else {}
     for name, at, before, after in WINDOWS:
         old, new = bytes.fromhex(before), bytes.fromhex(after)
         if len(old) != len(new) or not (0x20000 + offset <= at < at + len(new) <= 0x20000 + offset + size
                 and address <= at + BASE < at + BASE + len(new) <= address + size):
             raise ValueError('Pending LUT trial exceeds allocated text')
-        if source[at:at + len(new)] != (new if pending else old):
+        if source[at:at + len(new)] != expected.get(at, old):
             raise ValueError('Incomplete or conflicting pending LUT trial: ' + name)
         result[at:at + len(old)] = old
     if pending and source[uploadgate.OFFSET:uploadgate.OFFSET + 4] != uploadgate.NATIVE:
@@ -110,9 +140,10 @@ def install(cp):
 
 
 def factory_windows():
-    """Five Sony originals supplement the existing factory-owned regions."""
+    """Six Sony originals supplement the existing factory-owned regions."""
     result = []
     for name, at, before, _ in WINDOWS:
-        if name in ('initial_branch', 'cache_branch', 'consumer_copy', 'consume', 'unlock_hook'):
+        if name in ('initial_branch', 'cache_branch', 'consumer_copy', 'consume',
+                    'unlock_hook', 'consumer_override_copy'):
             result.append((at, bytes.fromhex(before)))
     return result
