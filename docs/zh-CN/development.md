@@ -6,6 +6,7 @@
 
 ## 范围
 
+- 集成分支：`dev`（由 `develop` 改名）；发布历史保留在 `main`。
 - 相机：只支持 Sony ILCE-7CM2、固件 2.01。
 - 产品：3.0 桌面程序（`desktop.py`），支持 Windows 10／11 x64 和 macOS 14+ Apple Silicon。两个平台共用界面、规划、相机写入和恢复；只有 USB 驱动、提权和存储卷处理因系统而异。
 - 旧版命令行工具（`FL23.cmd`、`lut.py`、`recovery.py`、`shutter.py`、`vertical.py`、`a7look_*.py`、`raw_*.py`）保留给高级用户。它们基于备份的流程，与桌面版不需要备份的直接操作相互独立。

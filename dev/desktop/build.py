@@ -64,6 +64,11 @@ def main():
     subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm',
                     '--distpath',str(output),'--workpath',str(ROOT/'build/desktop'),
                     str(ROOT/'dev/desktop/desktop.spec')],cwd=ROOT,check=True)
+    if sys.platform == 'darwin':
+        from macos_binary import prepare_scipy
+        report = prepare_scipy(output/'A7C2Tools.app')
+        (output/'macos-binary-self-test.json').write_text(
+            json.dumps(report,indent=2)+'\n',encoding='utf-8')
     target=make_dmg(output) if sys.platform=='darwin' else make_windows_zip(output)
     print(json.dumps(dict(artifact=str(target),bytes=target.stat().st_size,camera_io=False)))
 
