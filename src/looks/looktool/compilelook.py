@@ -1,5 +1,6 @@
 """DCP or explicit-input CUBE -> fitted four-stage .a7look, no USB."""
 import argparse
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -172,16 +173,20 @@ def main(argv=None):
     settings={}
     gains=config.get('sensor_RGB_gains',model.metadata.get('sensor_RGB_gains',[1.,1.,1.]))
     identity=dict(name=args.name,extra_colors=args.extra_colors,evaluations=args.evaluations,
-                  calibration=str(calibration.resolve()),reference_settings=settings,sensor_RGB_gains=gains)
+                  calibration=str(calibration.resolve()),calibration_sha256=sha256(calibration.read_bytes()).hexdigest(),
+                  reference_settings=settings,sensor_RGB_gains=gains)
     identity.update(source_type='cube' if cube_input else 'dcp',input_space=args.input_space,
                     renderer='explicit-CUBE-input' if cube_input else 'builtin-DCP-look-tone',
                     dcp_bridge=str(args.dcp_bridge.resolve()) if args.dcp_bridge else None,
                     bridge=str(args.bridge.resolve()) if args.bridge else None)
+    if not cube_input:
+        dcp_bridge=args.dcp_bridge or root/'src/looks/assets/rendering-model-v1.json'
+        identity['dcp_bridge_sha256']=sha256(dcp_bridge.read_bytes()).hexdigest()
     manifest=work/'input.json'
     if manifest.exists():
         previous=json.loads(manifest.read_text(encoding='utf-8'))
         if not cube_input and 'source_type' not in previous:previous.update(source_type='dcp',input_space=None,bridge=None)
-        if previous!=identity:parser.error('Use a new work directory after changing name/calibration/reference settings')
+        if previous!=identity:parser.error('Use a new work directory: compilation inputs changed or the saved manifest predates content checks')
     if not manifest.exists():save(manifest,identity)
     raw,source=model.virtual_samples(args.extra_colors)
     source_reference=None
