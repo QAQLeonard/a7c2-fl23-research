@@ -3235,3 +3235,31 @@ the UIPC backing-map pointer, PCIe endpoint state, scheduling stability and
 callback completion still need independent proof. No diagnostic executable,
 device operation or sender admission is created. Main782785641ca9f8b remains
 the reviewed ancestor; current work does not change product files.
+
+Phase112 prepares a fresh8-span fixed reader with unique output path/nonce.
+Its6904-byte result has separately compiled layout assertions for rows120 and
+trace4344; the VM collector saves raw output BEFORE checking its header, avoiding
+phase107's stale-layout evidence loss/replay temptation. Header ABI and integer
+ISA checks pass.141 instruction models cover58 RAM reads, every error/short
+read, table/root/epoch/node drift, invalid/user/NX/device mappings, every source
+span mutation (including both8-byte literals), and device-close error. Five
+result corruptions reject. None of these unit models operates the camera.
+
+A fresh Sony-kernel no-AP VM loads the original modules and derives current
+guest section bases/boot UUID before launching this reader once. Same native
+child completes58 reads; two later absent-process samples are retained. Exact
+comparison passes6 code fragments+2 literal words/304 bytes and2 relocated
+ABS64 pointers. A separate retained-output qualification replays every recorded
+table/root path and reverse descriptor check:704 total RAM bytes, no masks,
+no rerun. Physical and VM reader C files are byte-identical; VM-specific RAM
+end53fffffff and dynamic guest bases are confined to its input/wrapper files,
+never copied to the body's historical plan. The collector exits normally.
+
+This proves the bounded reader's successful native VM path, not callback
+lifetime or an installed pre-capture implementation. No physical device
+operation, CP send, firmware/parameter/RAM patch or camera reboot occurred.
+The system enumerates the A7C II, but current exclusive camera ownership is
+awaiting confirmation; no physical reader operator or admission was created.
+Fresh body source/boot/mapping checks are still required before a read on the
+body; existing image/calibration state must be preserved. Main782785641ca9f8b
+remains the reviewed ancestor.

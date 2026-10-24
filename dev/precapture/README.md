@@ -90,6 +90,11 @@ Direct literal-load analysis adds two uncovered pointer words (16 bytes), making
 the offline read scope eight spans / 304 bytes. Code/data mapping symbols and
 encoded load targets are checked; the two pointer relocations are reconstructed
 exactly. This is a read-scope preparation, not a camera read or send admission.
+The subsequent bounded reader passes 141 instruction-model cases and a fresh
+Sony-kernel VM run: 58 RAM reads / 704 bytes including page-table checks, all
+eight source/literal spans exact, two independent child-absence observations.
+The VM and body reader use identical C source with separately scoped inputs.
+No physical camera execution or CP request is admitted by this result.
 
 ## Earlier startup studies
 
@@ -231,6 +236,9 @@ Phase110 对原厂 RPC 增加10段原指令核对，并保留原先30项结果�
 Phase111 又核对了这些指令直接读取的位址常量，补入2个未覆盖的指针字，共16字节。
 离线读取范围因此是8段/304字节；两处指针重定位已精确重建，也复现了原先82处重定位。
 这里只完成读取范围准备，没有执行相机读取，更不能当作发送许可或预拍摄完成。
+Phase112 已把读取程序编译并运行于新的 Sony 原厂核心虚拟机：58次RAM读取/704字节
+（含页表检查），8段内容及两处重定位全部吻合；两次独立确认同一个子进程已不存在。
+141项指令模型也通过。VM与机身候选的C代码相同，输入范围独立；实机尚未执行，也未发送CP请求。
 
 本目录是未完成的预拍摄研究，公开工具只做离线验证，没有可安装的预拍摄版本。
 

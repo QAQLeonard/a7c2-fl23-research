@@ -92,6 +92,13 @@ original-source reports and model results, not just pass new replacement tests.
   instructions alone does not qualify their pointer literals or referents.
   Historical section bases and offline expected bytes are not live read
   authorization. No physical read or send occurred in this phase.
+- Phase112's fresh8-span reader passed141 models and the original-kernel VM:
+  58 reads/704 bytes, all8 spans/2 ABS64 values exact and same child absent
+  twice. Retained raw output and every table/root recheck were independently
+  qualified without replay. VM inputs use its own RAM range and actual section
+  bases; never copy those bounds or the body's historical addresses into a
+  current live admission. Physical camera ownership and fresh state remain
+  prerequisites. This phase performed no physical camera operation or CP send.
 - The new phase84 seal admits metadata preflight ONLY: files/proc reads and
   device stat, no child/device open/ioctl. Its parent/observer models are not
   a physical execution. The stock diagnostic audit stops before registration
