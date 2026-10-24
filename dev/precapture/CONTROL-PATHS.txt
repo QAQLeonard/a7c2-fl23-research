@@ -3178,3 +3178,11 @@ and two independent process observations may proceed to pinned source reads;
 refusal is never reported as CP success, and result files never authorize
 cleanup. Offline lifecycle, parent/observer, operator/follow-up and journal
 corruption controls pass. No physical query or capture operation was sent.
+
+The same phase adds a small host-side session model around the existing one-shot
+components. A matched and released reply enters REPLY_RELEASED, not COMPLETE;
+only a same-generation independently observed quiet fence can close the outer
+context. Empty polling remains pending, while mismatched replies, release
+errors, reused tokens, identity drift, and invalid fences become UNKNOWN and
+cannot be retried or closed. This is a pure state contract and performs no
+UIPC call, packet inspection, or camera operation.
