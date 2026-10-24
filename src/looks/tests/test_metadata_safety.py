@@ -70,8 +70,9 @@ class ExifToolIntegrationTests(unittest.TestCase):
         for name in names:
             (self.root/name).write_bytes(self.xmp)
         # Exercise relative paths without changing the test process's directory.
-        files=[Path(os.path.relpath(self.root/name)) for name in names]
-        rows=raw.metadata(files, self.exiftool)
+        with patch.object(os, 'getcwd', return_value=str(self.root)):
+            files=[Path(name) for name in names]
+            rows=raw.metadata(files, self.exiftool)
         self.assertEqual(len(rows), len(files))
         self.assertEqual({Path(row['SourceFile']).name for row in rows}, set(names))
         self.assertTrue(all(row['Model']=='ILCE-7CM2' for row in rows))
