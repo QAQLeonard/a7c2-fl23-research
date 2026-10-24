@@ -13,6 +13,14 @@ That one-query authorization is consumed, not blanket permission for further
 sends or patches. Physical exposure/RAW/save/cancel/menu integration is still
 unfinished. Keep all retired job fences and unknown-state rules intact.
 
+Phase130 resumes native shooting integration offline: AP event6/7 and pending
+record admission, CP postprepare branches and original state sequences. Never
+inject fake AP pending records to defeat the earlier empty-deque assertion.
+The runtime state-pair table has246 fixed rows plus62 dynamic rows; the prefix
+experiment does not admit the dynamic rows, full native initialization, physical
+readout or completion. The next boundary is action application/real completion,
+not another generic transport test. Current-source comparisons are FILE spans.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that

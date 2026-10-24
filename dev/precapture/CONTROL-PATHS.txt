@@ -3396,3 +3396,54 @@ RAM/ROM patches or general recovery authority. Actual pre-S2 exposure, RAW
 ownership/retention, full-press recording, cancellation/release and the manual
 default-Off menu remain unfinished. Public tools still run offline and main
 remains unchanged. Preserve current CP preview repair and all prior failures.
+
+## Phase130: native shooting order after the completed CP query
+
+Reviewed origin/main782785641ca9: unchanged, still an ancestor; product files
+outside this directory are untouched. No camera session, upload, CP send,
+parameter or program write occurred in this phase. Phase129 is never replayed.
+
+audit_ap_capture_order.py runs the original target/donor AP event dispatch:
+event6 reaches capture_start_proc, event7 reaches cap-data processing. On
+independent AFTER-preparation slices, native code creates its own24-byte group
+and pushes it;96 combined mode/alternate/flag/slot cases check cursor bounds,
+guard selection, original frame-count increment and surrounding-byte integrity.
+Last-slot growth stops before allocation. Data without a start-created record
+selects the original empty-pending diagnostic in BOTH models. Target start
+slice34a7b0c/producer-call34a7b44 and data selection34a99b8 are FILE offsets.
+This does not establish actual event scheduling or permit fake AP bookkeeping.
+Eight relevant FILE spans match the captured current AP;8 independent changed-
+span controls reject. No loaded-source or full-image equivalence is claimed.
+
+audit_capture_transition.py retains all old14 cancellation/64 admission results
+unchanged, adding3 native busy-entry paths and1224 independent AFTER-prepare
+state/subtype/selector combinations. Existing request13 never means a sensor
+has started. The original prepare call remains a boundary, not a fake return.
+The next decisions reach3ad874 or a19c70 before any external service executes.
+
+Original getters bind the320-row command table at FILEc8f468;544 native lookup
+cases plus4 busy negatives match its actual pairs. All22 relevant original
+sequence callbacks run on explicit zero configuration with two object pointers.
+At synthetic state11, commands3013/3014/3032/3015 select sequences ending in
+2a/13/13/3b respectively; these raw state IDs are not UI names or sensor ACKs.
+
+The separate pair table is NOT a ROM object at runtime VA1870468: original
+25e95c copies246 fixed rows from FILEc8e410, after property reads that remain
+unexecuted. The subsequent62 generated rows remain unbound. An explicitly
+incomplete fixed-prefix fixture executes original pair11->3b interpretation:
+12 indexed requested words followed by terminal word8027. This is software
+intent only; it supplies no physical clock, frame IRQ, exposure or completion.
+Selected current CP FILE spans including both ROM tables and callbacks match.
+
+Both architectures retain73 continuous/failure workflow scenarios each with
+independently checked virtual pixel files. Existing capture report comparison
+is exact outside the newly added fields. Shared BoundaryRunner/NativeCapture
+are reused; no new host/USB transport, deployment path or permissive stub exists.
+
+Next native blocker: connect those requested action words to their original
+configuration/application and completion path (a171bc /3d2b46 onward, followed
+by a171cc), and actual readout/RAW ownership. Preserve the stop before property
+reads and dynamic callbacks; never equate action8027, local flags, queued work
+or an empty software counter with hardware completion. Pre-capture/menu remain
+unfinished; further physical requests/patches need their own concrete review
+and explicit approval beyond the consumed one-query scope.

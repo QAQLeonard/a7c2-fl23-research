@@ -27,6 +27,7 @@ written by this experiment. This is one successful case, not broad stability.
 | Loaded source and current boot | Fresh kernel/section/worker metadata, 96-byte bootstrap and 35 selected code/state spans; exact relocation and page-table checks | Whole-module verification is not claimed; later boots require fresh bindings |
 | Current camera image | The changed CP image was reconstructed exactly from nine existing LUT-preview repair windows (333 changed bytes); 17 original spans and diagnostic paths match | Preserve this current image; older snapshots are not rollback targets |
 | [Shooting controller](CAPTURE-LIFECYCLE.md) | Continuous save/cancel/restore logic and eight VM virtual-pixel transactions | Native exposure, RAW references, durable photo writing and terminal release fencing |
+| Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
 | Manual in-camera switch | Required independent Off/On control, initially Off | Implementation and safe enable/disable binding |
 
@@ -140,6 +141,8 @@ python dev/precapture/verify_mtg_select.py --zig PATH_TO_ZIG --output NEW_PRIVAT
 python dev/precapture/verify_mtg_period.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
 python dev/precapture/audit_mtg_select.py --cp PRIVATE_STOCK_CP --donor PRIVATE_ORIGINAL_A1II_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_source_spans.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
+python dev/precapture/audit_ap_capture_order.py --ap PRIVATE_STOCK_AP --donor-ap PRIVATE_DONOR_AP --current-ap PRIVATE_CAPTURED_AP --output NEW_PRIVATE_JSON
+python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
 python dev/precapture/audit_frame_reference.py --cp PRIVATE_STOCK_CP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_child_exec.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
@@ -187,4 +190,7 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 目前仍缺真实预触发曝光、RAW像素保留、全按保存、取消/结束后的资源释放，以及默认关闭、
 手动启用的机内菜单。VM里的虚拟像素保存与原厂核心等待/唤醒测试不能代替这些实机步骤。
 造成半按崩溃的 `00030072` 参数方案继续停用。后续新的实机发送/补丁需要独立具体范围与授权。
+后续离线工作已验证两机型AP拍摄开始／数据接收顺序、96个记录准入案例，以及CP的1224个准备后
+分支、544次原厂表查询、22个状态序列回调和一组固定状态动作。它们没有启动传感器；动态生成的
+状态表、实际读出／保留和硬件完成仍须接入，不能用假AP记录或伪造完成信号绕过。
 详细证据保留在 [CONTROL-PATHS.txt](CONTROL-PATHS.txt)，公开工具继续只做离线研究。
