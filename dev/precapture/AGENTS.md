@@ -107,6 +107,16 @@ original-source reports and model results, not just pass new replacement tests.
   sources and normal USB exit. This admits only those loaded code/literal
   observations, not CP sending, callback lifetime or an installation. Do not
   replay completed scopes or infer authority to write from exclusive read access.
+- Phase116's native Sony-kernel VM runs original wait/wakeup helpers, not a CP
+  completion.244 source bytes/8 relocations match before real normal/FIFO148
+  threads execute16 CPU0 trials. Waker-return precedes wait-return in each;
+  exact33 task PIDs are absent in two independent observations. The caller
+  keeps its stack object alive until both helpers finish. Do not generalize
+  this finite conditional test into physical CPU2 lifetime or CP-send admission.
+  The first launcher failed shell syntax before module loading; no-module
+  observations qualified disposal of that empty guest. Preserve it, never
+  replay it. Background commands must remain valid after serial_command adds
+  its '; rc=...' suffix; syntax-check the composed command before a new guest.
 - The new phase84 seal admits metadata preflight ONLY: files/proc reads and
   device stat, no child/device open/ioctl. Its parent/observer models are not
   a physical execution. The stock diagnostic audit stops before registration

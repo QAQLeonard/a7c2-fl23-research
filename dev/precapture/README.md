@@ -17,7 +17,7 @@ and compare original-source/model reports before and after refactoring.
 | AP/CP transport | Physical isolated child completed context info, mapping,16-byte wait0 allocation/cancel and exit;20 journal records and two terminal observations; exact temporary files cleaned, four source files unchanged | Loaded-module byte qualification, CP receipt, peer readiness and safe callback teardown after sending |
 | Isolated AP execution | [Physical file/process self-test](VM-PROCESS.md#physical-follow-up-fileprocess-only): one child exec completed,58 inherited descriptors closed, only two owned output descriptors remained; terminal state and exact temporary-file cleanup verified | Native UIPC/CP calls, sensor/RAW/writer bindings and safe teardown after sending |
 | Original diagnostic response | [Original CP audit](audit_cp_rpc_default.py):756 default returns,12 supported-mode stop boundaries and the constructor's original registration arguments | Actual registration/receipt and remote ownership; this is not permission to send a query |
-| Synchronous completion | Physical metadata identifies both FIFO148 workers, CPU masks4/8 and cpuset groups; [30 route/storage/tail slices](audit_sync_completion_route.py), [37 registration/callback slices](audit_cp_rpc_registration.py) and [conditional scheduling controls](audit_sync_lifetime.py) | Actual CP receipt, loaded code and an observed callback/preemption lifetime contract; same CPU alone is insufficient |
+| Synchronous completion | Physical worker metadata and selected loaded code match; original-kernel VM runs the exact wait/wakeup helpers in real normal/FIFO148 threads on CPU0. Both wake-first and wait-first orders pass eight trials each; all 33 test/control threads observed absent twice | Actual CP receipt and physical completion callback lifetime. The VM retains the test object until both helpers finish; it does not execute a CP transaction or prove arbitrary schedules safe |
 | Isolated caller binding | Revised combined diagnostic completes50 calls/102 records on CPU2, affinity7→4→7 and signal/context restoration; same child observed absent twice before cleanup; both USB sessions end normally without reload; ordinary photo/playback confirmed | Actual CP receipt and callback lifetime after sending; one completed diagnostic does not establish broad stability |
 | Fresh RPC context | [Offline composition](ap_rpc_context.c) derives source ID from its own descriptor;33 generated-code cases; Sony-kernel CPU0 VM allocates24 bytes, refuses send, cancels and exits with two absent-process samples | Actual live send gate, loaded source/callback lifetime qualification and a separately reviewed physical sender; no CP request sent |
 | Native condition checks | [Conditions](ap_rpc_conditions.c) read caller CPU/signals/policy, descriptor identity, worker identity/scheduling and RT budget twice;133 integrated models. No-AP Sony-kernel CPU0 VM with original PCIe module matches both samples, refuses send and restores/exits | Loaded code, atomic lifetime guarantee and physical validation. Stage2 always refuses; scheduling samples do not authorize a CP request |
@@ -101,6 +101,16 @@ physical read then verified all eight spans and both relocations: 58 reads /
 704 bytes including table/root checks. Exact temporary-file cleanup, four
 unchanged program/driver files and normal USB exit were verified. This is loaded
 source evidence only; no CP request, patch or pre-capture exposure occurred.
+
+The latest native VM experiment checks the scheduling premise directly instead
+of simulating scheduler returns. Before starting its own threads it verifies
+244 original wait/init/wakeup bytes with eight exact CALL26 relocations. In 16
+observed CPU0 trials, the FIFO148 waker returned before the normal-priority
+waiter returned, with RT runtime unlimited. This supports the stated scheduling
+premise only. The first launcher attempt was rejected by shell syntax before
+loading either module; its evidence is retained separately from the successful
+fresh guest. Physical CP sending still requires a separately reviewed scope and
+explicit authorization; no such request has been sent.
 
 ## Earlier startup studies
 
@@ -249,6 +259,11 @@ Phase112 已把读取程序编译并运行于新的 Sony 原厂核心虚拟机�
 与既有已验证输入一致。单独限定范围的实机读取已完成：8段内容/两处重定位全部吻合，
 58次读取共704字节（含页表与根指针检查）；临时文件精确清理，四个程序/驱动文件未变，
 USB正常结束。这只补齐本批载入代码证据，没有发送CP请求、打补丁或产生预拍摄曝光。
+Phase116 在 Sony 原厂核心 VM 中使用真实核心线程，调用原厂等待/唤醒函数；启动前
+逐字节核对244字节及8处CALL26重定位。在同CPU0、普通调用者、FIFO148唤醒者、RT不节流
+的条件下，两种顺序各8次都先完成唤醒返回、后完成等待返回，33个线程两次确认已退出。
+测试物件一直保留到两个函数均完成；这仍不是实机CP回调或预拍摄。首次启动因Shell拼接错误
+在模块载入前被拒绝，失败记录保留；成功结果来自新的独立VM。尚未发送实机CP请求。
 
 本目录是未完成的预拍摄研究，公开工具只做离线验证，没有可安装的预拍摄版本。
 

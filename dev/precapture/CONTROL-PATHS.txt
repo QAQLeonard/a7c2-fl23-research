@@ -3291,3 +3291,46 @@ temporary files are removed and absence verified, all four source files reread
 unchanged, USB_FINISHED. No CP request/ioctl, firmware/parameter/existing-RAM
 patch, capture, restart or retry occurs. Physical callback lifetime, real CP
 receipt, pre-S2 exposure/RAW retention/save/release and manual menu remain open.
+
+Phase116 executes the scheduling premise in a fresh no-AP Sony-kernel VM. A
+VM-only test module is built against the vendor source/config; config options
+remain identical, vermagic matches, struct module=768 and task state/class/CPU
+mask offsets20/80/258 are compile-checked against prior original instructions.
+All24 undefined imports are exported by the original kernel. No camera adapter
+or physical installer is supplied. The test pins the original PCIe module and
+itself for the guest lifetime; it never unloads a pending callback's code.
+
+Before any thread starts, original pcieif_sleep_init/exec/wakeup are resolved,
+their relative entry addresses checked, and all244 bytes48c8..49bc compared
+after8 CALL26 relocations are rebuilt from actual kernel symbol addresses.
+The test creates normal-policy callers and FIFO148 wakers on CPU0, checking
+current policy/priority/allowed CPU and runtime-1. Eight early-wake and eight
+wait-first trials call the actual helpers and actual kernel scheduler. Every
+trial records waker-return order1 and waiter-return order2 with error0. The
+caller-stack object is deliberately retained until both helpers finish, even
+if order were wrong; no hypothetical early return is allowed to destroy it.
+Both independent /proc observation loops name the exact33 distinct task PIDs
+(32 test threads plus coordinator) and show them all absent, with RC0 markers.
+Module hash and raw serial/kernel logs are retained; ordinary guest disposal
+follows terminal qualification. No CP transport/request, source patch or body
+interaction occurs. These16 trials support the conditional scheduling premise,
+not arbitrary interleavings, a physical CPU2 callback, or safe CP ownership.
+
+The first host launcher produced '&;' when serial_command appended its suffix;
+the shell rejected the command before either module loaded. It was retained,
+not replayed. Two explicit guest observations proved both modules/status files
+absent. A QMP greeting timed out without any command sent; only that qualified
+empty guest was terminated on the host. The corrected launcher uses a complete
+background-command sequence and its own attempt/result paths in a fresh guest.
+Shell -n checks reject both old commands and accept all7 corrected fixed
+commands without executing them. Keep this failure and the prior short result
+qualifier; the final qualifier independently checks echoed PID lists and both
+completion sentinels, not merely the reported process count.
+
+An exact one-shot original-default CP request review is prepared privately:
+route908f084b, payload24, modee1, maximum one synchronous call and explicit
+unknown-state retention. Its existing artifact preflight passes, while the
+missing live admission correctly refuses before connection. No permission or
+execution-intent file was created; the owner's exclusive read-only authorization
+does not by itself authorize this first physical CP request. Main782785641ca9f8b
+remains the reviewed ancestor. Physical pre-capture remains incomplete.
