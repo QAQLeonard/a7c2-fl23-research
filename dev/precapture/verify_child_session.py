@@ -77,6 +77,44 @@ class ChildSessionTests(unittest.TestCase):
         self.assertEqual(self.terminal, original)
         self.assertFalse(self.terminal['journal']['cleanup_allowed'])
 
+    def refusal(self):
+        observed = copy.deepcopy(self.terminal)
+        observed.update(success=False, resolved_refusal=True, request_sent=False)
+        observed['journal'].update(success_record=False, resolved_refusal_record=True, request_sent=False)
+        return observed
+
+    def test_resolved_never_sent_refusal_verifies_sources_without_claiming_success(self):
+        observed = self.refusal()
+        before = copy.deepcopy(observed)
+        self.assertTrue(verify_sources_after_terminal(observed, self.sources, self.read))
+        self.assertEqual(self.reads, ['/ap', '/cp'])
+        self.assertEqual(observed, before)
+        self.assertFalse(observed['success'])
+
+    def test_refusal_file_with_live_or_unknown_process_performs_no_read(self):
+        for state in ('RUNNING', 'UNKNOWN'):
+            observed = dict(self.refusal(), state=state, terminal=False, cleanup_allowed=False)
+            self.assertFalse(verify_sources_after_terminal(observed, self.sources, self.read))
+        self.assertEqual(self.reads, [])
+
+    def test_refusal_requires_independent_matching_no_send_evidence(self):
+        for layer in ('observation', 'journal'):
+            for key, value in (('request_sent', None), ('request_sent', True), ('request_sent', 0),
+                               ('success' if layer == 'observation' else 'success_record', True),
+                               ('resolved_refusal' if layer == 'observation' else 'resolved_refusal_record', 1)):
+                with self.subTest(layer=layer, key=key, value=value):
+                    observed = self.refusal()
+                    (observed if layer == 'observation' else observed['journal'])[key] = value
+                    self.assertFalse(verify_sources_after_terminal(observed, self.sources, self.read))
+        self.assertEqual(self.reads, [])
+
+    def test_conflicting_success_and_refusal_performs_no_read(self):
+        for layer, key in (('observation', 'resolved_refusal'), ('journal', 'resolved_refusal_record')):
+            observed = copy.deepcopy(self.terminal)
+            (observed if layer == 'observation' else observed['journal'])[key] = True
+            self.assertFalse(verify_sources_after_terminal(observed, self.sources, self.read))
+        self.assertEqual(self.reads, [])
+
 
 if __name__ == '__main__':
     unittest.main()

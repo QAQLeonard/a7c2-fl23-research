@@ -3170,3 +3170,11 @@ argument order/type from probe_rpc_gate. The original public gate still denies
 stage2. All133 before/after case reports match exactly. Sampling success alone
 never supplies source/lifetime/epoch admission. Work now prepares a separately
 scoped isolated original-default request; no physical sender admitted yet.
+
+Phase109 completes the offline one-shot query controller. Its journal parser has
+three distinct terminal classes: exact success, exact boot-epoch refusal with no
+CP request sent, and unknown/running. Only the same child with a terminal result
+and two independent process observations may proceed to pinned source reads;
+refusal is never reported as CP success, and result files never authorize
+cleanup. Offline lifecycle, parent/observer, operator/follow-up and journal
+corruption controls pass. No physical query or capture operation was sent.

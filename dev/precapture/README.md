@@ -68,6 +68,16 @@ but six enum records fail exact extent checks. That parser's result alone
 cannot establish remote feature support or absence. Generated names are
 parameter metadata, not a complete C++ symbol table or callable addresses.
 
+Phase109 completes the offline one-shot query controller. Its journal parser
+distinguishes an exact successful transaction, an exact boot-epoch refusal that
+sent no CP request, and an unknown/running state. The refusal path may verify
+pinned source files only after the same child has exited and both process
+observations agree; it never claims CP success. A result file alone cannot
+authorize cleanup. Offline controls cover lifecycle, parent/observer,
+operator/follow-up and journal-corruption cases. The candidate remains offline:
+no CP request, pre-trigger exposure, RAW retention, full-press save,
+cancel/release or menu switch has been implemented or sent to a camera.
+
 ## Earlier startup studies
 
 These retain original evidence and negative controls; their separate scopes
@@ -190,6 +200,12 @@ physical storage approval. A tagged status reply is not a capture result.
 The old `precapture_probe_once(...send_query=1)` now rejects before allocation:
 its16-byte packet becomes configuration input on the new runtime. Use the
 separate tagged12-byte query component; a matched reply is not quiescence.
+
+Phase109 已把单次查询的终态分成三类：精确成功、确认未发送的启动世代拒绝、以及未知/仍运行。
+只有同一个子进程已经结束、两次进程观察一致且日志完整时，拒绝路径才会核对固定来源文件；
+它不会被记录成 CP 成功。结果文件本身不能授权清理。新增的生命周期、父进程/观察、操作员、
+后续观察和日志损坏控制均已通过。候选仍是离线研究，没有发送 CP 请求，也没有实现或执行预触发
+曝光、RAW 保留、全按存盘、取消释放或机内菜单开关。
 
 ## 简体中文
 

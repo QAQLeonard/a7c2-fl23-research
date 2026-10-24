@@ -20,11 +20,24 @@ def verify_sources_after_terminal(observation, sources, read):
     journal = observation.get('journal')
     if (observation.get('state') not in ('ABSENT', 'ZOMBIE')
             or observation.get('terminal') is not True
-            or observation.get('success') is not True
             or observation.get('cleanup_allowed') is not True
             or not isinstance(journal, dict)
-            or journal.get('has_final_record') is not True
-            or journal.get('success_record') is not True):
+            or journal.get('has_final_record') is not True):
+        return False
+    succeeded = (observation.get('success') is True
+                 and journal.get('success_record') is True
+                 and not observation.get('resolved_refusal')
+                 and not journal.get('resolved_refusal_record'))
+    # A separately qualified never-sent refusal can finish its own inverse.
+    # Keep it distinct from a successful transaction; a negative return alone
+    # cannot qualify this path or permit teardown of unresolved resources.
+    refused = (observation.get('success') is False
+               and journal.get('success_record') is False
+               and observation.get('resolved_refusal') is True
+               and journal.get('resolved_refusal_record') is True
+               and observation.get('request_sent') is False
+               and journal.get('request_sent') is False)
+    if not (succeeded or refused):
         return False
     if not isinstance(sources, dict) or not sources or not callable(read):
         raise ValueError('Pinned source map and read callback required')

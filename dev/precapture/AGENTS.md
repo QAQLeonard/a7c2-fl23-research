@@ -73,6 +73,13 @@ original-source reports and model results, not just pass new replacement tests.
   looking file while the child parks. Observe process state separately. Current
   module/library FILE matches do not identify loaded kernel text or a live context.
   Never inherit phase82's file-only admission for this new ioctl-capable purpose.
+- Phase109's parser distinguishes an exact successful terminal transaction from
+  an exact boot-epoch refusal that sent no CP request. Only the same-child,
+  terminal, two-observation proof may read pinned sources after either accepted
+  terminal result; unknown/running/refusal-looking files retain the fence.
+  Refusal is never reported as CP success, and the result file alone never
+  grants cleanup. Offline controls cover lifecycle, parent/observer,
+  operator/follow-up and journal-corruption cases; no physical query was sent.
 - The new phase84 seal admits metadata preflight ONLY: files/proc reads and
   device stat, no child/device open/ioctl. Its parent/observer models are not
   a physical execution. The stock diagnostic audit stops before registration
