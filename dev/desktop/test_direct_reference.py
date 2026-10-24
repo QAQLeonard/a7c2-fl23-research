@@ -129,6 +129,23 @@ class ReferencePlanningTests(unittest.TestCase):
         self.apply('slot_default', slot=2)
         self.assertTrue(uploadpending.active(self.current['cpapp-b.bin']))
 
+    def test_fl23_and_lut_install_orders_keep_identical_programs_and_evf_fix(self):
+        from looktool import uploadpending
+        self.current = {'appFw.so': self.stock['appFw.so'], 'cpapp-b.bin': self.stock['cpapp-b.bin'],
+                        **{'resources/' + n: stock_names() for n in nameworker.filenames()}}
+        initial = dict(self.current)
+        records = copy.deepcopy(self.props)
+        look = self.make_look(1, 24)
+        self.apply('fl23_enable')
+        self.apply('look_import', slot=1, look=look)
+        fl23_first, expected_records = dict(self.current), copy.deepcopy(self.props)
+        self.current, self.props = dict(initial), copy.deepcopy(records)
+        self.apply('look_import', slot=1, look=look)
+        self.apply('fl23_enable')
+        self.assertEqual(self.current, fl23_first)
+        self.assertEqual(self.props, expected_records)
+        self.assertTrue(uploadpending.active(self.current['cpapp-b.bin']))
+
     def test_builtin_reference_preserves_unrelated_program_regions(self):
         for name in ('appFw.so', 'cpapp-b.bin'):
             changed = bytearray(self.current[name])
