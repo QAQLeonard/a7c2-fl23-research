@@ -21,8 +21,12 @@ def layout(kind):
     raise ValueError('Unknown resource namespace')
 
 
-def guards(kind):
-    if kind=='voice':return [(at,new) for at,old,new in voicelock.WINDOWS]
+def guards(kind,*,menu=True):
+    if kind=='voice':
+        result=[(at,new) for at,old,new in voicelock.WINDOWS]
+        # The AP's data PT_LOAD has a 0x10000 file-to-virtual displacement.
+        if menu:result.extend((at+0x10000,new) for at,old,new in voicelock.MENU_WINDOWS)
+        return result
     import sys
     sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
     import boot_sound
@@ -51,14 +55,14 @@ def parse(raw,kind,mode):
                 files=lists[0] if not mode else [],stages=lists[1] if not mode else [])
 
 
-def build(kind,folder,*,inventory=None,targets=None,zig=None):
+def build(kind,folder,*,inventory=None,targets=None,zig=None,menu=True):
     directory,names=layout(kind);folder=Path(folder);folder.mkdir(parents=True,exist_ok=True)
     cbytes=lambda b:'{'+','.join(map(str,b))+'}'
     quote=lambda s:json.dumps(s)
     info=lambda r:'{'+str(r['status'])+','+str(r['bytes'])+'UL,'+str(r['allocated_bytes'])+'UL,'+cbytes(bytes.fromhex(r['sha256']))+'}'
     absent=[dict(status=-2,bytes=0,allocated_bytes=0,sha256='00'*32) for _ in names]
     before=inventory or dict(files=absent,stages=absent)
-    spec=guards(kind);lines=[f'#define FILE_COUNT {len(names)}',
+    spec=guards(kind,menu=menu);lines=[f'#define FILE_COUNT {len(names)}',
         'static const char resource_directory[]='+quote(directory)+';',
         'static const char *paths[]={'+','.join(quote(directory+'/'+n) for n in names)+'};',
         'static const char *staging[]={'+','.join(quote(directory+'/.a7c2-restore-'+n+'.tmp') for n in names)+'};',
@@ -90,8 +94,8 @@ class Resources:
             contents=REQUEST.pack(b'A7RSQ001',mode,index,offset,count,0,prefix or bytes(32)),mode=mode,
             decode=lambda raw:parse(raw,self.kind,mode),record=self.owner.record,
             save_raw=lambda raw:self.owner.raw('resources-'+self.kind+'.bin',raw),extras=('a7c2.probe.result',))
-    def inspect(self):
-        self.reader=build(self.kind,self.owner.root/('resources-'+self.kind)/'inspect',zig=self.owner.zig)
+    def inspect(self,*,menu=True):
+        self.reader=build(self.kind,self.owner.root/('resources-'+self.kind)/'inspect',zig=self.owner.zig,menu=menu)
         return self.call(self.reader,0)
     def delete(self):
         before=self.inspect()
@@ -111,8 +115,10 @@ class Resources:
             if r['status']==0 and (self.kind=='sound' or r['name'].endswith('.bin'))])
         return after
     def restore(self,source,targets):
-        before=self.inspect();source=Path(source)
-        writer=build(self.kind,self.owner.root/('resources-'+self.kind)/'restore',inventory=before,targets=targets,zig=self.owner.zig)
+        # Older cleanup candidates have the four speech guards but no gray-menu
+        # flags. They must still be able to restore their missing voice files.
+        before=self.inspect(menu=False);source=Path(source)
+        writer=build(self.kind,self.owner.root/('resources-'+self.kind)/'restore',inventory=before,targets=targets,zig=self.owner.zig,menu=False)
         for i,name in enumerate(self.names):
             target=targets[name];current=before['files'][i];stage=before['stages'][i]
             if current['status']==0 and (current['bytes'],current['sha256'])==(target['bytes'],target['sha256']):

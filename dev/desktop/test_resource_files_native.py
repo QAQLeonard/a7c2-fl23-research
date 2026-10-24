@@ -17,7 +17,7 @@ class Disk:
         self.data={self.directory+'/'+n:(n+' original').encode() for n in self.names}
         self.data[self.directory+'/unrelated.bin']=b'untouched'
         self.readonly=True;self.events=[];self.fault=None
-    def run(self,worker,mode=0,index=0,offset=0,payload=None,prefix=None,loaded=True):
+    def run(self,worker,mode=0,index=0,offset=0,payload=None,prefix=None,loaded=True,menu_loaded=True):
         request=resourceworker.REQUEST.pack(b'A7RSQ001',mode,index,offset,len(payload or b''),0,prefix or bytes(32))
         chunk='/tmp/jiritsu/resource.chunk'
         if payload is not None:self.data[chunk]=payload
@@ -76,7 +76,8 @@ class Disk:
                 if self.fault=='fsync' and '/.a7c2-restore-' in path:return -5
                 return 0
             raise AssertionError((no,path))
-        headers={at:code if loaded else bytes(len(code)) for at,code in resourceworker.guards(self.kind)}
+        headers={at:code if loaded and (menu_loaded or at<0x51a7718) else bytes(len(code))
+            for at,code in resourceworker.guards(self.kind)}
         raw=execute(worker,b'',extra_headers=headers,extra_syscall=syscall,
             extra_outputs={'/tmp/jiritsu/a7c2.runtime.result':0x241},
             result_path='/tmp/jiritsu/a7c2.runtime.result',decode=lambda raw:raw)
@@ -104,6 +105,20 @@ def test_delete_audio_preserves_all_indices_and_unrelated_files(tmp_path):
 def test_loaded_disable_guard_is_mandatory_before_deletion(tmp_path):
     disk=Disk();_,writer,_=workers(tmp_path,disk);before=dict(disk.data)
     with pytest.raises(ValueError,match='status=-84'):disk.run(writer,1,loaded=False)
+    assert disk.data==before and not disk.events
+
+
+def test_code_only_candidate_can_restore_but_must_load_gray_menu_before_deleting(tmp_path):
+    disk=Disk();name=disk.names[0];target=b'restored voice'
+    reader=resourceworker.build('voice',tmp_path/'legacy-inspect',menu=False)
+    before=disk.run(reader,menu_loaded=False)
+    writer=resourceworker.build('voice',tmp_path/'legacy-restore',inventory=before,
+        targets={name:dict(bytes=len(target),sha256=sha256(target).hexdigest())},menu=False)
+    disk.run(writer,2,payload=target,menu_loaded=False)
+    disk.run(writer,3,menu_loaded=False)
+    assert disk.data[disk.directory+'/'+name]==target and disk.readonly
+    _,writer,_=workers(tmp_path/'new',disk);disk.events=[];before=dict(disk.data)
+    with pytest.raises(ValueError,match='status=-84'):disk.run(writer,1,menu_loaded=False)
     assert disk.data==before and not disk.events
 
 

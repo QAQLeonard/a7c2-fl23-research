@@ -40,7 +40,7 @@ def main():
     for spec in runtime['ap_sources']:
         regions['appFw.so'].extend((w['offset'], len(bytes.fromhex(w['hex']))) for w in spec['restore'])
     regions['appFw.so'].extend((0x59896f0 + slot * 0xb8, 4) for slot in range(6))
-    for at,old,new in voicelock.WINDOWS:
+    for at,old,new in voicelock.WINDOWS+voicelock.MENU_WINDOWS:
         if programs['appFw.so'][at:at+len(old)]!=old:raise ValueError('Original voice disable region differs')
         regions['appFw.so'].append((at,len(old)))
     for spec in runtime['cp_sources']:

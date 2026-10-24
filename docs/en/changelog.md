@@ -4,6 +4,8 @@
 
 ## Unreleased — restore native LUT upload conditions
 
+- Extend voice cleanup to keep its five native menu controls visible but unselectable: change the thirteen supported mode flags from 1 to 2, leaving the unsupported mode hidden. Replay the original visibility/selectability predicates offline; require these data flags loaded before deletion. Restore voice files from older code-only candidates without requiring the newer menu flags, and restore the original menu flags when unlocking. Actual camera menu appearance remains untested.
+
 - Complete the local recovery/voice-space candidate: factory recovery selects mechanical shutter and silent mode OFF, removes the custom sound hook, and requires cold-reload verification before deleting fixed private sound files and reporting complete. The sound page explicitly controls electronic-only effects; its reset removes the custom hook and mutes the electronic capture branch in one plan, with file cleanup at the post-reload check. AF beeps remain outside these targets.
 - Optional voice cleanup first saves OFF, clamps three native setting writers and disables the native support leaf, then requires a cold reload and matching loaded guards before deleting ten voice audio BINs. Restore from user-supplied Sony 2.01 firmware or a same-body voice backup streams 1 MiB chunks, verifies staged/full contents, and publishes files before unlocking. Preserve all language index files, native AF/shutter resources, calibration and unrelated files. Original firmware/audio data is not distributed. Validation is offline with synthetic syscalls and instruction fragments; no physical write, boot or power-loss safety claim is made.
 

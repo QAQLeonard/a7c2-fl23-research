@@ -19,6 +19,30 @@ from looktool.devicesession import modules
 @unittest.skipUnless(os.environ.get('A7C2_ORIGINAL_REFERENCE') and os.environ.get('A7C2_RESEARCH_FIXTURES'),
                      'Needs private reference and known program fixtures; never a camera')
 class ReferencePlanningTests(unittest.TestCase):
+    def test_voice_menu_flags_preserve_native_checks_neighbors_and_exact_inverse(self):
+        from looktool import voicelock,resourceworker
+        from test_voice_lock import MENU_CODE
+        from io import BytesIO
+        from elftools.elf.elffile import ELFFile
+        ap=self.stock['appFw.so'];target=voicelock.patch(ap)
+        segments=list(ELFFile(BytesIO(ap)).iter_segments())
+        guards=dict(resourceworker.guards('voice'))
+        for at,old,new in voicelock.MENU_WINDOWS:
+            segment=next(s for s in segments if s['p_type']=='PT_LOAD'
+                and s['p_offset']<=at and at+len(new)<=s['p_offset']+s['p_filesz'])
+            self.assertEqual(guards[segment['p_vaddr']+at-segment['p_offset']],new)
+        for at,code in MENU_CODE.items():
+            self.assertEqual(ap[at:at+len(bytes.fromhex(code))],bytes.fromhex(code))
+        for attribute,at in voicelock.MENU_DESCRIPTORS:
+            self.assertEqual(int.from_bytes(ap[at:at+4],'little'),attribute)
+            self.assertEqual(target[at:at+0x2c],ap[at:at+0x2c])
+            self.assertEqual(target[at+0x2c:at+0x46],b'\2\0'*13)
+            self.assertEqual(target[at+0x46:at+0xb8],ap[at+0x46:at+0xb8])
+        self.assertEqual(voicelock.patch(target,False),ap)
+        legacy=bytearray(ap)
+        for at,old,new in voicelock.WINDOWS:legacy[at:at+len(old)]=new
+        self.assertEqual(voicelock.patch(bytes(legacy),False),ap)
+
     def test_sound_reset_removes_custom_loader_and_mutes_capture_without_touching_settings(self):
         import boot_sound,candidate
         for custom in (False,True):

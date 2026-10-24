@@ -58,7 +58,7 @@ def sound_notice(action,result):
 
 def text(*, setup=False, mode=None):
     if mode=='voice_disable':
-        return ('语音指南关闭限制已写入，尚未删除音频。必须先让相机加载关闭限制。\n\n'+STEPS+
+        return ('语音指南关闭限制及菜单置灰已写入，尚未删除音频。必须先让相机加载关闭限制与菜单禁用状态。\n\n'+STEPS+
             '\n\n重开后接回 USB 海量存储，再点击刚才的“释放音频空间”或“补回语音文件”按钮继续。'
             '程序会核对实际加载的关闭限制；核对不符时不删除或写回语音文件。')
     if mode=='voice_unlock':

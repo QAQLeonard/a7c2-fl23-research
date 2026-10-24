@@ -425,7 +425,7 @@ class Window(W.QMainWindow):
                     lambda: self.direct_args('factory', mode='factory_reset', factory=str(data_root() / 'factory-2.01'),
                         sony_firmware=self.text('factory_voice_firmware') or None))
         voice=self.advanced(layout,'语音指南空间（可选）')
-        guide=W.QLabel('清理会先关闭并限制语音指南。第一次写入关闭限制后，按提示断电重开，再点同一按钮删除十种语言的音频；'
+        guide=W.QLabel('清理会先关闭语音指南，将机内语音相关选项置灰、禁止选择。第一次写入关闭限制后，按提示断电重开，再点同一按钮删除十种语言的音频；'
             '索引、对焦提示音和快门声音保留。相机初始化不能补回文件。恢复语音或一键恢复前，请在上方选择官方 2.01 固件。')
         guide.setWordWrap(True);voice.addWidget(guide)
         voice_args=lambda:dict(self.common(),workspace=str(data_root()/'voice-space'),
@@ -808,7 +808,7 @@ class Window(W.QMainWindow):
                      '从当前相机字节重新生成原厂恢复计划；旧记录不影响本次操作，已符合目标的内容不重复写入。\n' if action == 'direct_resume_factory' else
                      '将移除项目程序修改、将六个自订栏位设为 ST，快门设回机械并关闭新增电子快门音效；旧配方不找回。'
                      '清理过语音时先补回资源；重开后核对再清除私有音效文件。\n' if action == 'direct_factory_reset' else
-                     '先关闭并限制语音指南；关闭限制写入后须按提示重开，再点同一按钮核对并删除十份语音音频。不会删除索引、对焦提示音或快门音频。\n' if action=='voice_cleanup' else
+                     '先关闭语音指南并将机内语音选项置灰；写入后须按提示重开，再点同一按钮核对并删除十份语音音频。不会删除索引、对焦提示音或快门音频。\n' if action=='voice_cleanup' else
                      '从所选官方 2.01 文件或语音备份完整补回资源，核对全部文件后再解除限制。\n' if action=='voice_restore' else
                      '只关闭 FL2／FL3 列表入口，保留 LUT 与共用代码。请先在相机选择 ST。\n' if action == 'direct_fl23_disable' else
                      '将所选自订栏位设为 ST 默认，保留其他栏位。\n' if action == 'direct_slot_default' else '')

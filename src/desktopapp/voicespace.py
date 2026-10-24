@@ -30,7 +30,7 @@ def run(action,args,job,*,factory=None):
         result=owner.run_direct('voice_disable',version=args['firmware'],power_confirmed=args.get('power_confirmed',False))
         if result['phase']=='AWAITING_RELOAD':
             return dict(workspace=str(owner.root),mode='voice_disable',phase='AWAITING_RELOAD',
-                message='语音指南关闭限制已写入。按提示完整断电重开，再点击同一操作；此阶段尚未删除音频。')
+                message='语音指南关闭限制及菜单禁用状态已写入。按提示完整断电重开，再点击同一操作；此阶段尚未删除音频。')
         try:
             for memory in (True,False):
                 records=camera.records(camera.snapshot(memory))
@@ -47,4 +47,5 @@ def run(action,args,job,*,factory=None):
             return dict(workspace=str(unlock.root),mode='voice_unlock',phase=result['phase'],voice_files_restored=True)
         owner.save('COMPLETE')
         return dict(workspace=str(owner.root),phase='COMPLETED',mode='voice_cleanup',voice_audio_removed=True,
-            voice_setting_locked_off=True,message='语音音频已移除，关闭限制保持启用；语音索引、对焦提示音和快门音频未删除。')
+            voice_setting_locked_off=True,voice_menu_flags_verified=True,
+            message='语音音频已移除，机内语音指南相关选项保持置灰、关闭限制保持启用；语音索引、对焦提示音和快门音频未删除。')
