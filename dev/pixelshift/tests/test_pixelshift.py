@@ -1804,6 +1804,56 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_native_sequence_pool_constructor_and_caller_bind_stage_zero_descriptor(self):
+        from cp_sequence_object_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 68)
+        failures, starts = 0, 0
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            self.assertTrue(result['original_pool_allocator_executed'])
+            self.assertTrue(result['original_descriptor_initializer_executed'])
+            self.assertTrue(result['constructor_stack_and_registers_preserved'])
+            self.assertTrue(result['image_parameter_and_pool_os_inputs_are_fixtures'])
+            for field in ('host_assigned_allocation_result_or_descriptor', 'host_assigned_initial_stage',
+                          'outer_capture_prefix_executed', 'actual_image_parameter_allocation_executed',
+                          'positioning_or_exposure_executed', 'first_stage_child_executed',
+                          'logging_transport_executed', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+            if inputs.get('failure'):
+                failures += 1
+                self.assertEqual(result['boundary'], 'sequence_allocation_failed')
+                self.assertFalse(result['native_allocation_succeeded'])
+                self.assertFalse(result['complete_selector_executed'])
+                self.assertFalse(result['stage_zero_callback_dispatched'])
+                self.assertIsNone(result['sequence_index'])
+                self.assertEqual(result['native_free_count'], 0 if inputs['failure'] == 'empty' else 2)
+                continue
+            self.assertTrue(result['native_allocation_succeeded'])
+            self.assertTrue(result['complete_selector_executed'])
+            self.assertTrue(result['original_descriptor_stores_executed'])
+            self.assertTrue(result['native_log_filter_executed'])
+            self.assertEqual(result['native_free_count'], 1)
+            self.assertEqual(result['constructor_stage'], 0)
+            expected = 4 if inputs['first'] else 9
+            if inputs['mode'] != 23 and inputs['ordinal']:
+                expected += 1
+            self.assertEqual(result['sequence_index'], expected)
+            self.assertEqual(result['exif_lookup_status'], [0] if inputs['exif_present'] else [0xfffffffd])
+            self.assertEqual(result['exif_sequence_byte_written'], inputs['exif_present'])
+            if expected in (4, 9):
+                starts += 1
+                self.assertTrue(result['stage_zero_callback_dispatched'])
+                self.assertEqual(result['boundary'], 'before_first_stage_child')
+            else:
+                self.assertFalse(result['stage_zero_callback_dispatched'])
+                self.assertEqual(result['boundary'], 'descriptor_bound_control_case')
+        self.assertEqual(failures, 4)
+        self.assertEqual(starts, 40)
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
