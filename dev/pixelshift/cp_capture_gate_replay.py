@@ -73,12 +73,16 @@ def profile(directory):
 
 
 def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, native_state=0,
-           native_context=False, guard_actions=(), pipeline_source=None):
+           native_context=False, guard_actions=(), pipeline_source=None, native_request=False,
+           queue_start=0):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, s, p = profile(directory)
     gate_value, written_flag, write_phase, snapshot_calls = None, None, None, 0
     input_evidence = None
+    manager_evidence = None
+    if native_request and not native_context:
+        raise ValueError('Native request replay requires native context binding')
 
     def initialize(cpu, snapshot, dispatch, source):
         nonlocal input_evidence
@@ -106,7 +110,14 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
             cpu.mem_write(0x3001213c, bytes(4))
 
     def run_snapshot(cpu, snapshot, dispatch, source, capture_id, stack):
-        nonlocal gate_value, written_flag, write_phase, snapshot_calls
+        nonlocal gate_value, written_flag, write_phase, snapshot_calls, manager_evidence
+        if native_request:
+            from cp_capture_request_replay import snapshot_caller
+            manager_evidence = snapshot_caller(cpu, directory, p, snapshot, source, capture_id, stack)
+            gate_value = manager_evidence['native_gate']
+            written_flag = manager_evidence['native_snapshot_flag']
+            snapshot_calls = manager_evidence['native_snapshot_calls']
+            return manager_evidence['stop_pc']
         write_phase = 'snapshot'
 
         def code_hook(uc, at, size, unused):
@@ -143,8 +154,13 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
             raise ValueError('Original caller suffix did not regain its stack after the snapshot returned')
         return p['caller_end']
 
+    def validate_manager(cpu, snapshot):
+        from cp_capture_request_replay import validate_header
+        validate_header(cpu, directory, snapshot, manager_evidence)
+
     cpu, snapshot, _, prior = _snapshot(directory, mode=trinity,
-        source_initializer=initialize, snapshot_runner=run_snapshot)
+        source_initializer=initialize, snapshot_runner=run_snapshot,
+        manager_validator=validate_manager if native_request else None)
     flag = cpu.mem_read(snapshot['root']+0xd90, 1)[0]
     eligible = (capture_mode-6 not in range(0x16) or bool((0x1fbffa >> (capture_mode-6)) & 1))
     expected_flag = int(eligible and bool(override or pipeline))
@@ -169,12 +185,17 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
         if not frame+0x158 <= at or at+size > frame+0x160:
             raise ValueError('Native capture selection changed unrelated snapshot fields')
 
-    ch, wh = cpu.hook_add(UC_HOOK_CODE, code_hook), cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
-    cpu.reg_write(arm.UC_ARM_REG_R8, 0x12345678)
-    cpu.reg_write(arm.UC_ARM_REG_SP, stack)
-    cpu.emu_start(p['selector'] | 1, p['selector_end'], count=1000)
-    cpu.hook_del(ch)
-    cpu.hook_del(wh)
+    request_evidence = None
+    if native_request:
+        from cp_capture_request_replay import select_via_queue
+        request_evidence = select_via_queue(cpu, directory, p, snapshot, start=queue_start)
+    else:
+        ch, wh = cpu.hook_add(UC_HOOK_CODE, code_hook), cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
+        cpu.reg_write(arm.UC_ARM_REG_R8, 0x12345678)
+        cpu.reg_write(arm.UC_ARM_REG_SP, stack)
+        cpu.emu_start(p['selector'] | 1, p['selector_end'], count=1000)
+        cpu.hook_del(ch)
+        cpu.hook_del(wh)
     selected, adjacent = struct.unpack('<II', cpu.mem_read(frame+0x158, 8))
     expected_mode = capture_mode
     expected_adjacent = 0
@@ -233,6 +254,10 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
         result['native_context_publication'] = input_evidence
     if pipeline_source is not None:
         result['native_snapshot_flag_d8e'] = policy_flag
+    if native_request:
+        result['native_manager_initialization'] = {key: value for key, value in manager_evidence.items()
+            if key not in ('stop_pc', 'expected_header', 'capture_id')}
+        result['native_capture_request'] = request_evidence
     return result
 
 

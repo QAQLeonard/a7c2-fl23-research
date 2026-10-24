@@ -34,7 +34,8 @@ def profile(directory):
     return data, dict(entry=entry, root=root, copy=calls[1], predicates=calls[2:])
 
 
-def _snapshot(directory, *, mode, test=0, seed=0, source_initializer=None, snapshot_runner=None):
+def _snapshot(directory, *, mode, test=0, seed=0, source_initializer=None, snapshot_runner=None,
+              manager_validator=None):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2,
                                    UC_ARM_REG_R3, UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_PC)
@@ -101,10 +102,14 @@ def _snapshot(directory, *, mode, test=0, seed=0, source_initializer=None, snaps
         cpu.emu_start(p['entry'] | 1, finish, count=10000)
     else:
         stop = snapshot_runner(cpu, p, d, source, capture_id, stack)
+    if manager_validator is not None:
+        manager_validator(cpu, p)
+    header_unchanged = (manager_validator is not None or
+                        bytes(cpu.mem_read(root + 4, 0x24)) == b'\xa5' * 0x24)
     if (cpu.reg_read(UC_ARM_REG_PC) != stop or not result['native_copy_executed']
             or bytes(cpu.mem_read(root + 0x28, 0xd64)) != before
             or bytes(cpu.mem_read(source, 0xd64)) != before
-            or bytes(cpu.mem_read(root + 4, 0x24)) != b'\xa5' * 0x24
+            or not header_unchanged
             or bytes(cpu.mem_read(root + 0xd8c, 4)) != b'\xa5' * 4):
         raise ValueError('Native snapshot copy failed its byte comparison')
     propagated = struct.unpack('<I', cpu.mem_read(root + 8 + 0x1a0, 4))[0]

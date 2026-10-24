@@ -1756,6 +1756,54 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_native_capture_manager_and_queued_request_reach_original_capture_entry(self):
+        from cp_capture_request_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 96)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            manager = result['native_manager_initialization']
+            self.assertEqual(manager['native_manager_initializer_calls'], 1)
+            self.assertEqual(manager['native_snapshot_calls'], 1)
+            self.assertEqual(manager['native_gate'], result['native_snapshot_flag_d88'])
+            self.assertTrue(manager['wrapper_returned'])
+            self.assertTrue(manager['stack_and_registers_preserved'])
+            self.assertFalse(manager['host_assigned_manager_outputs'])
+            self.assertFalse(manager['every_wrapper_dependency_executed'])
+            self.assertEqual(manager['telemetry_calls_omitted'], 3)
+            request = result['native_capture_request']
+            for field in ('callback_capture_id_matches', 'original_actor_initializer_executed',
+                          'complete_native_sender_executed', 'worker_paused_inside_capture_callback',
+                          'actor_handoff_is_fixture', 'queue_os_and_debug_state_are_fixtures'):
+                self.assertTrue(request[field], field)
+            for field in ('host_assigned_callback_or_api_return', 'host_copied_payload_to_receiver',
+                          'worker_returned', 'capture_callback_returned', 'physical_exposure_executed',
+                          'telemetry_transport_executed'):
+                self.assertFalse(request[field], field)
+            self.assertEqual(request['native_sender_return'], 1)
+            self.assertEqual(request['native_client_return'], 0)
+            self.assertEqual(request['native_queue_send_status'], 0)
+            self.assertEqual(request['native_receive_bytes'], 28)
+            self.assertEqual(request['original_callback_entries'], 1)
+            self.assertEqual(request['native_queue_free_bytes'], 128)
+            self.assertEqual(request['native_queue_messages'], 0)
+            self.assertEqual(request['native_queue_read_index'], (inputs['queue_start']+32)%128)
+            self.assertEqual(request['native_queue_write_index'], request['native_queue_read_index'])
+            self.assertEqual(request['telemetry_calls_omitted'], 1)
+            selected = inputs['capture_mode']
+            if not inputs['native_state']:
+                if selected == 2 and (inputs['pipeline'] or inputs['override']):
+                    selected = 23
+                elif selected == 33:
+                    selected = 1  # Native policy field is1 in this selected fixture.
+            self.assertEqual(result['selected_mode'], selected)
+            self.assertFalse(result['full_outer_caller_executed'])
+            self.assertFalse(result['automatically_scheduled'])
+            self.assertFalse(result['positioning_or_exposure_executed'])
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
