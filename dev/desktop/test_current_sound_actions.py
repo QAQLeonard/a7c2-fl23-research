@@ -57,7 +57,7 @@ def test_current_state_probe_compiles_and_reads_stock_or_custom_without_a_job(st
     assert result['model_index']==16
 
 
-@pytest.mark.parametrize('action,mode',[('sound_on','sound_enable'),('sound_off','sound_disable'),('sound_restore_sound','sound_restore')])
+@pytest.mark.parametrize('action,mode',[('sound_on','sound_enable'),('sound_off','sound_disable'),('sound_restore_sound','sound_reset')])
 def test_desktop_switch_and_restore_ignore_missing_or_unreadable_old_job(tmp_path,action,mode):
     root=tmp_path/'sound';root.mkdir();(root/'sound.private.json').write_text('unreadable old state')
     job=tmp_path/'run';job.mkdir()
@@ -78,7 +78,7 @@ def test_current_verify_uses_no_saved_installation_record(tmp_path):
         def temp_read(self,name,missing=False):return None
     path=tmp_path/'probe';path.write_bytes(b'read-only probe')
     with patch('trial.factory',return_value=Camera()),patch('candidate.is_enabled',return_value=False), \
-         patch('candidate.guard'),patch('candidate.require_registry'),patch('boot_sound.installed',return_value=False), \
+         patch('candidate.guard'),patch('candidate.sound_state',return_value='off'),patch('candidate.require_registry'),patch('boot_sound.installed',return_value=False), \
          patch('boot_trial.current_probe',return_value=path),patch('looktool.devicesession.invoke',return_value={}), \
          patch.object(sound_cli,'verify',side_effect=AssertionError('No old-job verifier')):
         result=worker.run('sound_verify',dict(workspace=str(root),accepted=False),tmp_path)

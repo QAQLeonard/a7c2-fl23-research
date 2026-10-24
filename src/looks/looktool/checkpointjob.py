@@ -152,7 +152,7 @@ class Rollback:
         pass
     def settings_readback_expected(self,before,after,expected):
         return expected
-    def run(self,archive,battery,firmware_version,*,power_confirmed=False):
+    def run(self,archive,battery,firmware_version,*,power_confirmed=False,voice_source=None):
         if firmware_version!='2.01':raise ValueError('Read the camera version page: rollback supports 2.01 only')
         from .power import require_power
         power=require_power(battery,confirmed=power_confirmed)
@@ -169,6 +169,12 @@ class Rollback:
                 from .requestcleanup import supersede_temporary
                 supersede_temporary(camera,self.root/'evidence/superseded-temporary',self.record)
                 current=self.capture(camera)
+                from . import voicelock
+                if voicelock.active(current['appFw.so']) and not voicelock.active(target['appFw.so']):
+                    if not voice_source:
+                        raise ValueError('此备份会解除语音关闭限制。请提供官方 2.01 文件或该备份附带的语音 ZIP，先补回资源；本次尚未写入程序。')
+                    from .resourceworker import restore_voice
+                    restore_voice(camera,self,voice_source)
                 checkpoint.write(self.root/'before.private.zip',current,camera.identity,provenance={'type':'before-full-rollback'})
                 # Old FL23 backups carry their own body serial/programs/settings.
                 # Reconstruct appended names from current native records; never

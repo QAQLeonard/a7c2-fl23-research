@@ -77,7 +77,7 @@
 
 ## 核心流程
 
-**可选当前备份：**恢复页可生成沿用现有格式的 `checkpoint.private.zip`，保存当前 AP／CP 程序、运行／保存设置和 68 份名称资源；来源标记为 `current-project-backup`，可手动选择还原，但不参与自动寻找最早原始备份。可选 `voice-resources.private.zip` 单独保存二十份语音指南文件，不在当前项目检查点还原范围内。安装和内置原厂恢复均不要求先备份。语音资源也可由 `desktopapp.screenreader` 从用户自行提供的 2.01 更新文件在本机提取，应用不内置这些数据；相机语音文件写回尚未启用。
+**可选当前备份：**恢复页可生成沿用现有格式的 `checkpoint.private.zip`，保存当前 AP／CP 程序、运行／保存设置和 68 份名称资源；来源标记为 `current-project-backup`，可手动选择还原，但不参与自动寻找最早原始备份。可选 `voice-resources.private.zip` 单独保存二十份语音指南文件，在所选检查点还原需要解除语音关闭限制时作为语音恢复来源。安装和内置原厂恢复均不要求先备份。语音资源也可由 `desktopapp.screenreader` 从用户自行提供的 2.01 更新文件在本机提取，应用不内置这些数据；语音写回采用 1 MiB 分块写入固定暂存文件，完整校验哈希并逐文件发布后，才解除关闭限制。
 
 **直接事务**（`looktool/direct.py` 的 `DirectJob`）：
 1. `plan()` 是纯函数：把相机当前字节转换为目标字节和要改的设置，每种模式只改自己声明的区域。`bundle.plan()` 把多个模式（FL23、外观、ST 恢复、声音、竖屏）叠成一个计划。
@@ -104,6 +104,8 @@
 **声音**（`src/shutter_sound/`）：`media.py`／`native_codec.py` 在电脑上转换音频；`sound_cli.py` 同时驱动桌面版和 `shutter.py` 的流程；`candidate.py`／`boot_sound.py`／`files_worker.py` 构建固定的原生修改。试听和确认记录是可选的，不影响保存。
 
 **外观转换**：`compilelook.py` 解析 DCP 的 LookTable／色调曲线，或 ST／sRGB 的 CUBE，再用 `calibration/a7c2-2.01.virtual.npz` 拟合成机内色表，不需要 Lightroom。支持哪些输入见 [LUT 格式](lut-formats.md)。
+
+语音空间由 `voicelock.py` 限制原生支持入口和三个普通设置写入口，共四个既有指令窗口、20 字节；设置与触发值保存为关闭。`voice_cleanup` 首次写入限制后要求断电重开，后续请求必须通过实际加载指令核对，才删除十种语言的音频 BIN，保留索引。`resource_files.c` 只接受编译时固定路径和当前读取的大小／哈希，每次操作后将 `/usr` 重新挂为只读，文件完整哈希一致后才发布恢复结果。原生仿真使用合成文件系统，不证明真实掉电后的文件系统行为或启动安全。原厂恢复将快门设为机械、静音模式关闭、恢复原生声音路径，重开核对后才清理私有音效文件并完成；保留对焦提示音设置。
 
 ## 构建与测试
 

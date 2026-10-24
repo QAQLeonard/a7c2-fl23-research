@@ -12,6 +12,7 @@ def verify(args,job):
     from looktool.devicesession import invoke
     root=Path(args['workspace'])/('inspect-'+uuid.uuid4().hex[:8]);root.mkdir(parents=True)
     state=dict(schema='a7c2-current-sound-check/1',history=[],pending=None,journal=[])
+    files_removed=False
     def record(event,**fields):
         state['journal'].append(dict(event=event,**fields))
         write_json(root/'inspection.private.json',state)
@@ -36,7 +37,13 @@ def verify(args,job):
                 if (descriptor['kind']!=3 or descriptor['length']!=size or
                         descriptor['filename_prefix']!='/usr' or not descriptor['native_handle']&0x8000):
                     raise ValueError('当前声音尚未按磁盘配置加载，请按写入后的提示断电重开。')
+            elif candidate.sound_state(cp)=='muted':
+                # Finish a current-state sound reset after the original AP loader
+                # has reloaded. No old sound job or audition evidence is required.
+                from looktool.direct import DirectJob
+                owner=DirectJob(root);owner.state=state;owner.state_path=root/'inspection.private.json'
+                owner.cleanup_sound_resources(camera);files_removed=True
     return dict(phase='owner_confirmed_working' if args.get('accepted') else 'loaded_owner_confirmation_pending',
         workspace=str(root),camera_io=True,camera_firmware_written=False,camera_settings_written=False,
         sound_support_enabled_on_disk=enabled,custom_sound_on_disk=custom,audio_bytes=size,
-        loaded_code_and_current_descriptor_verified=True)
+        loaded_code_and_current_descriptor_verified=True,private_sound_files_removed=files_removed)

@@ -12,6 +12,7 @@ import tempfile
 import uuid
 from . import official
 from .paths import data_root, write_json
+from zipfile import ZipFile
 
 SCHEMA = 'a7c2-screenreader-source/1'
 LANGUAGES = ('english', 'french', 'german', 'italian', 'japanese', 'korean',
@@ -94,3 +95,34 @@ def load(folder):
         if digest.hexdigest() != row['sha256']:
             raise ValueError('Voice resource contents differ: ' + name)
     return manifest
+
+
+def from_backup(archive,cache=None):
+    """Turn the user's optional voice ZIP into the same checked local source."""
+    cache=Path(cache or data_root()/'screenreader-source');cache.mkdir(parents=True,exist_ok=True)
+    target=cache/('backup-'+uuid.uuid4().hex[:12])
+    with tempfile.TemporaryDirectory(prefix='preparing-',dir=cache) as temporary, ZipFile(archive) as stream:
+        folder=Path(temporary);manifest=json.loads(stream.read('manifest.json'))
+        if (manifest.get('schema'),manifest.get('model'),manifest.get('version'))!=('a7c2-voice-backup/1','ILCE-7CM2','2.01'):
+            raise ValueError('Not a supported voice-guide backup')
+        if set(manifest['files'])!=set(NAMES) or set(stream.namelist())!=set(NAMES)|{'manifest.json'}:
+            raise ValueError('Incomplete voice-guide backup')
+        rows={}
+        for name in NAMES:
+            spec=manifest['files'][name];entry=stream.getinfo(name)
+            if not 0<entry.file_size<=40*1024*1024 or entry.file_size!=spec['bytes']:
+                raise ValueError('Invalid voice backup size: '+name)
+            with stream.open(entry) as source,(folder/name).open('xb') as output:
+                while block:=source.read(1024*1024):output.write(block)
+            rows[name]=dict(spec,camera_path=CAMERA_ROOT+name)
+        value=dict(schema=SCHEMA,model='ILCE-7CM2',version='2.01',files=rows,identity=manifest['identity'])
+        write_json(folder/'source.private.json',value);load(folder);folder.rename(target)
+    return str(target)
+
+
+def restore_source(arguments):
+    if arguments.get('sony_firmware'):return prepare(arguments['sony_firmware'])['source']
+    if arguments.get('backup'):
+        path=Path(arguments['backup']);folder=path if path.is_dir() else path.parent
+        if (folder/'voice-resources.private.zip').is_file():return from_backup(folder/'voice-resources.private.zip')
+    return None

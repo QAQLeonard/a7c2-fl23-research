@@ -86,6 +86,10 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
                     raise ValueError('Original and current program sizes differ')
                 target[program] = factory[program]
         wanted[0] = recipe_defaults(target['appFw.so'], range(1, 7))
+        from . import capturedefaults,voicelock
+        wanted[0].update(capturedefaults.mechanical(target['appFw.so'],records))
+        wanted[0].update(voicelock.settings(target['appFw.so'],records))
+        if voicelock.active(ap):target['appFw.so']=voicelock.patch(target['appFw.so'],False)
         wanted[0].update({key: b'\0' for key in checkpoint.AP_KEYS})
         # The current selection must not keep pointing at a removed FL23 entry.
         row=struct.unpack_from('<8I',target['appFw.so'],0x57c6710-32)
@@ -111,6 +115,10 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
         for filename in nameworker.filenames():
             key = 'resources/' + filename
             target[key] = resources.before_custom(current[key])
+    elif mode in ('voice_disable','voice_unlock'):
+        from . import voicelock
+        target['appFw.so']=voicelock.patch(ap,mode=='voice_disable')
+        wanted[0].update(voicelock.settings(ap,records))
     elif mode in ('preview_native', 'preview_legacy', 'preview_pending'):
         from . import uploadgate, uploadpending
         base = uploadpending.normalize(cp) if mode == 'preview_pending' or uploadpending.active(cp) else cp
@@ -123,11 +131,14 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
     elif mode in ('vertical_enable', 'vertical_disable'):
         from .verticalpersist import field
         wanted[0].update(field(ap, records, mode == 'vertical_enable'))
-    elif mode=='sound_restore':
+    elif mode in ('sound_restore','sound_reset'):
         import sys
         sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
         import boot_sound
         target['appFw.so']=boot_sound.restore_plan(ap)[0]
+        if mode=='sound_reset':
+            import candidate
+            target.update(candidate.disable(target['appFw.so'],cp))
     elif mode in ('sound_enable','sound_disable'):
         import sys
         sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
@@ -308,6 +319,11 @@ class DirectJob(Rollback):
             print('已清理旧任务遗留的名称备份 %d 个，释放相机 /usr 空间。' % result['removed'], flush=True)
         return result
 
+    def cleanup_sound_resources(self,camera):
+        from .resourceworker import Resources
+        Resources(camera,self,'sound').delete()
+        self.state['private_sound_files_removed']=True
+
     def resume_install_settings(self,failed_workspace,*,power_confirmed):
         """Finish a known completed-program install, without a program writer."""
         from . import settingsresume,bundle
@@ -405,7 +421,7 @@ class DirectJob(Rollback):
 
     def run_direct(self, mode, *, version, power_confirmed, factory_values=None,
                    factory_path=None, slot=None, look_path=None, name=None, bundle_options=None,
-                   recovery_source=None):
+                   recovery_source=None,voice_source=None):
         power = require_power(confirmed=power_confirmed)
         if version != '2.01':
             raise ValueError('Direct operations support ILCE-7CM2 2.01 only')
@@ -432,7 +448,7 @@ class DirectJob(Rollback):
         try:
             with self.factory() as camera:
                 self.state['identity'] = camera.identity
-                if mode in ('sound_enable','sound_disable','sound_restore'):
+                if mode in ('sound_enable','sound_disable','sound_restore','sound_reset'):
                     import sys
                     sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
                     from replacement import prepare_current
@@ -441,6 +457,14 @@ class DirectJob(Rollback):
                     from .requestcleanup import supersede_temporary
                     supersede_temporary(camera,self.root/'evidence/superseded-temporary',self.record)
                 current = self.capture(camera)
+                if mode=='factory_reset':
+                    from . import voicelock
+                    if voicelock.active(current['appFw.so']):
+                        if not voice_source:
+                            raise ValueError('语音空间清理已启用。请先选择索尼官方 2.01 BODYDATA.DAT，再一键恢复；'
+                                '必须完整补回语音文件后才能解除关闭限制，本次尚未恢复程序。')
+                        from .resourceworker import restore_voice
+                        restore_voice(camera,self,voice_source)
                 if mode in ('preview_native', 'preview_legacy', 'preview_pending'):
                     from . import uploadgate
                     self.state['preview_source_entry'] = current['cpapp-b.bin'][uploadgate.OFFSET:uploadgate.OFFSET + 4].hex()
@@ -453,7 +477,7 @@ class DirectJob(Rollback):
                 # CP units; only the declared FL23 subranges use factory data.
                 prepared = self.settings(camera, current, wanted)
                 priority=(lambda row:(row[0],row[1])) if mode=='factory_reset' else None
-                if mode=='sound_restore':
+                if mode in ('sound_restore','sound_reset'):
                     import boot_sound
                     priority=boot_sound.restore_priority
                 programs = checkpointworker.build_programs(current, target, self.root / 'worker', self.zig,
@@ -479,7 +503,9 @@ class DirectJob(Rollback):
                 if runtime['image_mode'].strip() not in ('0', '2'):
                     raise ValueError('Unsupported retained image state')
                 self.prepare_vertical(camera)
-                planned_change = bool(mode=='sound_restore' or programs or inverse_names or (forward and not forward.get('unchanged'))
+                # A full reset must also discard temporary RAM sound registration,
+                # even when the program files already match the factory bytes.
+                planned_change = bool(mode in ('factory_reset','sound_restore','sound_reset') or programs or inverse_names or (forward and not forward.get('unchanged'))
                     or (self.vertical_stage and self.vertical_stage.needs_change)
                     or (mode == 'factory_reset' and runtime.get('usr_mount_readonly') is not True)
                     or prepared[1] != prepared[3] or prepared[2] != prepared[4])
@@ -666,7 +692,7 @@ class DirectJob(Rollback):
                         differs = (any(actual[at:at + size] != value[at:at + size] for at, size in color_regions()[key])
                                    if chip == 1 else actual != value)
                         if differs:
-                            raise ContentChanged('Reloaded default setting differs')
+                            raise ContentChanged('Reloaded default setting differs: chip%d/%#x'%(chip,key))
             from . import verticalpersist
             if verticalpersist.SETTING in wanted[0]:
                 verticalpersist.Stage(camera, self, wanted[0][verticalpersist.SETTING] == b'\0').verify_loaded()
@@ -694,6 +720,8 @@ class DirectJob(Rollback):
                 self.forward_names(camera, build, 3)
                 self.state['names_cleanup_pending'] = False
                 self.record('name_backups_removed_after_new_boot')
+            if self.state['mode']=='factory_reset':
+                self.cleanup_sound_resources(camera)
         self.save('COMPLETE' if accepted else 'LOADED', physical_checks_accepted=accepted)
         if accepted and self.state['mode'] in ('look_import', 'slot_default', 'factory_reset', 'install_all'):
             from .rawidentity import after_verified

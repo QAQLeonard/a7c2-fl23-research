@@ -17,6 +17,10 @@ from looktool import direct, checkpointworker, checkpoint, nameworker, resources
 
 
 class SimDirect(direct.DirectJob, SimRollback):
+    def cleanup_sound_resources(self,camera):
+        # Native allowlist/hash/remount behavior is exercised by test_resource_files_native.
+        self.state['private_sound_files_removed']=True
+        self.record('simulated_private_sound_cleanup')
     def sync_look_bases(self, camera, prepared, selected=None):
         keys,ram,_,_,_=prepared
         # A separate runtime model is essential: Backup writes do not update it.
@@ -34,6 +38,12 @@ class SimDirect(direct.DirectJob, SimRollback):
 
 
 class DirectTransactionTests(unittest.TestCase):
+    def test_factory_reset_always_waits_for_reload_to_clear_temporary_audio(self):
+        job=SimDirect(self.root/'already-default',factory=self.camera)
+        with patch.object(direct,'plan',side_effect=lambda current,*args,**kwargs:(dict(current),[{},{}],None)):
+            result=job.run_direct('factory_reset',version='2.01',power_confirmed=True)
+        self.assertEqual(result['phase'],'AWAITING_RELOAD')
+        self.assertFalse(any(kind=='program' and mode==1 for kind,mode in self.camera.native_calls))
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

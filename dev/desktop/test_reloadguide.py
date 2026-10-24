@@ -38,7 +38,7 @@ class ReloadGuideTests(unittest.TestCase):
         result=dict(phase='temporary_pcm_registered_cold_reload_required_after_test')
         self.assertFalse(reloadguide.required('sound_audition',result))
         notice=reloadguide.sound_notice('sound_audition',result)
-        for phrase in ('保持相机开机','不要关机','电子快门','确认试听正确','无需先恢复原声','保存当前自定义声音'):
+        for phrase in ('保持相机开机','不要关机','电子快门','确认试听正确','无需先恢复原声','保存为电子快门专属音效'):
             self.assertIn(phrase,notice['text'])
         self.assertIn('只关闭说明',notice['text'])
 

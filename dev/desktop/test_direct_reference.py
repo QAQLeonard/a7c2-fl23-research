@@ -19,6 +19,32 @@ from looktool.devicesession import modules
 @unittest.skipUnless(os.environ.get('A7C2_ORIGINAL_REFERENCE') and os.environ.get('A7C2_RESEARCH_FIXTURES'),
                      'Needs private reference and known program fixtures; never a camera')
 class ReferencePlanningTests(unittest.TestCase):
+    def test_sound_reset_removes_custom_loader_and_mutes_capture_without_touching_settings(self):
+        import boot_sound,candidate
+        for custom in (False,True):
+            with self.subTest(custom=custom):
+                ap=self.stock['appFw.so']
+                current=dict(self.current,**candidate.patch(ap,self.stock['cpapp-b.bin']))
+                if custom:current['appFw.so']=boot_sound.patch(ap,boot_sound.expected_windows())
+                before=copy.deepcopy(self.props)
+                target,wanted,names=direct.plan(current,self.props,'sound_reset')
+                self.assertEqual(target['appFw.so'],ap)
+                self.assertEqual(candidate.sound_state(target['cpapp-b.bin']),'muted')
+                self.assertEqual(wanted,[{},{}])
+                self.assertEqual(self.props,before)
+                self.assertIsNone(names)
+                cp=bytearray(target['cpapp-b.bin'])
+                for at,old,new in candidate.WINDOWS:cp[at:at+len(old)]=old
+                self.assertEqual(bytes(cp),self.stock['cpapp-b.bin'])
+
+    def test_factory_plan_reverses_all_voice_lock_windows_after_resources_are_accounted(self):
+        from looktool import voicelock
+        self.current['appFw.so']=voicelock.patch(self.current['appFw.so'])
+        target,wanted=self.apply('factory_reset',factory=official.builtin())
+        self.assertEqual(target['appFw.so'],self.stock['appFw.so'])
+        self.assertFalse(voicelock.active(target['appFw.so']))
+        self.assertEqual(wanted[0][voicelock.SETTING],b'\1')
+        self.assertEqual(wanted[0][voicelock.TRIGGER],b'\0')
     @classmethod
     def setUpClass(cls):
         cls.stock = official.load(os.environ['A7C2_ORIGINAL_REFERENCE'])
@@ -85,6 +111,10 @@ class ReferencePlanningTests(unittest.TestCase):
             self.assertEqual(b, bytes(expected))
         self.assertEqual(self.props[1][0x02a40001].data[0x100:0x108], b'BODYDATA')
         self.assertEqual(self.props[1][0x02a4000d].data[0x80:0x88], b'BODYDATA')
+        self.assertEqual(wanted[0][0x02cf02c9],b'\0')
+        self.assertEqual(wanted[0][0x02cf02d9],b'\0')
+        self.assertEqual(wanted[0][0x02cf02d1],b'\1')
+        self.assertNotIn(0x02cf048b,wanted[0])
         for key, prop in before[0].items():
             if key not in wanted[0]:
                 self.assertEqual(self.props[0][key], prop)

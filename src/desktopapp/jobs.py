@@ -75,7 +75,7 @@ def transaction_summaries(job):
         children=[p.parent for p in sorted(root.glob('persistent-*/direct.private.json'),key=lambda p:p.stat().st_mtime_ns)[-3:]]
     fields=('schema','phase','mode','failed_during','error','error_type','completed_steps',
             'install_workspace','failed_install_workspaces','names_cleanup_pending',
-            'readonly_after_reload_verified','physical_checks_accepted')
+            'readonly_after_reload_verified','physical_checks_accepted','private_sound_files_removed')
     setup=root/'setup.private.json'
     if setup.is_file():
         state=json.loads(setup.read_text(encoding='utf-8'))
@@ -95,6 +95,7 @@ def transaction_summaries(job):
                     'staged','linked','committed','restored','rollback','remount','readonly','cleanup',
                     'failure_group','failure_step','progress_bytes','available_bytes','required_bytes',
                     'created','removed','source_sizes',
+                    'resource_kind','resource_file','index','requested_offset','requested_bytes',
                     'program','expected_bytes','actual_bytes','first_difference') if k in event['result']}
                 # These are public look indices/values, not program or sensor
                 # bytes. Keep the binding report that older exports discarded.

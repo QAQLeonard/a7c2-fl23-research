@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'src/looks'), str(ROOT / 'src/shutter_sound')]
 from desktopapp.worker import setup_runtime
 setup_runtime()
-from looktool import checkpointworker, device_layout, photoio, photobuild, six, uploadpending
+from looktool import checkpointworker, device_layout, photoio, photobuild, six, uploadpending,voicelock
 from looktool.devicesession import modules
 
 
@@ -40,6 +40,9 @@ def main():
     for spec in runtime['ap_sources']:
         regions['appFw.so'].extend((w['offset'], len(bytes.fromhex(w['hex']))) for w in spec['restore'])
     regions['appFw.so'].extend((0x59896f0 + slot * 0xb8, 4) for slot in range(6))
+    for at,old,new in voicelock.WINDOWS:
+        if programs['appFw.so'][at:at+len(old)]!=old:raise ValueError('Original voice disable region differs')
+        regions['appFw.so'].append((at,len(old)))
     for spec in runtime['cp_sources']:
         regions['cpapp-b.bin'].extend((w['offset'], len(bytes.fromhex(w['before']))) for w in spec['windows'])
     regions['cpapp-b.bin'] += [(six.TABLE_FILE, 32 + 6 * six.TABLE_BYTES),

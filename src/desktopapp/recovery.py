@@ -113,5 +113,8 @@ def restore_auto(arguments, job, *, factory=None, rollback_type=None):
 
         obj = (rollback_type or Rollback)(Path(arguments['workspace']), factory=reuse)
         options = {'power_confirmed': True} if arguments.get('power_confirmed') else {}
+        from .screenreader import restore_source
+        voice_source=restore_source(dict(arguments,backup=row['path']))
+        if voice_source:options['voice_source']=voice_source
         result = obj.run(row['path'], arguments.get('battery'), arguments['firmware'], **options)
     return {'workspace': str(obj.root), 'backup': row['path'], 'phase': result['phase']}

@@ -3,6 +3,19 @@ import json,zipfile
 from desktopapp import jobs
 
 
+def test_voice_export_keeps_file_and_offset_without_audio(tmp_path,monkeypatch):
+    monkeypatch.setenv('A7C2_DESKTOP_DATA',str(tmp_path/'app'))
+    root=tmp_path/'voice';root.mkdir()
+    result=dict(resource_kind='voice',resource_file='english.bin',index=0,mode=2,
+        requested_offset=1048576,requested_bytes=1048576,payload='PRIVATE-AUDIO')
+    (root/'direct.private.json').write_text(json.dumps(dict(phase='NEEDS_REVIEW',
+        journal=[dict(event='resource_operation',result=result)])))
+    job=jobs.new_job('voice_restore',dict(workspace=str(root)))
+    report=jobs.transaction_summaries(job)['direct-summary-0.json']['journal'][0]['result']
+    assert report['requested_offset']==1048576 and report['resource_file']=='english.bin'
+    assert 'PRIVATE-AUDIO' not in json.dumps(report)
+
+
 def test_export_includes_failed_child_stage_and_excludes_calibration(tmp_path,monkeypatch):
     monkeypatch.setenv('A7C2_DESKTOP_DATA',str(tmp_path/'app'))
     root=tmp_path/'setup';child=root/'install';child.mkdir(parents=True)

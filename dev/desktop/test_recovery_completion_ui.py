@@ -29,7 +29,10 @@ def finish(window,work,phase,action='direct_factory_reset',success=True,error='n
     window.current_job=jobs.new_job(action,{})
     (window.current_job/'status.private.json').write_text(json.dumps(dict(
         phase='SUCCEEDED' if success else 'FAILED',action=action,error=error,
-        result=dict(workspace=str(work),mode='factory_reset',phase=phase))))
+        result=dict(workspace=str(work),mode='factory_reset',phase=phase,
+            recovery_complete=phase in ('LOADED','COMPLETE'),
+            verification_required=phase=='AWAITING_RELOAD',
+            private_sound_files_removed=phase in ('LOADED','COMPLETE')))))
     window.process=Mock()
     window.finished(0 if success else 2,None)
 

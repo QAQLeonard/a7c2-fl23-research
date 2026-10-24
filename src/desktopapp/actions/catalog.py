@@ -1,16 +1,16 @@
 """Shared desktop action categories; no host-specific feature variants."""
-CAMERA_ACTIONS = {'connect', 'usb_prepare', 'driver_uninstall', 'backup_current',
+CAMERA_ACTIONS = {'connect', 'usb_prepare', 'driver_uninstall', 'backup_current','voice_cleanup','voice_restore',
                   'restore', 'restore_auto', 'restore_verify',
                   'vertical_enable', 'vertical_disable',
                   'vertical_status', 'vertical_remove', 'sound_on', 'sound_off',
                   'sound_audition', 'sound_install', 'sound_verify', 'sound_restore_sound'}
 
-POWER_ACTIONS = {'restore', 'restore_auto',
+POWER_ACTIONS = {'restore', 'restore_auto', 'voice_cleanup','voice_restore',
                  'vertical_enable', 'vertical_disable', 'vertical_remove',
                  'sound_on', 'sound_off', 'sound_audition', 'sound_install', 'sound_restore_sound'}
 DIRECT_ACTIONS = {'direct_fl23_enable', 'direct_fl23_disable', 'direct_vertical_enable', 'direct_vertical_disable', 'direct_slot_default',
                   'direct_look_import', 'direct_looks_import', 'direct_resume_looks', 'direct_factory_reset', 'direct_resume_factory', 'direct_install_all'}
-DIRECT_ACTIONS |= {'direct_sound_enable','direct_sound_disable','direct_sound_restore','direct_resume_settings'}
+DIRECT_ACTIONS |= {'direct_sound_enable','direct_sound_disable','direct_sound_restore','direct_sound_reset','direct_resume_settings'}
 DIRECT_ACTIONS |= {'direct_preview_native', 'direct_preview_legacy', 'direct_preview_pending'}
 POWER_ACTIONS |= DIRECT_ACTIONS
 CAMERA_ACTIONS |= DIRECT_ACTIONS | {'direct_verify'}

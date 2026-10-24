@@ -34,6 +34,11 @@ def run(action, args, job):
     if action == 'setup_all':
         from . import allinone
         return allinone.run(args, dispatch=run)
+    if action in ('voice_cleanup','voice_restore'):
+        from .voicespace import run as voice_space
+        work=Path(args['workspace'])/('request-'+uuid.uuid4().hex[:8])
+        write_json(Path(job)/'backend-workspace.private.json',dict(action=action,workspace=str(work/'disable')))
+        return voice_space(action,dict(args,workspace=str(work)),job)
     if action == 'review_failed_names':
         from . import reviewnames
         return reviewnames.run(args['workspace'],job)
@@ -48,13 +53,14 @@ def run(action, args, job):
         if args.get('combined'):values['combined']=True
         return PortraitJob(work).run_frames(action=='vertical_enable',**values)
     if action in ('sound_on','sound_off','sound_restore_sound'):
-        mode={'sound_on':'sound_enable','sound_off':'sound_disable','sound_restore_sound':'sound_restore'}[action]
+        mode={'sound_on':'sound_enable','sound_off':'sound_disable','sound_restore_sound':'sound_reset'}[action]
         result=run('direct_'+mode,dict(args,workspace=str(Path(args['workspace'])/('switch-'+uuid.uuid4().hex[:8]))),job)
         result['command']={'sound_on':'on','sound_off':'off','sound_restore_sound':'restore-sound'}[action]
         if action=='sound_restore_sound':
             # A RAM audition also clears on cold power-off when disk was
             # already stock; no previous installation record is needed.
-            result.update(phase='restored_cold_test_pending',reload_required=True)
+            result.update(phase='restored_cold_test_pending',reload_required=True,verification_required=True,
+                restoration_complete=False)
         elif result['phase']=='AWAITING_RELOAD':
             result.update(phase='written' if action=='sound_on' else 'restored',reload_required=True)
         return result
@@ -72,6 +78,10 @@ def run(action, args, job):
             raise ValueError('先完成一次本页操作，再核对重新加载状态。')
         obj = DirectJob(Path(args['workspace']))
         reference, reference_path = None, args.get('factory') or 'builtin'
+        voice_source=None
+        if mode in ('factory_reset','resume_factory') and args.get('sony_firmware'):
+            from .screenreader import restore_source
+            voice_source=restore_source(args)
         if mode=='resume_settings':
             result=obj.resume_install_settings(args['failed_workspace'],power_confirmed=args.get('power_confirmed',False))
         elif mode=='resume_looks':
@@ -107,7 +117,7 @@ def run(action, args, job):
             reference = load(reference_path)
             result = obj.run_direct('factory_reset', version=args['firmware'],
                 power_confirmed=args.get('power_confirmed', False), factory_values=reference,
-                factory_path=reference_path, recovery_source=args.get('failed_workspace'))
+                factory_path=reference_path, recovery_source=args.get('failed_workspace'),voice_source=voice_source)
         else:
             if mode == 'factory_reset':
                 from .official import load
@@ -115,12 +125,13 @@ def run(action, args, job):
             result = obj.run_direct(mode, version=args['firmware'], power_confirmed=args.get('power_confirmed', False),
                 factory_values=reference, factory_path=reference_path if mode == 'factory_reset' else None,
                 slot=args.get('slot'), look_path=args.get('look'), name=args.get('name') or None,
-                bundle_options=args.get('options'))
+                bundle_options=args.get('options'),voice_source=voice_source)
         response = {'workspace': str(obj.root), 'phase': result['phase'], 'mode': result['mode'],
                     'backup_created': False}
         if result['mode']=='factory_reset':
-            response.update(recovery_complete=result['phase'] in ('LOADED','COMPLETE'),
-                            verification_required=result['phase']=='AWAITING_RELOAD')
+            complete=result['phase'] in ('LOADED','COMPLETE') and result.get('private_sound_files_removed') is True
+            response.update(recovery_complete=complete,verification_required=not complete,
+                            private_sound_files_removed=result.get('private_sound_files_removed',False))
         if result.get('vertical_result'):response['vertical_result']=result['vertical_result']
         if mode in ('fl23_enable', 'fl23_disable') and result['phase'] == 'AWAITING_RELOAD':
             # The device write is finished. Keep reload evidence internally,
@@ -189,8 +200,11 @@ def run(action, args, job):
             raise ValueError('所选目录没有旧备份恢复记录，本次没有连接相机。用内置原厂基准或固件文件恢复后，'
                              '请点“重启后核对并完成恢复”。')
         if action == 'restore':
+            from .screenreader import restore_source
+            voice_source=restore_source(args)
+            voice_options=dict(voice_source=voice_source) if voice_source else {}
             result = obj.run(args['backup'], args.get('battery'), args['firmware'],
-                             power_confirmed=args.get('power_confirmed', False))
+                             power_confirmed=args.get('power_confirmed', False),**voice_options)
         else:
             result = obj.verify(accept_photos=bool(args.get('accepted')))
         return {'workspace': str(obj.root), 'phase': result.get('phase')}

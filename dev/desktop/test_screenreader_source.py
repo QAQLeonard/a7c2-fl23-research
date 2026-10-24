@@ -106,3 +106,21 @@ def test_wrong_firmware_stops_before_reading_voice_files(tmp_path,model,version)
         with pytest.raises(ValueError,match='Wrong Sony model or version'):
             screenreader.prepare(source,tmp_path/'cache')
     assert list((tmp_path/'cache').iterdir())==[]
+
+
+def test_user_voice_backup_can_supply_the_same_restore_source(tmp_path):
+    from desktopapp.backup import voice_archive
+    from looktool.resourceworker import restore_voice
+    camera=SimpleNamespace(identity=dict(model='ILCE-7CM2',serial_sha256='body-one'),
+        read=lambda path,missing=False:Path(path).name.encode())
+    archive=tmp_path/'voice.zip';voice_archive(camera,archive,camera.identity)
+    folder=screenreader.from_backup(archive,tmp_path/'cache')
+    result=screenreader.load(folder)
+    assert result['identity']==camera.identity
+    with patch('looktool.resourceworker.Resources') as resources:
+        restore_voice(camera,object(),folder)
+        resources.return_value.restore.assert_called_once()
+    camera.identity=dict(model='ILCE-7CM2',serial_sha256='different-body')
+    with patch('looktool.resourceworker.Resources') as resources,pytest.raises(ValueError):
+        restore_voice(camera,object(),folder)
+    resources.assert_not_called()

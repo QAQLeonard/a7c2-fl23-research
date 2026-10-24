@@ -4,7 +4,7 @@ from pathlib import Path
 from . import firmware
 from .nativebuild import ROOT
 
-TEMP_NAMES={'libJit.so','lut-program-staged.so','lut-names-staged.so','lut-runtime-staged.so',
+TEMP_NAMES={'libJit.so','lut-program-staged.so','lut-names-staged.so','lut-runtime-staged.so','resource.chunk',
     'portrait.staged.so','portrait.request','portrait.result',
     'a7c2.install.request','a7c2.install.result','a7c2.names.request','a7c2.names.result',
     'a7c2.wbi.request','a7c2.wbi.result','a7c2.runtime.result','a7c2.probe.result'}
@@ -114,7 +114,7 @@ class Camera:
             manifest=self.core.assets()
             if name not in ['lut-runtime-staged.so','libJit.so'] or firmware.sha(data)!=manifest['files']['runtime.so']:
                 raise ValueError('Only the pinned read-only model/runtime probe is allowed before model confirmation')
-        if name not in TEMP_NAMES or not data or len(data)>65536:raise ValueError('Invalid job temporary data')
+        if name not in TEMP_NAMES or not data or len(data)>(1048576 if name=='resource.chunk' else 65536):raise ValueError('Invalid job temporary data')
         self.link.select('/tmp/jiritsu/'+name);self.link.jiritsu(16,b'\0\xff\0'+data)
     def temp_remove(self,name):
         if name not in TEMP_NAMES:raise ValueError('Unowned temporary name')
