@@ -46,6 +46,11 @@ binding; the synchronization helper can wait again; the exposure-end callback
 posts an event without saving an end counter. A new source/owner-bound observer
 and real capture trace are needed before any of those verdicts can pass.
 
+The observer now has a compiled trace core and uninstalled task/pool/exposure
+wrappers. Thumb/AArch64 tests check bounded recording, corruption/overflow and
+original entry preservation. It still lacks qualified native placement, IRQ/
+stack/clock admission and export; it is **not ready to install on the camera**.
+
 Two preceding jobs sent nothing: source drift stopped the first before upload;
 the second rejected a changed boot epoch, restored itself and exited. Their
 records and one-shot fences remain retired. The successful job used fresh
@@ -93,6 +98,8 @@ do not add up to physical pre-capture.
 | `support/capture_resources.py`, `resource_service.py` | Resource preparation, RAW service/task routing, dynamic reply IDs, descriptor/handle/reference lifetime; no native service success or camera I/O |
 | `support/backing_memory.py` | Original cached-free-node allocator and request/reply composition on synthetic memory; explicit queue/accounting/notifier boundaries |
 | `support/capture_validation.py`, `audit_capture_validation.py` | Combined pool/completion/exposure source checks bound to a completed read-only snapshot; physical verdicts stay unverified |
+| `cp_trace.c/h`, `cp_trace_native.c`, `cp_trace_hooks.S` | Bounded owner-lane recording core, uninstalled native metadata/edge adapters and exposure entry wrappers; no loader/storage/export admission |
+| `support/trace.py`, `decode_cp_trace.py`, `verify_cp_trace.py` | Offline record decoder and compiled cross-ISA/entry-wrapper checks; no camera entry or physical validation |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
 | `vm/cp_boot/config_rmw/qemu_source_word.h`, `vm/cp_boot/mtg_select/` | Shared restricted single-word storage and the optional MTG selector fixture; no timing edges, frame IRQ or sensor |
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
@@ -164,6 +171,7 @@ python dev/precapture/audit_ap_capture_order.py --ap PRIVATE_STOCK_AP --donor-ap
 python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
+python dev/precapture/verify_cp_trace.py --zig PATH_TO_ZIG --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_FOLDER
 python dev/precapture/audit_frame_reference.py --cp PRIVATE_STOCK_CP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_child_exec.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
 python dev/precapture/verify_client_binding.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
@@ -219,4 +227,6 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 这些检查都不连接相机，也不代表实机预拍摄可用。
 最新一轮只读采集确认五个当前程序／模块文件与保留来源一致，会话正常结束。资源池来源、异步完成、
 曝光时序已合并检查，但三项实机结论仍为未验证：还缺同次开机／拍摄的CP观测与曝光结束/S2时间证据。
+观测器已新增可编译记录核心、任务／资源池／曝光入口绑定原型与离线解码器；溢出和损坏记录不会被当成
+完整证据。仍缺实机代码及存储位置、任务／中断／栈／时钟核对和读出方案，目前不能安装，五项功能尚未完成。
 详细证据保留在 [CONTROL-PATHS.txt](CONTROL-PATHS.txt)，公开工具继续只做离线研究。

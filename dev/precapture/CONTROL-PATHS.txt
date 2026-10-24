@@ -3741,3 +3741,63 @@ pixels in the same epoch. No safe live CP observer exists yet. New CP sends or
 patches cannot inherit phase129's consumed one-query allowance; do not broaden
 file-only permission into arbitrary memory reads, DMA or instrumentation writes.
 Physical pool/completion/exposure and pre-capture remain unfinished.
+
+## Phase136: compiled trace core and uninstalled native observer wrappers
+
+Owner requested the full five-step implementation. Work is focused on the first
+native observer blocker; no claim that the five items or first live observer
+are complete. Main782785641ca9 was refreshed/reviewed, still ancestor. No camera
+I/O/CP request/upload/parameter,ROM or RAM-code write occurred in this phase.
+
+cp_trace.c/h now implement a bounded recording lane, not another source-only
+audit. Each3136-byte lane has a source/epoch/owner/clock/nonce header and64 fixed
+48-byte records. Fresh zero allocation is required, with no reset API. One
+serialized native owner (including exclusion of concurrent IRQ/reentry writers)
+is an external admission requirement. Busy detection is not a multicore lock.
+Guard -> sequence -> published count uses generated release barriers. Full lanes
+do not overwrite: overflow makes evidence incomplete, busy/torn input preserves
+state. Owner-local freeze is not native sensor or resource quiescence.
+
+support/trace.py/decode_cp_trace.py parse exact bytes against a binding manifest,
+checking finalization, word guards, sequence and zero uncommitted tail. Complete
+recording never sets physical capture/owner/clock/pixel validation true. Native
+32-bit clock wrap stays raw. Context_raw is deliberately not called a frame ID;
+unknown image generation/request identity is not filled from a nearby argument.
+
+cp_trace_native.c prototypes call original ARM get_tid5f1f24 with output0.
+Wrong/missing task or invalid header refuses before recording. Pool observation
+requires task256 and exact metadata pointer bindings derived from original setup,
+then bounded head/tail/free-count reads/rechecks. MMIO-like pointer corruption
+refuses before dereference. These selected checks are not global coherency/ABA
+or backing-pixel ownership proof. Native edge prototype samples original clock0
+and records raw context, leaving unknown image generation/handle0.
+
+cp_trace_hooks.S supplies UNINSTALLED begin/end entry wrappers. Lab addresses
+are explicitly defined by the verifier, never a firmware candidate. Wrappers
+save r0-r12/LR/APSR_NZCVQ/GE, call the observer, restore state and replay exact
+original6-byte prefixes before native continuation. Eight independent AFTER-call
+cases preserve original registers/flags/stack across four flag inputs/two edges.
+They are separate modeled inputs, not a fabricated native observer success.
+Full wrapper checks stop before actual get_tid, never reading native clocks.
+
+Both ISA recorders produce identical lane bytes. Corrupt records/header/binding,
+unfinalized/nested calls, aliasing, overflow and preoccupied slots are checked.
+Native pool adapter models check6 inputs including index wrap, bad counts and
+bad pointers;6 invalid native bindings refuse before task query. Selected CP
+binding FILE spans match the fresh135 retained current source. That is not
+loaded-source, actual native task, MMIO, boot or hook-placement admission.
+
+Initial model failure treated an overflow marker as a corrupt record rejection;
+the corrected test requires incomplete forensic data instead of discarding it.
+Later integer-ISA checking caught implicit memset pulling compiler_rt/FP into
+the native build. Explicit volatile event clearing removes that runtime pull;
+the unchanged ISA check then passes. Retain r1/r4 failed build/test artifacts;
+no failed native job was executed or replayed. Decoder CLI uses only local files.
+
+Still missing before a live candidate can be offered: allocated executable/
+lane addresses and loader/export/inverse; fresh loaded source/boot identity;
+actual callback task/IRQ/stack/timing admission; consistent pool snapshot and
+same-shot image/request/S2 correlation. Old runtime96 and zero/padding memory
+cannot host this state by assumption. No deployment authorization is requested
+for an unplaced candidate. Real pretrigger RAW/save/cancel/release and default-Off
+in-camera menu remain unimplemented native bindings, not passed tests.

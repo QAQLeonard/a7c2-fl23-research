@@ -69,6 +69,18 @@ The helper may repeat its native wait, and exposure end posts event2 without
 an end counter. Do not promote a per-wait raw timeout or old frame-clock latch
 to a physical terminal/exposure fence. No deployable CP observer is admitted.
 
+Phase136 adds an actual bounded trace core, offline parser, uninstalled ARM32
+task/pool/edge adapters and source-checked exposure entry wrappers. It is not
+an installed or fully qualified observer.3136 bytes per lane and64 extra wrapper
+stack bytes are NOT admitted spare memory/stack; never place them in runtime96,
+pool padding, zero memory or another trial's region. One serialized owner per
+lane, IRQ exclusion, boot/source/clock binding, code/storage placement, export
+and inverse remain unresolved. Context_raw is not a frame ID. Owner freeze is
+not global quiescence. Overflow refuses new records and makes recording incomplete;
+preserve busy/torn/overflow data without reset or automatic replay. Native pool
+reader only samples exact metadata indices after a task256 check, not backing
+pixels. A header cookie or test-supplied task result never grants native admission.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that

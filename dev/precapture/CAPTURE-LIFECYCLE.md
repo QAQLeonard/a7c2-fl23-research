@@ -113,6 +113,14 @@ The stock full-press/AF/AE path must continue separately; this test does not
 establish normal camera shooting, FL2/FL3/six-look preservation or boot safety.
 Those requirements and physical pre-capture remain unfinished.
 
+The separate `cp_trace` core records diagnostic evidence only. Each lane needs
+3136 fresh allocated bytes and a serialized native owner; the exposure wrappers
+need64 additional stack bytes before their C/native callees. Neither amount is
+admitted on the camera. It has no loader or export. Freeze only stops one lane;
+it does not satisfy the workflow's native terminal fence or any action completion.
+Raw context arguments,32-bit clock samples and input generation tags remain
+observations with unproven native meaning; they must not manufacture a frame lease.
+
 `audit_frame_clock.py` traces the stock timestamp stores. `frame+b98` copies
 global latch `1a508a0` through getter `a10fee`; `frame+66f4` receives a separate
 sample from service `69f488` at another processing point. Eleven pure-store
