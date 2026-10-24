@@ -221,7 +221,7 @@ class FactoryRecoveryTests(unittest.TestCase):
         instance.run_direct.assert_called_once()
         self.assertEqual(instance.run_direct.call_args.args,('factory_reset',))
         self.assertEqual(instance.run_direct.call_args.kwargs['factory_path'],'builtin')
-        self.assertEqual(instance.run_direct.call_args.kwargs['recovery_identity'],self.prior['identity'])
+        self.assertIsNone(instance.run_direct.call_args.kwargs.get('recovery_identity'))
         self.assertEqual(result['phase'], 'AWAITING_RELOAD')
 
     def dispatch(self, prior, configure):
@@ -242,38 +242,26 @@ class FactoryRecoveryTests(unittest.TestCase):
              patch('desktopapp.official.load', return_value={}):
             return worker.run('direct_factory_reset', args, self.root), jobs
 
-    def test_finished_restore_verifies_and_replans_only_when_content_changed(self):
-        finished = dict(self.prior, phase='AWAITING_RELOAD')
-        loaded = {'phase': 'LOADED', 'mode': 'factory_reset'}
-        def verified(root, job):
-            job.verify_direct.return_value = loaded
-        result, jobs = self.dispatch(finished, verified)
-        self.assertEqual(result['phase'], 'LOADED')
-        self.assertEqual(result['workspace'], str(self.failed.resolve()))
-        jobs[self.root / 'next'].run_direct.assert_not_called()
-        def changed(root, job):
-            job.verify_direct.side_effect = direct.ContentChanged('Full program readback differs: appFw.so')
-        result, jobs = self.dispatch(finished, changed)
-        fresh = jobs[self.root / 'next'].run_direct
-        fresh.assert_called_once()
-        self.assertIsNone(fresh.call_args.kwargs['recovery_identity'])
-        self.assertEqual(fresh.call_args.kwargs['recovery_source'], str(self.failed.resolve()))
-        # Not yet power-cycled (or any other stop) is reported, never re-planned.
-        def not_reloaded(root, job):
-            job.verify_direct.side_effect = ValueError('尚未确认新的冷启动。')
-        with self.assertRaisesRegex(ValueError, '冷启动'):
-            _, jobs = self.dispatch(finished, not_reloaded)
+    def test_old_finished_or_failed_recovery_never_redirects_a_fresh_reset(self):
+        for phase in ('AWAITING_RELOAD','LOADED','COMPLETE','NEEDS_REVIEW'):
+            prior = dict(self.prior, phase=phase)
+            def reject_old_verification(root, job):
+                job.verify_direct.side_effect = AssertionError('Old task verification must not gate a fresh reset')
+            result, jobs = self.dispatch(prior, reject_old_verification)
+            fresh = jobs[self.root / 'next']
+            fresh.verify_direct.assert_not_called()
+            fresh.run_direct.assert_called_once()
+            self.assertIsNone(fresh.run_direct.call_args.kwargs.get('recovery_identity'))
+            self.assertEqual(result['phase'], 'AWAITING_RELOAD')
+            self.assertEqual(result['workspace'], str(self.root / 'next'))
 
-    def test_unfinished_restore_on_another_body_replans_for_the_connected_body(self):
-        from looktool.usbidentity import BodyMismatch
-        def mismatch(root, job):
-            if root.name == 'next':
-                job.run_direct.side_effect = BodyMismatch('Current USB body identity differs; no service authentication')
-        result, jobs = self.dispatch(self.prior, mismatch)
-        first, second = jobs[self.root / 'next'].run_direct, jobs[self.root / 'next-current-body'].run_direct
-        self.assertEqual(first.call_args.kwargs['recovery_identity'], self.prior['identity'])
-        self.assertIsNone(second.call_args.kwargs['recovery_identity'])
-        self.assertEqual(result['workspace'], str(self.root / 'next-current-body'))
+    def test_old_other_body_record_is_not_used_to_bind_the_fresh_reset(self):
+        prior = dict(self.prior, identity={'model':'ILCE-7CM2','serial_sha256':'other-body'})
+        result, jobs = self.dispatch(prior, lambda root, job: None)
+        self.assertEqual(set(jobs), {self.root / 'next'})
+        jobs[self.root / 'next'].run_direct.assert_called_once()
+        self.assertIsNone(jobs[self.root / 'next'].run_direct.call_args.kwargs.get('recovery_identity'))
+        self.assertEqual(result['workspace'], str(self.root / 'next'))
 
     def test_unreadable_selected_record_replans_fresh(self):
         result, jobs = self.dispatch({}, lambda root, job: None)
@@ -287,7 +275,7 @@ class FactoryRecoveryTests(unittest.TestCase):
              patch('desktopapp.official.load', return_value={}):
             worker.run('direct_resume_factory', dict(workspace=str(instance.root), firmware='2.01',
                        power_confirmed=True, failed_workspace=str(self.failed)), self.root)
-        self.assertIsNone(instance.run_direct.call_args.kwargs['recovery_identity'])
+        self.assertIsNone(instance.run_direct.call_args.kwargs.get('recovery_identity'))
 
     def test_empty_temporary_namespace_without_any_completion_proof_stops(self):
         self.temps.clear()

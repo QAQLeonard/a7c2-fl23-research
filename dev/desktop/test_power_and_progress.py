@@ -181,26 +181,26 @@ class PowerProgressTests(unittest.TestCase):
             reload_popup.assert_not_called()
             process.return_value.start.assert_called_once()
 
-    def test_main_factory_button_routes_accounted_failure_to_continuation(self):
+    def test_main_factory_button_ignores_old_failure_and_starts_fresh(self):
         window = self.window()
         failed = self.root / 'original-failure'
         failed.mkdir()
         (failed / 'direct.private.json').write_text('{}')
         window.fields['factory_failed_work'].setText(str(failed))
-        # A second failed full reset must not replace the selected original.
+        # Both records remain evidence, not prerequisites for the new request.
         latest = self.root / 'second-attempt'
         latest.mkdir()
         (latest / 'direct.private.json').write_text('{"phase":"NEEDS_REVIEW","journal":[]}')
         window.settings['factory_direct_work'] = str(latest)
-        with patch('looktool.factoryrecover.pending', return_value=(failed.resolve(), {'phase': 'NEEDS_REVIEW'})), \
+        with patch('looktool.factoryrecover.pending', side_effect=AssertionError('No old-task discovery')), \
              patch.object(W.QMessageBox, 'question', return_value=W.QMessageBox.Yes) as question, \
              patch('desktopapp.window.QtCore.QProcess'):
             window.launch('direct_factory_reset', {'workspace': str(self.root / 'next'), 'firmware': '2.01'})
         request = json.loads((window.current_job / 'request.private.json').read_text())
-        self.assertEqual(request['action'], 'direct_resume_factory')
-        self.assertEqual(request['arguments']['failed_workspace'], str(failed.resolve()))
+        self.assertEqual(request['action'], 'direct_factory_reset')
+        self.assertNotIn('failed_workspace', request['arguments'])
         self.assertTrue(request['arguments']['power_confirmed'])
-        self.assertIn('已恢复的内容不重复写入', question.call_args.args[2])
+        self.assertIn('移除项目程序修改', question.call_args.args[2])
 
     def test_cancelling_auto_continuation_preserves_original_selection(self):
         window = self.window()
@@ -272,7 +272,7 @@ class PowerProgressTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '没有旧备份恢复记录'):
             worker.run('restore_verify', {'workspace': str(self.root / 'unused-recovery')}, self.root)
 
-    def test_completed_continuation_is_verified_first_with_rewrite_fallback(self):
+    def test_completed_old_task_does_not_redirect_new_restore_to_verification(self):
         window = self.window()
         failed, completed = self.root / 'old-failure', self.root / 'completed'
         failed.mkdir(); completed.mkdir()
@@ -281,16 +281,14 @@ class PowerProgressTests(unittest.TestCase):
             'resume_from': str(failed), 'phase': 'AWAITING_RELOAD'}))
         window.settings['factory_direct_work'] = str(completed)
         window.fields['factory_failed_work'].setText(str(failed))
-        with patch('looktool.factoryrecover.pending', return_value=(completed.resolve(), {'phase': 'AWAITING_RELOAD'})), \
+        with patch('looktool.factoryrecover.pending', side_effect=AssertionError('No old-task discovery')), \
              patch.object(W.QMessageBox, 'question', return_value=W.QMessageBox.Yes) as question, \
              patch('desktopapp.window.QtCore.QProcess'):
             window.launch('direct_factory_reset', {'workspace': 'not-started'})
-        # The worker verifies the finished restore first and writes only if
-        # the camera changed since, so the power confirmation is required.
-        self.assertIn('先只读核对', question.call_args.args[2])
+        self.assertIn('移除项目程序修改', question.call_args.args[2])
         request = json.loads((window.current_job / 'request.private.json').read_text())
-        self.assertEqual(request['action'], 'direct_resume_factory')
-        self.assertEqual(request['arguments']['failed_workspace'], str(completed.resolve()))
+        self.assertEqual(request['action'], 'direct_factory_reset')
+        self.assertNotIn('failed_workspace', request['arguments'])
         self.assertTrue(request['arguments']['power_confirmed'])
 
     def test_restore_after_loaded_recovery_starts_fresh_write_not_old_verification(self):

@@ -78,7 +78,7 @@ def dependencies():
     def save_off(job,camera,prepared):camera.saved=False;camera.events.append('saved_off')
     with patch.object(portraitjob,'vertical_modules',return_value=(None,None,modules)), \
          patch.object(verticalpersist,'field',side_effect=lambda ap,r,enabled:{'fixture':enabled}), \
-         patch('looktool.factoryrecover.supersede_temporary',return_value=0), \
+         patch('looktool.requestcleanup.supersede_temporary',return_value=0), \
          patch.object(Rollback,'restore_settings',save_off):yield
 
 

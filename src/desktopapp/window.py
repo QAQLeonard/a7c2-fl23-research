@@ -245,7 +245,7 @@ class Window(W.QMainWindow):
     def direct_verify_args(self, group, accepted=False):
         workspace=self.settings.get(group + '_direct_work', '')
         args={'workspace': workspace, 'accepted': accepted}
-        if group=='factory':args.update(factory_verify=True,factory_preferred=self.text('factory_failed_work'))
+        if group=='factory':args.update(workspace=self.text('factory_failed_work') or workspace,factory_verify=True)
         return args
 
     def show_setup_result(self):
@@ -397,13 +397,13 @@ class Window(W.QMainWindow):
 
     def recovery_page(self):
         layout = self.page('恢复原厂功能', '已内置本项目修改区域的原厂 2.01 基准。移除已支持的项目修改，六个自订栏位设为 ST 默认，保留机身校准。无需旧备份或下载完整固件；旧配方不找回。')
-        self.factory_button=self.button(layout, '恢复／继续恢复原厂 2.01 功能（无需旧备份）', 'direct_factory_reset',
+        self.factory_button=self.button(layout, '按当前相机恢复原厂 2.01 功能（无需旧备份）', 'direct_factory_reset',
                     lambda: self.direct_args('factory', mode='factory_reset', factory='builtin'), primary=True)
         self.factory_status=W.QLabel('恢复写入后必须按弹窗重启，再接回核对；核对通过前不会标记恢复完成。')
         self.factory_status.setWordWrap(True);layout.addWidget(self.factory_status)
-        resume_section = self.advanced(layout, '恢复事务（自动识别；也可手动选择）')
+        resume_section = self.advanced(layout, '上次恢复的核对记录（可选）')
         resume_form = W.QFormLayout()
-        self.field(resume_form, 'factory_failed_work', '恢复事务目录（通常自动）', kind='folder',
+        self.field(resume_form, 'factory_failed_work', '核对事务目录', kind='folder',
                    value=self.settings.get('factory_direct_work', ''))
         resume_section.addLayout(resume_form)
         self.factory_accept = self.reload_controls(layout, '取景、拍照和回放正常')
@@ -423,29 +423,21 @@ class Window(W.QMainWindow):
         self.refresh_factory_controls()
 
     def refresh_factory_controls(self):
+        # The main button always starts fresh; only the separate verification
+        # button uses the explicitly selected completed-write record.
+        self.factory_button.setText('按当前相机恢复原厂 2.01 功能（无需旧备份）')
         work=self.settings.get('factory_direct_work') or self.text('factory_failed_work')
         path=Path(work,'direct.private.json') if work else None
         try:state=json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {}
-        except (OSError,ValueError):return
+        except (OSError,ValueError):state={}
+        if not isinstance(state,dict):state={}
         phase=state.get('phase')
         if phase=='AWAITING_RELOAD':
-            self.factory_button.setText('重启后核对并完成恢复')
-            self.factory_status.setText('恢复尚未完成：写入与读回已结束。请断电重启、接回 USB，再点击上方按钮核对。')
+            self.factory_status.setText('上次恢复写入与读回已结束，但核对尚未完成。请按提示重启后使用下方核对按钮；上方恢复按钮始终按当前相机重新规划。')
         elif phase in ('LOADED','COMPLETE') and state.get('readonly_after_reload_verified'):
-            self.factory_button.setText('重新恢复原厂 2.01 功能（无需旧备份）')
-            self.factory_status.setText('上次恢复核对已通过。程序、设置、加载状态及只读挂载已核对；当前功能和拍摄验收以机身为准。')
+            self.factory_status.setText('上次恢复核对已通过；再次点击恢复会按当前相机重新规划，旧任务不影响本次操作。')
         elif phase=='NEEDS_REVIEW':
-            from looktool.factoryrecover import connection_failed_before_restore,prewrite_temporary_conflict
-            if prewrite_temporary_conflict(state):
-                self.factory_button.setText('断电后重试恢复（本次尚未写入）')
-                self.factory_status.setText('本次恢复尚未写入，遇到相机临时文件冲突。请按弹窗完整断电，接回 USB，再点击上方按钮重试；不需要旧 LUT 记录。')
-                return
-            if connection_failed_before_restore(state):
-                self.factory_button.setText('恢复原厂 2.01 功能（上次尚未开始）')
-                self.factory_status.setText('上次在 USB 连接阶段停止，尚未开始恢复写入。点击上方按钮，完成系统授权后重新连接。')
-                return
-            self.factory_button.setText('继续恢复／核对未完成事务')
-            self.factory_status.setText('恢复尚未完成，请继续处理未完成事务；当前不代表已恢复成功。')
+            self.factory_status.setText('上次操作未完成或尚未开始，旧记录保留用于诊断。再次恢复会读取当前相机，不要求旧任务成功。')
 
     def backup_recovery_controls(self, layout):
         form = self.box(layout, '恢复来源')
@@ -719,7 +711,6 @@ class Window(W.QMainWindow):
     def launch(self, action, arguments):
         if self.process is not None:
             return
-        factory_finished = False
         if action == 'setup_all' and not self.drivers_first(arguments):
             return
         if action=='direct_looks_import' and arguments.get('failed_workspace'):
@@ -751,24 +742,6 @@ class Window(W.QMainWindow):
             if answer != W.QMessageBox.Yes:
                 return
             action, arguments = 'direct_verify', self.direct_verify_args('factory', bool(arguments.get('accepted')))
-        if action == 'direct_factory_reset':
-            # A failed fresh attempt must not hide the original interrupted
-            # transaction. Resolve the explicitly selected evidence locally,
-            # before the power/write confirmation and before any USB access.
-            from .worker import setup_runtime
-            setup_runtime()
-            from looktool.factoryrecover import pending, FINISHED
-            try:
-                found = pending(data_root() / 'work', self.text('factory_failed_work'))
-            except (ValueError, OSError):
-                found = None  # Records are evidence only; the worker re-plans.
-            if found:
-                # A finished restore is verified first; the worker re-plans
-                # from current bytes if the camera changed since then.
-                original, prior = found
-                factory_finished = prior['phase'] in FINISHED
-                action = 'direct_resume_factory'
-                arguments = dict(arguments, failed_workspace=str(original), accepted=self.factory_accept.isChecked())
         if action == 'driver_uninstall':
             answer = W.QMessageBox.question(self, '卸载相机驱动',
                 '将备份并卸载 Sony 054C:0E8A／0336 的第三方驱动，让 Windows 重新识别相机。\n'
@@ -789,8 +762,7 @@ class Window(W.QMainWindow):
                           '；'.join('自订 %s → %s' % (r['slot'], '恢复 ST 默认' if r['action']=='restore' else '写入 '+r['name']) for r in arguments.get('operations', []))
                           if action == 'direct_looks_import' else
                           '继续已写好名称的外观安装：'+arguments.get('failed_workspace','') if action=='direct_resume_looks' else
-                          ('核对上次恢复；相机内容若已改变，则按当前字节重新恢复：' if factory_finished else
-                           '继续完成名称／设置恢复：') + arguments.get('failed_workspace', '') if action == 'direct_resume_factory' else
+                          '按当前相机重新恢复原厂 2.01 功能' if action == 'direct_resume_factory' else
                           '竖屏显示＋Fn／子菜单线框修正' if action=='vertical_enable' else
                           '关闭竖屏显示并撤销线框修正' if action=='vertical_disable' else
                           '原厂 2.01 功能' if action == 'direct_factory_reset' else
@@ -801,8 +773,7 @@ class Window(W.QMainWindow):
             scope = ('仅更改 CP 的 LUT 刷新代码；保留色表、名称、配方和其他功能。写入后完整断电重开，检查横线及切槽刷新。\n' if action in ('direct_preview_native','direct_preview_legacy','direct_preview_pending') else
                      '一次应用清单内的写入和恢复，未添加的槽位保持原样；保留 FL23、声音和竖屏。写入读回完成后统一提示断电重开。\n' if action=='direct_looks_import' else
                      '自动准备驱动并安装首页勾选的功能。断电重开必须由你按提示完成；结果不明时停止，不自动重复刷写。\n' if action == 'setup_all' else
-                     '先只读核对；只有相机内容已改变时才按当前字节写入，已符合原厂的内容不重复写入。\n' if action == 'direct_resume_factory' and factory_finished else
-                     '根据当前字节继续未完成阶段，已恢复的内容不重复写入；原失败事务保留，结果不明时先读取报告核对。\n' if action == 'direct_resume_factory' else
+                     '从当前相机字节重新生成原厂恢复计划；旧记录不影响本次操作，已符合目标的内容不重复写入。\n' if action == 'direct_resume_factory' else
                      '将移除项目程序修改、将六个自订栏位设为 ST 默认；旧配方不找回。请先在相机选择 ST。\n' if action == 'direct_factory_reset' else
                      '只关闭 FL2／FL3 列表入口，保留 LUT 与共用代码。请先在相机选择 ST。\n' if action == 'direct_fl23_disable' else
                      '将所选自订栏位设为 ST 默认，保留其他栏位。\n' if action == 'direct_slot_default' else '')

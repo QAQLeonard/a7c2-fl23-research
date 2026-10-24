@@ -38,7 +38,7 @@ class PortraitJob(DirectJob):
                 self.state['identity']=camera.identity
                 # Start a new, current-byte plan. Archive former inert workers;
                 # never replay their request or infer their write outcome.
-                from .factoryrecover import supersede_temporary
+                from .requestcleanup import supersede_temporary
                 supersede_temporary(camera,self.root/'evidence/prior-temporary',self.record)
                 before={'appFw.so':ap,
                         'settings-ram.bin':camera.snapshot(True),'settings-saved.bin':camera.snapshot(False)}

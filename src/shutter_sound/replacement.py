@@ -140,11 +140,8 @@ def prepare_current(camera,folder,command):
         link=getattr(camera,'link',None)
         if link is not None:link.mutating=True
         raise RuntimeError('相机执行入口当前仍被占用，本次声音操作尚未开始。请等待正在执行的操作结束。')
-    names=('shutter.staged.so','shutter.probe.result','a7c2.probe.result',
-           'lut-runtime-staged.so','a7c2.runtime.result','lut-program-staged.so',
-           'a7c2.install.request','a7c2.install.result','a7c2.wbi.request','a7c2.wbi.result',
-           'checkpoint.staged.so','checkpoint.program.request','checkpoint.program.result',
-           'checkpoint.names.request','checkpoint.names.result')
+    from looktool.requestcleanup import namespace
+    names=namespace()
     actual={n:camera.read('/tmp/jiritsu/'+n,True) for n in names}
     actual={n:raw for n,raw in actual.items() if raw is not None}
     # Save never needs the old RAM audition marker. A new audition removes
