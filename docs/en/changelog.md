@@ -4,6 +4,8 @@
 
 ## Unreleased — restore native LUT upload conditions
 
+- Merge the original history of PR #9 by nanguoopxiao (`55d6ef9`) into develop. Its selected-backup, stale workspace color-source, native-result evidence and PowerShell fixes were already ported in `c7ca250` with coauthor credit. Resolve the historical branch against current shared service-first transport, FL23/LUT planning, recovery behavior and compact documentation rather than restoring superseded implementations. This integration adds the original author commit to ancestry; it makes no additional runtime changes. Physical camera coverage remains unchanged.
+
 - Fix resource-reload continuation for batches that mix look imports with ST resets on the legacy six-slot layout, including reset-only batches. Reconstruct the complete title selection from the saved name worker's header, so restored slots are verified as ST and modern-layout resets retain their existing titles. Keep full resource readback, program-window checks and unknown-outcome guards. Offline regression tests use synthetic resources and a simulated camera; physical continuation has not been tested.
 
 - Keep RAW metadata reads read-only when filenames contain ExifTool argument syntax: reject the entire batch before starting ExifTool if an input path contains CR, LF or NUL, and pass absolute paths so leading `-` and `#` remain filename characters. Preserve UTF-8 stdin batching for large selections. Regression tests use synthetic XMP files; no camera interaction is involved.
