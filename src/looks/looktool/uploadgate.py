@@ -35,6 +35,10 @@ def validate(cp):
     Callers retain their independent layout, extent and source checks.
     """
     source = _source(cp)
+    from . import uploadpending
+    if uploadpending.active(source):
+        uploadpending.normalize(source)
+        return
     end = OFFSET + len(NATIVE)
     gate = source[OFFSET:end]
     if gate not in (NATIVE, FORCED):
@@ -73,13 +77,16 @@ def restore_legacy_for_test(cp):
 
 
 def legacy_hash_source(cp):
-    """Normalize native to FORCED solely for an existing strict code hash.
+    """Normalize reviewed upload layouts solely for an existing strict hash.
 
-    The returned bytes are a hash input, never a write candidate. Only this
-    reviewed instruction is normalized; every other byte must still satisfy
-    the caller's original canonical SHA check.
+    The returned bytes are a hash input, never a write candidate. Complete
+    acknowledgment layouts are validated and reduced to their exact underlay;
+    all other bytes still satisfy the caller's original canonical SHA check.
     """
     source = _source(cp)
+    from . import uploadpending
+    if uploadpending.active(source):
+        source = uploadpending.normalize(source)
     validate(source)
     if source[OFFSET:OFFSET + len(FORCED)] == FORCED:
         return source

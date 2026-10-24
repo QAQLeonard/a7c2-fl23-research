@@ -146,17 +146,23 @@ class Job:
                 self._later_fl23=actual==with_fl23
                 if allow_later_slots and not self._later_fl23:
                     # Old hash-based jobs remain strict about other slot data.
-                    # Accept only the complete target with this one reviewed
+                    # Accept only the complete target with an exact reviewed
                     # forward migration, never rewrite its recorded hashes.
+                    from . import uploadpending
+                    upgrades=[uploadgate.restore]
+                    if uploadpending.active(actual['cpapp-b.bin']):
+                        upgrades.append(uploadpending.install)
                     for candidate,later_fl23 in ((target,False),(with_fl23,True)):
-                        try:
-                            upgraded=dict(candidate)
-                            upgraded['cpapp-b.bin']=uploadgate.restore(candidate['cpapp-b.bin'])
-                        except ValueError:
-                            continue
-                        if upgraded!=candidate and actual==upgraded:
-                            self._later_upload_gate=True;self._later_fl23=later_fl23
-                            break
+                        for upgrade in upgrades:
+                            try:
+                                upgraded=dict(candidate)
+                                upgraded['cpapp-b.bin']=upgrade(candidate['cpapp-b.bin'])
+                            except ValueError:
+                                continue
+                            if upgraded!=candidate and actual==upgraded:
+                                self._later_upload_gate=True;self._later_fl23=later_fl23
+                                break
+                        if self._later_upload_gate:break
                 differs=not (self._later_fl23 or self._later_upload_gate)
             if differs:raise ValueError('Complete host readback differs from the job and its FL23-compatible target')
         elif actual!=wanted:

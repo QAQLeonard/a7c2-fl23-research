@@ -194,6 +194,11 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
         from verticaltool import portraitlayout
         if portraitlayout.active(target['appFw.so']):
             target['appFw.so']=portraitlayout.references(target['appFw.so'],False)[0]
+    if mode == 'look_import':
+        # Desktop single-slot and combined installs use the owner-tested
+        # acknowledgment layout, including fresh stock/FL23 bootstraps.
+        from . import uploadpending
+        target['cpapp-b.bin'] = uploadpending.install(target['cpapp-b.bin'])
     return target, wanted, rename
 
 

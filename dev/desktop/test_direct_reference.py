@@ -113,6 +113,22 @@ class ReferencePlanningTests(unittest.TestCase):
             self.assertEqual(restored['appFw.so'], self.stock['appFw.so'])
             self.assertEqual(restored['cpapp-b.bin'], self.stock['cpapp-b.bin'])
 
+    def test_normal_desktop_import_uses_and_preserves_the_tested_evf_layout(self):
+        from looktool import uploadpending
+        look = self.make_look(1, 24)
+        self.apply('look_import', slot=1, look=look)
+        installed = dict(self.current)
+        self.assertTrue(uploadpending.active(installed['cpapp-b.bin']))
+        for _, at, _, after in uploadpending.WINDOWS:
+            raw = bytes.fromhex(after)
+            self.assertEqual(installed['cpapp-b.bin'][at:at + len(raw)], raw)
+        self.apply('look_import', slot=1, look=look)
+        self.assertEqual(self.current, installed)
+        self.apply('look_import', slot=2, look=self.make_look(2, -24))
+        self.assertTrue(uploadpending.active(self.current['cpapp-b.bin']))
+        self.apply('slot_default', slot=2)
+        self.assertTrue(uploadpending.active(self.current['cpapp-b.bin']))
+
     def test_builtin_reference_preserves_unrelated_program_regions(self):
         for name in ('appFw.so', 'cpapp-b.bin'):
             changed = bytearray(self.current[name])

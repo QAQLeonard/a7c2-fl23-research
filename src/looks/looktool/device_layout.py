@@ -45,9 +45,9 @@ def identify_ap(ap):
     raise ValueError('Unsupported AP identity; no firmware/settings writes performed')
 
 def code_hash(cp):
-    # Retain the published complete-code fingerprint. Only the two reviewed
-    # upload-entry instructions normalize to its historical representation;
-    # unknown entries/context and all other code changes still fail.
+    # Retain the published complete-code fingerprint. Exact reviewed upload
+    # layouts normalize to the historical representation; unknown/partial
+    # layouts and all other code changes still fail.
     cp=uploadgate.legacy_hash_source(normalize_fl23_native(cp))
     start=six.TABLE_FILE+8;end=six.TABLE_FILE+32+6*six.TABLE_BYTES
     if len(cp)<end:raise ValueError('Truncated CP program')
@@ -130,7 +130,7 @@ def tables(cp):
 def same_selected_programs(expected,actual,slot):
     """Post-reload only: permit later data updates to the other five slots.
 
-    Also accept the reviewed one-way forced-to-native upload-entry migration.
+    Also accept the reviewed forward native-entry/acknowledgment migration.
     AP and all other CP code remain exact; old job evidence is never rewritten.
     This never relaxes pre-write checks or immediate installation readback.
     """
@@ -139,6 +139,9 @@ def same_selected_programs(expected,actual,slot):
     before,current=expected['cpapp-b.bin'],actual['cpapp-b.bin']
     if len(before)!=len(current):return False
     try:
+        from . import uploadpending
+        if not uploadpending.active(before) and uploadpending.active(current):
+            current=uploadpending.normalize(current)
         entry=slice(uploadgate.OFFSET,uploadgate.OFFSET+len(uploadgate.NATIVE))
         if before[entry]!=current[entry]:
             if before[entry]!=uploadgate.FORCED or current[entry]!=uploadgate.NATIVE:

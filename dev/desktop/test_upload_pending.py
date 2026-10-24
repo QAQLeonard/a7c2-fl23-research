@@ -67,6 +67,21 @@ def test_checked_in_instruction_bytes_match_reviewable_assembler():
     assert windows['unlock_hook'] == blocks['unlock_hook']
 
 
+def test_complete_ack_layout_has_only_the_reviewed_canonical_hash_exception():
+    from looktool import device_layout
+    source = synthetic()
+    target = uploadpending.install(source)
+    assert uploadgate.legacy_hash_source(target) == source
+    assert device_layout.code_hash(target) == device_layout.code_hash(source)
+    changed = bytearray(target)
+    changed[0x70000] ^= 1
+    assert device_layout.code_hash(bytes(changed)) != device_layout.code_hash(source)
+    changed = bytearray(target)
+    changed[0x324e62 + 2] ^= 1
+    with pytest.raises(ValueError):
+        device_layout.code_hash(bytes(changed))
+
+
 @pytest.mark.parametrize('index', range(len(uploadpending.WINDOWS)))
 def test_unknown_or_partial_code_is_rejected(index):
     source = synthetic()
@@ -175,6 +190,47 @@ def test_real_trial1_to_trial3_plan_is_cp_only_and_reversible(native_images):
     restored, wanted, names = direct.plan(target, None, 'preview_native')
     assert restored == current
     assert wanted == [{}, {}] and names is None
+
+
+def test_old_selected_slot_verification_accepts_only_forward_ack_migration(native_images):
+    from looktool import device_layout
+    _, _, old, _, candidate = native_images
+    before = {'appFw.so': b'UNCHANGED AP', 'cpapp-b.bin': old}
+    after = dict(before, **{'cpapp-b.bin': candidate})
+    assert device_layout.same_selected_programs(before, after, 1)
+    assert not device_layout.same_selected_programs(after, before, 1)
+    for at in (0x70000, 0x8000 + 32, 0x324e62):
+        changed = bytearray(candidate)
+        changed[at] ^= 1
+        assert not device_layout.same_selected_programs(before, dict(after, **{'cpapp-b.bin': bytes(changed)}), 1)
+
+
+def test_old_hash_job_ack_migration_is_post_reload_only(native_images, tmp_path):
+    import types
+    from looktool import devicejob, devicesession, firmware
+    _, _, old, _, candidate = native_images
+    source = {'appFw.so': b'UNCHANGED AP', 'cpapp-b.bin': old}
+    actual = dict(source, **{'cpapp-b.bin': candidate})
+    camera = types.SimpleNamespace(read=lambda path: actual[next(
+        name for name, value in devicejob.PROGRAM_PATHS.items() if value == path)])
+    job = devicejob.Job(tmp_path)
+    hashes = {name: firmware.sha(raw) for name, raw in source.items()}
+    job.state = dict(source_hashes=hashes, target_hashes=hashes)
+    job.source = lambda name: source[name]
+    forward = firmware.transition(source, source, {name: [] for name in source})
+    devicejob.write_json(tmp_path / 'transition/forward.private.json', forward)
+    compat = types.ModuleType('compat')
+    compat.plan = lambda ap, cp, **kwargs: ({}, True, {'appFw.so': ap, 'cpapp-b.bin': cp}, None, None)
+    with patch.object(devicesession, 'modules'), patch.dict(sys.modules, {'compat': compat}):
+        with pytest.raises(ValueError, match='readback'):
+            job._read_programs(camera, hashes)
+        assert job._read_programs(camera, hashes, allow_later_slots=True) == actual
+        assert job._later_upload_gate
+        changed = bytearray(candidate)
+        changed[0x70000] ^= 1
+        actual['cpapp-b.bin'] = bytes(changed)
+        with pytest.raises(ValueError, match='readback'):
+            job._read_programs(camera, hashes, allow_later_slots=True)
 
 
 def test_native_missed_consumption_recovers_and_stable_cycles_stop_repeating(native_images):
