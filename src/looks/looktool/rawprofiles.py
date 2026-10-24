@@ -122,9 +122,20 @@ class Registry:
 
 def metadata(files,exiftool):
     """Read only the fields needed for routing; never write a RAW."""
+    paths=[]
+    for file in files:
+        source=str(file)
+        path=str(Path(source).absolute())
+        # -@ is a line-based argument file, not an escaped filename list.
+        # Validate the whole batch before launch; absolute paths also prevent
+        # leading '-' or '#' from becoming options or comments.
+        if any(char in value for value in (source,path) for char in ('\r','\n','\0')):
+            raise ValueError('ExifTool input paths cannot contain CR, LF or NUL characters')
+        paths.append(path)
+    if not paths:return []
     command=[str(exiftool),'-j','-n','-charset','filename=UTF8','-Model','-DateTimeOriginal',
              '-SubSecTimeOriginal','-Sony:CreativeStyle','-@','-']
-    result=subprocess.run(command,input='\n'.join(map(str,files))+'\n',stdout=subprocess.PIPE,
+    result=subprocess.run(command,input='\n'.join(paths)+'\n',stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,encoding='utf-8',errors='replace')
     if result.returncode:raise RuntimeError('ExifTool could not read RAW metadata: '+result.stderr.strip())
     return json.loads(result.stdout)
