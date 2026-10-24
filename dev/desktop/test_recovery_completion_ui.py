@@ -40,7 +40,7 @@ def test_written_recovery_is_70_percent_and_requires_reboot_verification(pending
         finish(window,work,'AWAITING_RELOAD')
     assert window.progress.value()==70
     assert '恢复尚未完成' in window.status.text()
-    assert '重启后核对并完成恢复'==window.factory_button.text()
+    assert '按当前相机恢复' in window.factory_button.text()
     assert '尚未完成' in window.factory_status.text()
     popup.assert_called_once_with(setup=False,mode='factory_reset')
     assert not window.factory_accept.isChecked()
@@ -64,7 +64,7 @@ def test_failed_verify_keeps_pending_state(pending_window):
     finish(window,work,'AWAITING_RELOAD','direct_verify',False)
     assert window.progress.value()==0
     assert '尚未完成' in window.factory_status.text()
-    assert window.factory_button.text()=='重启后核对并完成恢复'
+    assert '按当前相机恢复' in window.factory_button.text()
 
 
 def test_restart_dialog_explicitly_requires_followup_check():
@@ -151,7 +151,7 @@ def test_diagnostic21_offers_prewrite_restart_without_claiming_recovery_complete
         finish(window,work,'NEEDS_REVIEW',success=False,error=state['error'])
     popup.assert_called_once_with(mode='factory_prewrite_temporary')
     assert window.progress.value()==0
-    assert window.factory_button.text()=='断电后重试恢复（本次尚未写入）'
+    assert '按当前相机恢复' in window.factory_button.text()
     assert '本次恢复尚未写入' in window.status.text()
     assert (work/'direct.private.json').read_bytes()==original
     assert pending(work.parent,work) is None  # Next click plans a fresh restore.

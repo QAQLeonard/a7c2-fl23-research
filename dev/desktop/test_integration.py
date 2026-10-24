@@ -159,13 +159,13 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(settings['worker_prefix'],['--raw-profile-worker'])
         self.assertTrue(Path(settings['exiftool']).is_file())
 
-    def test_factory_verification_discovers_successful_operator_continuation(self):
+    def test_factory_verification_uses_only_explicitly_selected_record(self):
         from unittest.mock import Mock
         obj=Mock();obj.root=self.root/'actual-completed'
         obj.state_path=self.root/'state';obj.state_path.write_text('{"mode":"factory_reset","factory_path":"builtin"}')
         obj.verify_direct.return_value={'phase':'LOADED','mode':'factory_reset'}
-        args={'workspace':'obsolete-failed-attempt','factory_verify':True,'accepted':False}
-        with patch('looktool.factoryrecover.pending',return_value=(obj.root,{'phase':'AWAITING_RELOAD'})), \
+        args={'workspace':str(obj.root),'factory_verify':True,'accepted':False}
+        with patch('looktool.factoryrecover.pending',side_effect=AssertionError('No old-task discovery')), \
              patch('looktool.direct.DirectJob',return_value=obj),patch('desktopapp.official.load',return_value={}):
             result=worker.run('direct_verify',args,self.root)
         self.assertEqual(result['workspace'],str(obj.root))

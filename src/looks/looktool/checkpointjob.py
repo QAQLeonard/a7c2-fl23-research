@@ -166,6 +166,8 @@ class Rollback:
         try:
             with self.factory(manifest['identity']) as camera:
                 checkpoint.same_body(manifest['identity'],camera.identity)
+                from .requestcleanup import supersede_temporary
+                supersede_temporary(camera,self.root/'evidence/superseded-temporary',self.record)
                 current=self.capture(camera)
                 checkpoint.write(self.root/'before.private.zip',current,camera.identity,provenance={'type':'before-full-rollback'})
                 # Old FL23 backups carry their own body serial/programs/settings.

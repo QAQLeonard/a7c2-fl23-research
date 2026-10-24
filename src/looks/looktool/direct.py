@@ -496,8 +496,8 @@ class DirectJob(Rollback):
                     sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
                     from replacement import prepare_current
                     prepare_current(camera,self.root/'evidence/sound-current',mode)
-                if mode=='factory_reset':
-                    from .factoryrecover import supersede_temporary
+                else:
+                    from .requestcleanup import supersede_temporary
                     supersede_temporary(camera,self.root/'evidence/superseded-temporary',self.record)
                 current = self.capture(camera)
                 if mode in ('preview_native', 'preview_legacy', 'preview_pending'):

@@ -90,22 +90,10 @@ def run(action, args, job):
             from . import lookbatch
             args = dict(args, options=lookbatch.options(args.get('operations',args.get('looks', []))))
             mode = 'install_all'
-        if mode=='verify' and args.get('factory_verify'):
-            from looktool.factoryrecover import pending, FINISHED
-            found=pending(data_root()/'work',args.get('factory_preferred'))
-            if found:
-                if found[1]['phase'] not in FINISHED:raise ValueError('恢复尚未结束，请先点击“恢复／继续恢复”')
-                args=dict(args,workspace=str(found[0]))
         if not args.get('workspace'):
             raise ValueError('先完成一次本页操作，再核对重新加载状态。')
         obj = DirectJob(Path(args['workspace']))
         reference, reference_path = None, args.get('factory') or 'builtin'
-        if mode == 'factory_reset':
-            from looktool.factoryrecover import pending
-            found = pending(data_root() / 'work', args.get('failed_workspace'))
-            if found:
-                args = dict(args, failed_workspace=str(found[0]))
-                mode = 'resume_factory'
         if mode=='resume_settings':
             result=obj.resume_install_settings(args['failed_workspace'],power_confirmed=args.get('power_confirmed',False))
         elif mode=='resume_looks':
@@ -135,50 +123,19 @@ def run(action, args, job):
             else:
                 result = obj.verify_direct(factory_values=reference, accepted=bool(args.get('accepted')))
         elif mode == 'resume_factory':
-            from looktool.direct import ContentChanged
-            from looktool.factoryrecover import FINISHED
-            from looktool.usbidentity import BodyMismatch
+            # This button starts a fresh built-in reset. Historical jobs are
+            # optional provenance, never a prerequisite or a source of targets.
             from .official import load
             reference = load(reference_path)
-            fresh = lambda job, identity=None, source=None: job.run_direct('factory_reset', version=args['firmware'],
+            result = obj.run_direct('factory_reset', version=args['firmware'],
                 power_confirmed=args.get('power_confirmed', False), factory_values=reference,
-                factory_path=reference_path, recovery_identity=identity, recovery_source=source)
-            prior_root=Path(args['failed_workspace']).resolve()
-            try:
-                prior=json.loads((prior_root/'direct.private.json').read_text(encoding='utf-8'))
-            except (OSError, ValueError):
-                prior = {}
-            if prior.get('mode')!='factory_reset' or not isinstance(prior.get('identity'), dict):
-                # Old records are evidence only; never let one block a restore.
-                print('所选恢复记录不可用（保留原样）；按当前连接的相机重新生成内建原厂恢复计划。', flush=True)
-                result = fresh(obj)
-            elif prior['phase'] in FINISHED:
-                print('上次恢复写入已结束；先核对，不重复写入。', flush=True)
-                try:
-                    verifier = DirectJob(prior_root)
-                    result = verifier.verify_direct(factory_values=reference, accepted=bool(args.get('accepted')))
-                    obj = verifier
-                except ContentChanged as exc:
-                    # Read-only verification found other bytes, e.g. features
-                    # installed again after that restore: re-plan, don't loop.
-                    print('相机内容已与上次恢复结果不同（%s），通常是之后又安装或修改过功能。旧记录保留；'
-                          '按当前相机字节重新生成原厂恢复计划。' % exc, flush=True)
-                    result = fresh(obj, source=str(prior_root))
-            else:
-                print('保留旧恢复记录，从当前相机重新生成内建原厂恢复计划；不重放旧任务。', flush=True)
-                try:
-                    result = fresh(obj, prior.get('identity'), str(prior_root))
-                except BodyMismatch:
-                    # Rejected from the USB serial before any authentication.
-                    print('当前连接的是另一台机身；该机身的旧记录保留不动。按当前相机重新生成恢复计划。', flush=True)
-                    obj = DirectJob(obj.root.with_name(obj.root.name + '-current-body'))
-                    result = fresh(obj, source=str(prior_root))
+                factory_path=reference_path, recovery_source=args.get('failed_workspace'))
         else:
             if mode == 'factory_reset':
                 from .official import load
                 reference = load(reference_path)
             result = obj.run_direct(mode, version=args['firmware'], power_confirmed=args.get('power_confirmed', False),
-                factory_values=reference, factory_path=reference_path if reference else None,
+                factory_values=reference, factory_path=reference_path if mode == 'factory_reset' else None,
                 slot=args.get('slot'), look_path=args.get('look'), name=args.get('name') or None,
                 bundle_options=args.get('options'))
         response = {'workspace': str(obj.root), 'phase': result['phase'], 'mode': result['mode'],
