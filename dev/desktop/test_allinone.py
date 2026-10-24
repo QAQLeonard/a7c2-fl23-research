@@ -10,6 +10,21 @@ from desktopapp import allinone
 
 
 class AllInOneTests(unittest.TestCase):
+    def test_native_portrait_migration_waits_before_lut_install_then_continues(self):
+        def migrating(action,args,folder):
+            if action=='vertical_enable' and not self.booted:
+                self.calls.append((action,args))
+                return dict(phase='AWAITING_RELOAD',migration_pending=True,mode='vertical_native_prepare')
+            return self.dispatch(action,args,folder)
+        result=allinone.run(self.args,dispatch=migrating)
+        self.assertEqual(result['phase'],'PREPARING_VERTICAL')
+        self.assertTrue(result['reload_required'])
+        self.assertNotIn('direct_install_all',[a for a,_ in self.calls])
+        self.booted=True
+        result=allinone.run(self.args,dispatch=migrating)
+        self.assertEqual(result['phase'],'WAIT_RELOAD')
+        self.assertEqual([a for a,_ in self.calls].count('direct_install_all'),1)
+
     def test_plugin_failure_retries_host_step_without_opening_camera(self):
         root=self.root/'host-only';install=root/'install';install.mkdir(parents=True)
         (install/'direct.private.json').write_text(json.dumps(dict(phase='LOADED',bundle_options=dict(looks=[]))))

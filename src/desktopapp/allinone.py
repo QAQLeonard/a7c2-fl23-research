@@ -191,6 +191,11 @@ def run(arguments, *, dispatch):
                 save('PREPARING_VERTICAL',failed_step='portrait_frames')
                 result=call('vertical_enable',dict(common,workspace=str(root/'vertical'),drivers_prepared=True,combined=True),
                             'vertical-frames-'+uuid.uuid4().hex[:6])
+                if result.get('migration_pending'):
+                    save('PREPARING_VERTICAL',portrait_frames_result=result)
+                    from .reloadguide import text
+                    print('所有读写已结束。\n'+text(mode='vertical_native_prepare'),flush=True)
+                    return dict(state,reload_required=True,mode='vertical_native_prepare')
                 if result.get('phase') not in ('AWAITING_RELOAD','LOADED','COMPLETE'):
                     raise ValueError('竖屏线框步骤没有返回已写入／已符合目标状态，请保留日志')
                 state['portrait_frames_preinstalled']=True

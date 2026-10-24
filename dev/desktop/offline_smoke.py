@@ -228,6 +228,10 @@ def run():
     sys.path[:0] = [str(ROOT / 'src/vertical'), str(ROOT / 'src/shutter_sound')]
     importlib.import_module('verticaltool.device')
     importlib.import_module('looktool.portraitjob')
+    importlib.import_module('verticaltool.nativeportrait')
+    importlib.import_module('desktopapp.vertical_native')
+    from desktopapp.disclaimer import terms_text
+    assert 'DMCA' in terms_text() and 'MIT' in terms_text()
     from verticaltool import imagebank, portraitbank, portraitworker
     import struct
     with tempfile.TemporaryDirectory(prefix='a7c2-portrait-smoke-') as temporary:

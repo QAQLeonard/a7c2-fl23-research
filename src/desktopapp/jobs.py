@@ -75,7 +75,7 @@ def transaction_summaries(job):
         children=[p.parent for p in sorted(root.glob('persistent-*/direct.private.json'),key=lambda p:p.stat().st_mtime_ns)[-3:]]
     fields=('schema','phase','mode','failed_during','error','error_type','completed_steps',
             'install_workspace','failed_install_workspaces','names_cleanup_pending',
-            'readonly_after_reload_verified','physical_checks_accepted','private_sound_files_removed')
+            'readonly_after_reload_verified','physical_checks_accepted','private_sound_files_removed','native_portrait')
     setup=root/'setup.private.json'
     if setup.is_file():
         state=json.loads(setup.read_text(encoding='utf-8'))

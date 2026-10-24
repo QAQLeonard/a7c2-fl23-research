@@ -55,6 +55,13 @@ static i64 check_guards(void) {
         i64 n=sc(67,fd,(i64)buffer,guards[i].size,report.base+guards[i].offset,0,0);
         if(n!=(i64)guards[i].size||!equal(buffer,guards[i].bytes,guards[i].size))v=-84;
     }
+#ifdef RESOURCE_PORTRAIT
+    if(!v&&req.mode) {
+        u32 value=0;
+        i64 n=sc(67,fd,(i64)&value,4,report.base+0x7e732b8,0,0);
+        if(n!=4||value!=1)v=-84;
+    }
+#endif
     close_fd(&fd);return v;
 }
 static i64 sync_dir(void) {

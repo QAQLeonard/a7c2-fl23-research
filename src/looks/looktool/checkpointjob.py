@@ -174,7 +174,10 @@ class Rollback:
                     if not voice_source:
                         raise ValueError('此备份会解除语音关闭限制。请提供官方 2.01 文件或该备份附带的语音 ZIP，先补回资源；本次尚未写入程序。')
                     from .resourceworker import restore_voice
-                    restore_voice(camera,self,voice_source)
+                    from .verticalresources import release
+                    target_vertical=camera.records(target['settings-ram.bin'])[0].get(0x02cf1906)
+                    release_space=(lambda:release(camera,self,current)) if target_vertical and target_vertical.data==b'\1' else None
+                    restore_voice(camera,self,voice_source,before_restore=release_space)
                 checkpoint.write(self.root/'before.private.zip',current,camera.identity,provenance={'type':'before-full-rollback'})
                 # Old FL23 backups carry their own body serial/programs/settings.
                 # Reconstruct appended names from current native records; never

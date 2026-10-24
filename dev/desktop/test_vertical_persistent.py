@@ -18,6 +18,32 @@ from verticaltool import device
 
 
 class PersistentVerticalTests(unittest.TestCase):
+    def test_native_bank_disable_removes_full_or_partial_banks_only_after_off(self):
+        from verticaltool import nativeportrait
+        from looktool import resourceworker
+        for mask in (7,1):
+            with self.subTest(mask=mask):
+                targets=[b'managed-'+bytes([i]) for i in range(3)]
+                actual=[value if mask&(1<<i) else None for i,value in enumerate(targets)]
+                self.camera.primary=0
+                for records in (self.camera.ram,self.camera.saved):records[0][verticalpersist.SETTING]=Prop(b'\0',64)
+                read=self.camera.read
+                def current(path,missing=False):
+                    return actual[device.ALIASES.index(path)] if path in device.ALIASES else read(path,missing)
+                def remove(worker):
+                    self.assertEqual(self.camera.primary,1)
+                    self.assertEqual(self.camera.saved[0][verticalpersist.SETTING].data,b'\1')
+                    actual[:]=[None]*3
+                with patch.object(self.camera,'read',side_effect=current), \
+                     patch.object(nativeportrait,'owned',side_effect=lambda value:bool(value and value.startswith(b'managed-'))), \
+                     patch.object(nativeportrait,'targets',return_value=targets), \
+                     patch.object(resourceworker.Resources,'delete',remove), \
+                     patch.object(direct,'plan',side_effect=lambda c,r,m,**kw:self.plan(c,r,False)):
+                    result=SimDirect(self.root/('native-off-'+str(mask)),factory=self.camera).run_direct(
+                        'vertical_disable',version='2.01',power_confirmed=True)
+                self.assertEqual(result['phase'],'AWAITING_RELOAD')
+                self.assertEqual(actual,[None]*3)
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
@@ -133,15 +159,16 @@ class PersistentVerticalTests(unittest.TestCase):
             self.assertFalse(self.camera.saves)
 
     def test_gui_vertical_button_uses_saved_direct_job_not_legacy_session_toggle(self):
-        from looktool.portraitjob import PortraitJob
+        from desktopapp import vertical_native
         from desktopapp.platforms import usb_drivers
         response=dict(phase='AWAITING_RELOAD',mode='vertical_enable',
             vertical_result=dict(saved='ON',running='OFF',persistent=True,loaded_verified=False))
-        with patch.object(PortraitJob,'run_frames',return_value=response) as run, \
+        with patch.object(vertical_native,'run',return_value=response) as run, \
                 patch.object(usb_drivers,'prepare',return_value={}), \
                 patch.object(device,'execute',side_effect=AssertionError('no session toggle')):
             result=worker.run('vertical_enable',dict(workspace=str(self.root/'gui'),firmware='2.01',power_confirmed=True),self.root)
-        self.assertEqual(run.call_args.args,(True,))
+        self.assertEqual(run.call_args.args[0]['firmware'],'2.01')
+        self.assertTrue(run.call_args.args[0]['power_confirmed'])
         self.assertEqual(result['phase'],'AWAITING_RELOAD')
         self.assertTrue(result['vertical_result']['persistent'])
 

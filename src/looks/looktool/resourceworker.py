@@ -11,6 +11,7 @@ VOICE_NAMES=tuple(language+suffix for language in ('english','french','german','
     'korean','portuguese','simplifiedchinese','spanish','traditionalchinese') for suffix in ('.bin','_info.txt'))
 SOUND_NAMES=('custom.txt','custom-shutter.bin','custom-shutter-a.bin','custom-shutter-b.bin',
              '.a7c2-sound-audio.tmp','.a7c2-sound-csv.tmp')
+PORTRAIT_NAMES=tuple(f'image_{i:02d}_23_IPSX.uxc' for i in range(3))
 INFO=struct.Struct('<qQQ32s')
 REQUEST=struct.Struct('<8sIIQII32s')
 
@@ -18,10 +19,18 @@ REQUEST=struct.Struct('<8sIIQII32s')
 def layout(kind):
     if kind=='voice':return '/usr/share/screenreader',VOICE_NAMES
     if kind=='sound':return '/usr/share/avsystemsound',SOUND_NAMES
+    if kind=='portrait':return '/usr/share/app',PORTRAIT_NAMES
     raise ValueError('Unknown resource namespace')
 
 
 def guards(kind,*,menu=True):
+    if kind=='portrait':
+        import sys
+        sys.path.insert(0,str(nativebuild.ROOT/'src/vertical'))
+        from verticaltool import portraitlayout,portraitgauge
+        result=[(at+delta,struct.pack('<I',original)) for at,_,delta,original in portraitlayout.PAIRS]
+        return result+[(portraitgauge.OFFSET,portraitgauge.BEFORE),
+                       (portraitgauge.VERTICAL_OFFSET,portraitgauge.VERTICAL_BEFORE)]
     if kind=='voice':
         result=[(at,new) for at,old,new in voicelock.WINDOWS]
         # The AP's data PT_LOAD has a 0x10000 file-to-virtual displacement.
@@ -68,10 +77,11 @@ def build(kind,folder,*,inventory=None,targets=None,zig=None,menu=True):
         'static const char *staging[]={'+','.join(quote(directory+'/.a7c2-restore-'+n+'.tmp') for n in names)+'};',
         'static const struct Info expected_files[]={'+','.join(info(r) for r in before['files'])+'};',
         'static const struct Info expected_stages[]={'+','.join(info(r) for r in before['stages'])+'};',
-        'static const u8 deletable[]={'+','.join('1' if kind=='sound' or n.endswith('.bin') else '0' for n in names)+'};',
+        'static const u8 deletable[]={'+','.join('1' if kind!='voice' or n.endswith('.bin') else '0' for n in names)+'};',
         'static const u64 target_sizes[]={'+','.join(str((targets or {}).get(n,{}).get('bytes',0))+'UL' for n in names)+'};',
         'static const u8 target_hashes[][32]={'+','.join(cbytes(bytes.fromhex((targets or {}).get(n,{}).get('sha256','00'*32))) for n in names)+'};',
         'struct Guard {u64 offset;u32 size;const u8 *bytes;};']
+    if kind=='portrait':lines.append('#define RESOURCE_PORTRAIT 1')
     for i,(at,code) in enumerate(spec):lines.append('static const u8 guard_'+str(i)+'[]='+cbytes(code)+';')
     lines+=['static const struct Guard guards[]={'+','.join('{'+str(at)+'UL,'+str(len(code))+',guard_'+str(i)+'}' for i,(at,code) in enumerate(spec))+'};',
             'static const u32 guard_count='+str(len(spec))+';']
@@ -109,10 +119,10 @@ class Resources:
             if row['status']==-2 or self.kind=='voice' and not row['name'].endswith('.bin'):continue
             self.call(writer,1,i)
         after=self.call(self.reader,0)
-        if any(r['status']!=-2 for r in after['files'] if self.kind=='sound' or r['name'].endswith('.bin')):
+        if any(r['status']!=-2 for r in after['files'] if self.kind!='voice' or r['name'].endswith('.bin')):
             raise ValueError('Resource deletion did not read back')
         self.owner.record('resource_files_removed',kind=self.kind,files=[r['name'] for r in before['files']
-            if r['status']==0 and (self.kind=='sound' or r['name'].endswith('.bin'))])
+            if r['status']==0 and (self.kind!='voice' or r['name'].endswith('.bin'))])
         return after
     def restore(self,source,targets):
         # Older cleanup candidates have the four speech guards but no gray-menu
@@ -123,7 +133,7 @@ class Resources:
             target=targets[name];current=before['files'][i];stage=before['stages'][i]
             if current['status']==0 and (current['bytes'],current['sha256'])==(target['bytes'],target['sha256']):
                 if stage['status']==0:
-                    self.owner.raw('abandoned-voice-'+name+'.bin',self.camera.read(self.directory+'/.a7c2-restore-'+name+'.tmp'))
+                    self.owner.raw('abandoned-'+self.kind+'-'+name+'.bin',self.camera.read(self.directory+'/.a7c2-restore-'+name+'.tmp'))
                     self.call(writer,4,i)
                 continue
             offset=0;digest=sha256()
@@ -133,7 +143,7 @@ class Resources:
                     if len(prefix)==stage['bytes'] and digest.hexdigest()==stage['sha256'] and 0<stage['bytes']<=target['bytes']:
                         offset=stage['bytes']
                     else:
-                        self.owner.raw('abandoned-voice-'+name+'.bin',self.camera.read(self.directory+'/.a7c2-restore-'+name+'.tmp'))
+                        self.owner.raw('abandoned-'+self.kind+'-'+name+'.bin',self.camera.read(self.directory+'/.a7c2-restore-'+name+'.tmp'))
                         self.call(writer,4,i);stream.seek(0);digest=sha256()
                 while data:=stream.read(CHUNK):
                     self.camera.temp_write('resource.chunk',data)
@@ -141,17 +151,19 @@ class Resources:
                     result=self.call(writer,2,i,offset,len(data),digest.digest())
                     if result['progress_bytes']!=offset+len(data):raise ValueError('Voice chunk progress differs')
                     self.camera.temp_remove('resource.chunk');digest.update(data);offset+=len(data)
-                    print('语音文件写回：%s %.1f / %.1f MiB'%(name,offset/1048576,target['bytes']/1048576),flush=True)
+                    print('资源文件写回：%s %.1f / %.1f MiB'%(name,offset/1048576,target['bytes']/1048576),flush=True)
                 if offset!=target['bytes'] or digest.hexdigest()!=target['sha256']:raise ValueError('Voice source changed during restore')
             self.call(writer,3,i)
             actual=self.camera.read(self.directory+'/'+name)
-            if len(actual)!=target['bytes'] or sha256(actual).hexdigest()!=target['sha256']:raise ValueError('Voice full readback differs: '+name)
-        self.owner.record('voice_resources_complete_readback_verified',files=list(self.names))
+            if len(actual)!=target['bytes'] or sha256(actual).hexdigest()!=target['sha256']:raise ValueError('Resource full readback differs: '+name)
+        self.owner.record('voice_resources_complete_readback_verified' if self.kind=='voice' else
+            'resource_files_complete_readback_verified',kind=self.kind,files=list(self.names))
 
 
-def restore_voice(camera,owner,source):
+def restore_voice(camera,owner,source,*,before_restore=None):
     from desktopapp import screenreader
     from . import checkpoint
     manifest=screenreader.load(source)
     if manifest.get('identity'):checkpoint.same_body(manifest['identity'],camera.identity)
+    if before_restore:before_restore()
     Resources(camera,owner,'voice').restore(source,manifest['files'])

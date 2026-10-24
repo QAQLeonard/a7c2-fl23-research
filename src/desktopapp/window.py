@@ -645,9 +645,11 @@ class Window(W.QMainWindow):
         args = lambda: dict(self.common(), workspace=self.text('vertical_work'))
         self.button(layout, '开启竖屏显示', 'vertical_enable', args, primary=True)
         self.button(layout, '关闭竖屏显示', 'vertical_disable', args)
-        frame_hint=W.QLabel('开启会保存竖屏开关并应用当前的 Fn／子菜单显示修正；关闭会先关闭竖屏，再撤销显示修正。两个操作都支持重复覆盖。')
+        frame_hint=W.QLabel('采用与 M4 相同的原生资源分流：横／竖屏各自读取独立资源，保留原图像 ID 和原生刻度绘制。'
+            '从旧版升级时先撤回补偿并按提示重开，再点开启继续；新竖屏资源完整复制与读回后才保存开启。'
+            '资源约占 28 MiB，空间不足会停止；可在恢复页选择清理语音，工具不会自动删除。')
         frame_hint.setWordWrap(True);layout.addWidget(frame_hint)
-        known=W.QLabel('已知显示问题：竖屏创意外观选择页的外框仍偏粗；刻度已横向显示，但橙色指针朝向尚未修正。')
+        known=W.QLabel('当前为原生竖屏路径候选，尚未真机验收。重开后请检查横握／两侧竖握的 Fn、外框、橙色指针、触摸／按键方向及拍摄回放。')
         known.setWordWrap(True);layout.addWidget(known)
         hint = W.QLabel('开启／关闭会一次完成所选写入和读回，再统一弹窗提示断电加载。相同状态可重复点击，相同内容不重复写入。')
         hint.setWordWrap(True)

@@ -104,6 +104,8 @@ If `0336` never appears and the camera returns to `0E8A`, the session cools down
 
 **Sound** (`src/shutter_sound/`): `media.py`/`native_codec.py` convert audio on the computer. `sound_cli.py` drives the workflow for both the desktop and `shutter.py`. `candidate.py`/`boot_sound.py`/`files_worker.py` build the fixed native changes. Audition and confirmation records are optional and never gate saving.
 
+**Native portrait candidate:** `desktopapp.vertical_native` first retires legacy portrait edits through the existing inverse and asks for a cold reload. `verticaltool.nativeportrait` then builds independent `_23` image banks at the original IDs, using current body images and the existing drawn portrait shapes; it leaves `_32` horizontal banks and AP drawing code original. `resourceworker` admits only the three fixed bank paths and checks loaded original AP windows before copying; its native worker also requires the runtime display switch OFF for mutations. `verticalpersist.Stage` recognizes complete or partial managed files for disabling/restoration. Factory recovery releases these files before restoring voice audio, so the reclaimed voice space is available again. One-click setup pauses before its program/LUT phase if legacy migration needs a cold reload. This is an offline-tested candidate; it has not been physically accepted.
+
 **Look conversion:** `compilelook.py` parses DCP LookTable/tone curves, or ST/sRGB CUBEs, and fits them to the native table with `calibration/a7c2-2.01.virtual.npz`. No Lightroom is needed. See [LUT formats](lut-formats.md) for supported inputs.
 
 ## Build and test

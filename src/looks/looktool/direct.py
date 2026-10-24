@@ -464,7 +464,11 @@ class DirectJob(Rollback):
                             raise ValueError('语音空间清理已启用。请先选择索尼官方 2.01 BODYDATA.DAT，再一键恢复；'
                                 '必须完整补回语音文件后才能解除关闭限制，本次尚未恢复程序。')
                         from .resourceworker import restore_voice
-                        restore_voice(camera,self,voice_source)
+                        from .verticalresources import release
+                        _,reset_fields,_=plan(current,camera.records(current['settings-ram.bin']),
+                            'factory_reset',factory=factory_values)
+                        restore_voice(camera,self,voice_source,
+                            before_restore=lambda:release(camera,self,current,wanted=reset_fields))
                 if mode in ('preview_native', 'preview_legacy', 'preview_pending'):
                     from . import uploadgate
                     self.state['preview_source_entry'] = current['cpapp-b.bin'][uploadgate.OFFSET:uploadgate.OFFSET + 4].hex()

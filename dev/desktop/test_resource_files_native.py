@@ -17,7 +17,7 @@ class Disk:
         self.data={self.directory+'/'+n:(n+' original').encode() for n in self.names}
         self.data[self.directory+'/unrelated.bin']=b'untouched'
         self.readonly=True;self.events=[];self.fault=None
-    def run(self,worker,mode=0,index=0,offset=0,payload=None,prefix=None,loaded=True,menu_loaded=True):
+    def run(self,worker,mode=0,index=0,offset=0,payload=None,prefix=None,loaded=True,menu_loaded=True,vertical_off=True):
         request=resourceworker.REQUEST.pack(b'A7RSQ001',mode,index,offset,len(payload or b''),0,prefix or bytes(32))
         chunk='/tmp/jiritsu/resource.chunk'
         if payload is not None:self.data[chunk]=payload
@@ -78,6 +78,7 @@ class Disk:
             raise AssertionError((no,path))
         headers={at:code if loaded and (menu_loaded or at<0x51a7718) else bytes(len(code))
             for at,code in resourceworker.guards(self.kind)}
+        if self.kind=='portrait':headers[0x7e732b8]=b'\1\0\0\0' if vertical_off else bytes(4)
         raw=execute(worker,b'',extra_headers=headers,extra_syscall=syscall,
             extra_outputs={'/tmp/jiritsu/a7c2.runtime.result':0x241},
             result_path='/tmp/jiritsu/a7c2.runtime.result',decode=lambda raw:raw)
@@ -119,6 +120,25 @@ def test_code_only_candidate_can_restore_but_must_load_gray_menu_before_deleting
     assert disk.data[disk.directory+'/'+name]==target and disk.readonly
     _,writer,_=workers(tmp_path/'new',disk);disk.events=[];before=dict(disk.data)
     with pytest.raises(ValueError,match='status=-84'):disk.run(writer,1,menu_loaded=False)
+    assert disk.data==before and not disk.events
+
+
+def test_native_portrait_files_publish_then_remove_with_loaded_original_code(tmp_path):
+    disk=Disk('portrait');name=disk.names[0];payload=b'independent portrait bank'
+    target={name:dict(bytes=len(payload),sha256=sha256(payload).hexdigest())}
+    _,writer,_=workers(tmp_path,disk,target)
+    disk.run(writer,2,payload=payload);disk.run(writer,3)
+    assert disk.data[disk.directory+'/'+name]==payload and disk.readonly
+    _,deleter,_=workers(tmp_path/'cleanup',disk)
+    for index in range(3):disk.run(deleter,1,index)
+    assert all(disk.directory+'/'+name not in disk.data for name in disk.names)
+
+
+def test_native_portrait_mutation_requires_display_off(tmp_path):
+    disk=Disk('portrait');reader,writer,_=workers(tmp_path,disk)
+    assert disk.run(reader,vertical_off=False)['files']
+    before=dict(disk.data)
+    with pytest.raises(ValueError,match='status=-84'):disk.run(writer,1,vertical_off=False)
     assert disk.data==before and not disk.events
 
 

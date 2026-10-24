@@ -38,7 +38,7 @@ Licenses:
 
 ## Firmware and data
 
-Sony A7C II 2.01 and Alpha 1 II 4.00 firmware were analysis sources; Sony firmware, trademarks and data remain their owners' material. This project distributes no complete firmware, signed update container, body backup/calibration, photos, credentials or private derived data. The built-in factory reference holds only generic stock bytes for the regions this project changes.
+Sony A7C II 2.01, Alpha 1 II 4.00 and A7 IV 6.02 firmware were analysis sources; Sony firmware, trademarks and data remain their owners' material. This project distributes no complete firmware, signed update container, body backup/calibration, photos, credentials or private derived data. The built-in factory reference holds only generic stock bytes for the regions this project changes.
 
 ## Risk notice and use statement
 
