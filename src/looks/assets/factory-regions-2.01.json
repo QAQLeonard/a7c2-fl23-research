@@ -154,9 +154,19 @@
           "zlib_base64": "eNoBMADP/wAqxfiEIQi/EUaF+IgRhfiJAZr4AzAAlEOxBLPY+AQwGmaD+GQQg/hlAADgvLFIRvo2FPo="
         },
         {
+          "offset": 1266956,
+          "bytes": 2,
+          "zlib_base64": "eNqTvwgAAREA8Q=="
+        },
+        {
           "offset": 1267002,
           "bytes": 4,
           "zlib_base64": "eNpz+rZBAAAFXgH5"
+        },
+        {
+          "offset": 1267020,
+          "bytes": 2,
+          "zlib_base64": "eNpTeQAAASoBBQ=="
         },
         {
           "offset": 1267912,
@@ -249,6 +259,21 @@
           "zlib_base64": "eNrz+MYTcOCTgAAAEOADbQ=="
         },
         {
+          "offset": 3296570,
+          "bytes": 108,
+          "zlib_base64": "eNoNxLsBgkAQRdFbAAqi/LGHKW1CBVqYXra0DSfkneDYL7LB9YOqn9g/ssV1R9Evqu6xI/KN6w9FD1Q9YmfkhOuZoheqXrErcsP1TtFfbgBWLwA="
+        },
+        {
+          "offset": 3296740,
+          "bytes": 58,
+          "zlib_base64": "eNq7sbEg88TGWT9YBCQ3ei0Q/3zoc0Emg2IvkM80gXGlglvsZ55/QFkGi41JGUwzHT4pJBz49JNB/PO6zwAkgxtw"
+        },
+        {
+          "offset": 3296866,
+          "bytes": 144,
+          "zlib_base64": "eNoNx7UNwDAUAFEPEHCYR7bkJsw44y9zxenprLTaiKOtdOjigB6O6OOEGmcMcMEQV4xwwxh3TPDAFE/M8MIcbyzwwRJfrPCjXhmp+Ub93dFFjw=="
+        },
+        {
           "offset": 3749232,
           "bytes": 5,
           "zlib_base64": "eNqTVmN2YQYAAbgAjA=="
@@ -297,6 +322,11 @@
           "offset": 6592180,
           "bytes": 2,
           "zlib_base64": "eNpjuQgAANsA1g=="
+        },
+        {
+          "offset": 6826696,
+          "bytes": 4,
+          "zlib_base64": "eNqr+VbzBgAGugLb"
         },
         {
           "offset": 10283192,

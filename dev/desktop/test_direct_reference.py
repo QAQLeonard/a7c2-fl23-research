@@ -95,6 +95,24 @@ class ReferencePlanningTests(unittest.TestCase):
         self.assertEqual(restored['appFw.so'], self.stock['appFw.so'])
         self.assertEqual(restored['cpapp-b.bin'], self.stock['cpapp-b.bin'])
 
+    def test_builtin_reference_reverses_both_evf_pending_trials(self):
+        from looktool import uploadpending, uploadgate
+        for _, at, before, _ in uploadpending.WINDOWS:
+            if any(offset == at for offset, _ in uploadpending.factory_windows()):
+                raw = bytes.fromhex(before)
+                self.assertEqual(self.stock['cpapp-b.bin'][at:at + len(raw)], raw)
+        underlay = uploadgate.restore(self.cp)
+        previous = bytearray(underlay)
+        for _, at, _, after in uploadpending.TRIAL2_WINDOWS:
+            raw = bytes.fromhex(after)
+            previous[at:at + len(raw)] = raw
+        for trial in (bytes(previous), uploadpending.install(self.cp)):
+            self.current['appFw.so'] = self.ap
+            self.current['cpapp-b.bin'] = trial
+            restored, _ = self.apply('factory_reset', factory=official.builtin())
+            self.assertEqual(restored['appFw.so'], self.stock['appFw.so'])
+            self.assertEqual(restored['cpapp-b.bin'], self.stock['cpapp-b.bin'])
+
     def test_builtin_reference_preserves_unrelated_program_regions(self):
         for name in ('appFw.so', 'cpapp-b.bin'):
             changed = bytearray(self.current[name])

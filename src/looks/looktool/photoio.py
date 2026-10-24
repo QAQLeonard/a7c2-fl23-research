@@ -112,6 +112,9 @@ def loaded_storage(cp):
 
 def allocation(cp):
     from .device_layout import runtime
+    from . import uploadpending
+    if uploadpending.active(cp):
+        cp=uploadpending.normalize(cp)
     loaded_storage(cp)
     spec=next(row for row in runtime()['cp_sources'] if row['kind']=='fl23')
     # These authored entry/selector and retry blocks establish which runtime

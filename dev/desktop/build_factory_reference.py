@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'src/looks'), str(ROOT / 'src/shutter_sound')]
 from desktopapp.worker import setup_runtime
 setup_runtime()
-from looktool import checkpointworker, device_layout, photoio, photobuild, six
+from looktool import checkpointworker, device_layout, photoio, photobuild, six, uploadpending
 from looktool.devicesession import modules
 
 
@@ -47,6 +47,10 @@ def main():
     import candidate
     regions['cpapp-b.bin'].extend((at, len(old)) for at, old, _ in candidate.WINDOWS)
     regions['cpapp-b.bin'].extend((w['offset'], len(bytes.fromhex(w['before']))) for w in photoio.template()['hooks'])
+    for at, raw in uploadpending.factory_windows():
+        if programs['cpapp-b.bin'][at:at + len(raw)] != raw:
+            raise ValueError('Original Sony preview region differs at ' + hex(at))
+        regions['cpapp-b.bin'].append((at, len(raw)))
     # Derive every reader/path/call edit from the actual sound implementation.
     import boot_sound
     regions['appFw.so'].extend((at, len(old)) for at, old, new in boot_sound.windows(programs['appFw.so']))
