@@ -3171,18 +3171,41 @@ stage2. All133 before/after case reports match exactly. Sampling success alone
 never supplies source/lifetime/epoch admission. Work now prepares a separately
 scoped isolated original-default request; no physical sender admitted yet.
 
-Phase109 completes the offline one-shot query controller. Its journal parser has
-three distinct terminal classes: exact success, exact boot-epoch refusal with no
+Phase109 refines the offline one-shot query controller. Its journal parser has
+three distinct result classes: modeled success, exact boot-epoch refusal with no
 CP request sent, and unknown/running. Only the same child with a terminal result
 and two independent process observations may proceed to pinned source reads;
 refusal is never reported as CP success, and result files never authorize
 cleanup. Offline lifecycle, parent/observer, operator/follow-up and journal
 corruption controls pass. No physical query or capture operation was sent.
 
-The same phase adds a small host-side session model around the existing one-shot
-components. A matched and released reply enters REPLY_RELEASED, not COMPLETE;
-only a same-generation independently observed quiet fence can close the outer
-context. Empty polling remains pending, while mismatched replies, release
-errors, reused tokens, identity drift, and invalid fences become UNKNOWN and
-cannot be retried or closed. This is a pure state contract and performs no
-UIPC call, packet inspection, or camera operation.
+The same phase added a host-side session model. Its completion claims are
+WITHDRAWN by phase110: after an empty poll, reply(matched=True) and an arbitrary
+positive fence generation could make can_close() true. No expected generation,
+native fence, or owned receive token was actually bound. The five passing tests
+did not test those counterexamples. Repository caller inspection found only its
+own verifier; the unused model and verifier are removed, with source/counterexample
+archived privately and original commit retained. Do not reuse it as cleanup proof.
+
+Phase110 extends the existing original RPC audit rather than adding another
+simulator. All30 original results remain byte-for-byte equal as parsed JSON.
+Ten added independent instruction slices qualify two proposed alternatives:
+nonzero callback inputs at UIPC12f0 select __osal_finish_sync_cb at1324; its
+3e30 entry reaches local lookup before any lock/refcount action. This is not
+callback registration or a remote send. PCIe3c58/3c70 select mode1/mode0;
+3534 selects sleep_init versus priority lookup. Request construction at3668
+versus3594 passes frame+68 versus0 to send_request; its2c38 entry stores the
+context in metadata+18 before cache control. All services remain boundaries.
+On an independent post-send status0 slice at35b8, synchronous mode reaches
+sleep_exec; asynchronous mode reads metadata+0c/+10 before debug_measure_end.
+Therefore a null waiter does not prove outgoing-message release or quiescence.
+This does not demonstrate a physical race or perform any native send.
+Explicit ET_REL .text scopes distinguish these offsets from FILE/physical
+coordinates. Comparing with phase107's recorded read extents finds6 uncovered
+fragments/288 bytes: UIPC12f0..1324; PCIe34c0..34f8,3534..3544,
+3594..35b4,2c38..2c9c,35b8..35d8. Extent comparison alone proves no fresh RAM
+identity. Any future reader must bind a fresh boot, mappings and relocations;
+filling these gaps will still not establish callback lifetime.
+Reviewed main782785641ca9f8b984940c7274b48706219e0da4 remains an ancestor;
+product files untouched. Next blocker: qualify original completion ownership
+and caller/callback scheduling lifetime before proposing a physical request.

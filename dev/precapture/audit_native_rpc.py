@@ -9,7 +9,7 @@ import json
 import struct
 from pathlib import Path
 
-from unicorn import Uc,UC_ARCH_ARM64,UC_MODE_ARM
+from unicorn import Uc,UC_ARCH_ARM64,UC_MODE_ARM,UC_HOOK_MEM_READ
 from unicorn import arm64_const as R
 from support.kernel import Module, UIPC_SHA, PCIE_SHA
 from support.boundaries import BoundaryRunner
@@ -131,8 +131,92 @@ def audit(uipc,pcie):
     got=run(B(0x4904),(B(0x4910),),[(R.UC_ARM64_REG_X0,0x7fffffffffffffff),(R.UC_ARM64_REG_X19,context)])
     assert got['at']==B(0x4910) and u.reg_read(R.UC_ARM64_REG_X20)==0x7fffffffffffffff
     wait_checks.append(dict(kind='independent-post-schedule',synthetic_remaining='0x7fffffffffffffff',reenters_wait=True))
+
+    # Qualify proposed ways around the synchronous stack waiter. These are
+    # independent original slices, never a send/receive or successful queue
+    # execution. In particular a user callback word is a finish selector,
+    # not an asynchronous reply subscription.
+    alternatives=[];message=native+64
+    for callback in (1,0x55667788):
+        u.mem_write(frame+0x48,struct.pack('<3Q',user+64,callback,0))
+        got=run(A(0x12f0),inputs=[(R.UC_ARM64_REG_X0,0),(R.UC_ARM64_REG_X19,owner),
+            (R.UC_ARM64_REG_X21,0x908f084b),(R.UC_ARM64_REG_X29,frame)])
+        assert got['at']==A(0x1324) and got['call']=='__osal_finish_sync_cb'
+        assert got['args'][:2]==[0x908f084b,native+64]
+        got=call(A(0x3e30),(0x908f084b,native+64),(A(0x3e54),))
+        assert got['at']==A(0x3e54) and got['args'][0]==0x908f084b
+        alternatives.append(dict(kind='nonzero-callback-selects-finish',callback_input=callback,
+            sends_or_installs_callback=False,stopped_before_local_lookup=True))
+
+    for synchronous,entry in ((False,0x3c70),(True,0x3c58)):
+        got=call(B(entry),(0x908f084b,message))
+        assert got['call']=='pcieif_debug_measure_start'
+        assert u.reg_read(R.UC_ARM64_REG_X20)==int(synchronous)
+        alternatives.append(dict(kind='original-wrapper-mode',synchronous=synchronous,
+            mode=int(synchronous),native_debug_or_send_executed=False))
+
+    # Explicit post-getter state: no actual source/priority getter was run.
+    for synchronous in (False,True):
+        got=run(B(0x3534),inputs=[(R.UC_ARM64_REG_X0,0x803f6111),
+            (R.UC_ARM64_REG_X19,message),(R.UC_ARM64_REG_X20,int(synchronous)),
+            (R.UC_ARM64_REG_X25,1),(R.UC_ARM64_REG_X29,frame)])
+        expected='pcieif_sleep_init' if synchronous else 'osal_get_msg_pri'
+        assert got['call']==expected
+        alternatives.append(dict(kind='post-source-getter-mode-branch',synchronous=synchronous,
+            boundary=expected,native_service_executed=False))
+
+    # Actual request argument construction. Trace-off is a synthetic input,
+    # not a claim about the body's diagnostic switches or task scheduling.
+    metadata=message-64
+    putq(metadata,0x400001000)
+    debug=getq(B(0x3c00));putw(debug,0)
+    for synchronous,start in ((False,0x3594),(True,0x3668)):
+        got=run(B(start),inputs=[(R.UC_ARM64_REG_X19,message),(R.UC_ARM64_REG_X22,0),
+            (R.UC_ARM64_REG_X26,metadata),(R.UC_ARM64_REG_X29,frame)])
+        expected_context=frame+0x68 if synchronous else 0
+        assert got['call']=='pcieif_send_request' and got['args'][:3]==[0,expected_context,metadata]
+        # Independent request-entry slice stops before cache/queue/hardware.
+        putw(metadata+8,24)
+        got=call(B(0x2c38),(0,expected_context,metadata))
+        assert got['call']=='__udif_cache_ctrl' and getq(metadata+0x18)==expected_context
+        alternatives.append(dict(kind='request-context-publication',synchronous=synchronous,
+            publishes_stack_waiter=synchronous,context_offset='frame+0x68' if synchronous else None,
+            cache_queue_send_executed=False))
+
+    # A separate post-send return input is not proof of handoff. On the
+    # asynchronous branch, the original caller still loads header words before
+    # debug_measure_end. Even context==0 cannot certify message quiescence.
+    for synchronous in (False,True):
+        reads=[]
+        def capture_read(cpu,kind,address,size,value,unused):
+            if address < message and metadata < address+size:reads.append((address-metadata,size))
+        hook=u.hook_add(UC_HOOK_MEM_READ,capture_read)
+        try:
+            got=run(B(0x35b8),inputs=[(R.UC_ARM64_REG_X0,0),
+                (R.UC_ARM64_REG_X19,message),(R.UC_ARM64_REG_X20,int(synchronous)),
+                (R.UC_ARM64_REG_X22,0),(R.UC_ARM64_REG_X29,frame)])
+        finally:u.hook_del(hook)
+        expected='pcieif_sleep_exec' if synchronous else 'pcieif_debug_measure_end'
+        assert got['call']==expected
+        assert reads==([] if synchronous else [(12,4),(16,4)]),reads
+        alternatives.append(dict(kind='independent-post-send-tail',synchronous=synchronous,
+            supplied_send_status=0,message_metadata_reads=reads,boundary=expected,
+            real_send_or_wait_executed=False))
     return dict(schema='OFFLINE_NATIVE_DIRECT_RPC_BOUNDARIES/1',camera_io=False,uipc_sha256=UIPC_SHA,
         pcie_sha256=PCIE_SHA,owner_checks=owner_checks,info_checks=info_checks,map_checks=map_checks,sync_checks=sync_checks,wait_checks=wait_checks,
+        lifetime_alternative_slices=alternatives,
+        lifetime_alternative_code_scope=dict(coordinates='ET_REL .text offsets, not FILE offsets or physical addresses',
+            spans=[dict(module=module,begin=begin,end=end) for module,begin,end in (
+                ('osal_uipc',0x12f0,0x1324),('osal_uipc',0x3e30,0x3e54),
+                ('pcie_if',0x3c58,0x3c88),('pcie_if',0x34c0,0x34f8),
+                ('pcie_if',0x3534,0x3544),('pcie_if',0x3608,0x360c),
+                ('pcie_if',0x3594,0x35b4),('pcie_if',0x3668,0x3678),
+                ('pcie_if',0x2c38,0x2c9c),('pcie_if',0x35b8,0x35dc),
+                ('pcie_if',0x36b8,0x36bc))],loaded_bytes_proven=False),
+        alternative_limits=['Nonzero callback selects finish bookkeeping, not a remote send or callback registration',
+            'Async request has no stack waiter but caller reads message metadata after supplied send return',
+            'No real queue insertion/completion ordering, memory lifetime or transport drain is proven',
+            'Keep physical send denied; these slices do not admit an alternative implementation'],
         limits=['All task/map/native results are synthetic; no kernel or device API executed',
                 'Opaque owner-field semantics and real standalone context initialization are unproved',
                 'The direct synchronous PCIe wait has no short deadline; process lifetime must be preserved',
@@ -144,6 +228,6 @@ def main():
     p.add_argument('--output',type=Path,required=True);a=p.parse_args()
     report=audit(a.uipc_kernel.read_bytes(),a.pcie.read_bytes())
     with a.output.open('x',encoding='utf-8') as f:json.dump(report,f,indent=2)
-    count=sum(len(report[k]) for k in ('owner_checks','info_checks','map_checks','sync_checks','wait_checks'))
+    count=sum(len(report[k]) for k in ('owner_checks','info_checks','map_checks','sync_checks','wait_checks','lifetime_alternative_slices'))
     print(f'{count} original owner/map/direct-RPC/wait boundary slices; no kernel or camera operations.')
 if __name__=='__main__':main()

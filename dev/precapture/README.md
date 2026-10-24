@@ -68,15 +68,24 @@ but six enum records fail exact extent checks. That parser's result alone
 cannot establish remote feature support or absence. Generated names are
 parameter metadata, not a complete C++ symbol table or callable addresses.
 
-Phase109 completes the offline one-shot query controller. Its journal parser
-distinguishes an exact successful transaction, an exact boot-epoch refusal that
-sent no CP request, and an unknown/running state. The refusal path may verify
-pinned source files only after the same child has exited and both process
-observations agree; it never claims CP success. A result file alone cannot
-authorize cleanup. Offline controls cover lifecycle, parent/observer,
-operator/follow-up and journal-corruption cases. The candidate remains offline:
-no CP request, pre-trigger exposure, RAW retention, full-press save,
-cancel/release or menu switch has been implemented or sent to a camera.
+The private one-shot query controller distinguishes an exact modeled successful
+transaction, a verified never-sent boot-epoch refusal, and unknown/running state.
+Qualified terminal process observations are required before source reads; a
+result file alone cannot authorize cleanup. Physical query execution remains
+unadmitted, and pre-capture remains unfinished.
+
+The latest [original RPC audit](audit_native_rpc.py) rules out two shortcuts:
+a nonzero callback argument selects finish bookkeeping rather than registering
+a remote callback; asynchronous send omits the stack waiter but still reads
+message metadata after the supplied send return. Neither establishes safe
+message release. Ten added original-instruction slices preserve the previous
+30 results. The unused abstract query-session model was removed after it
+incorrectly allowed closure following an empty poll and an unrelated generation.
+It had no native or camera callers. Physical lifetime proof is still missing.
+The new code scope also identifies six fragments (288 bytes) outside the earlier
+loaded-read extents. Their file audit does not establish current RAM contents;
+future qualification needs fresh mappings and exact relocations as well as
+the separate callback-lifetime proof.
 
 ## Earlier startup studies
 
@@ -112,7 +121,6 @@ do not add up to physical pre-capture.
 | `ap_client_cpuset.c/h`, `verify_client_cpuset.py` | Single-thread diagnostic child moves only itself with tasks-file token0, verifies membership/CPU, then restores original membership/affinity; no AP/worker migration or CP request |
 | `ap_client_context.c/h`, `verify_client_context.py` | Self cpuset → signal/affinity guard → fresh never-sent allocate/cancel context → inverse guards;62 generated-code controls; CPU0 VM and physical journals record50 calls/102 records; physical exit/session completion unresolved |
 | `support/child_session.py`, `verify_child_session.py` | Gate post-child source reads on qualified terminal/process+journal evidence; unknown/running observations perform no source I/O; no camera entry or recovery permission |
-| `support/query_session.py`, `verify_query_session.py` | Offline ownership contract from transport handoff through reply release and an independently observed quiet fence; no UIPC call or camera admission |
 | `ap_rpc_probe_once.c/h`, `verify_ap_rpc_probe.py` | Offline v4 RPC component: private binding/result spans, own-queue ID grammar, checks before allocation/send, exact original default reply only;66 models. No live gate/fresh-context adapter or physical send admission |
 | `support/ap_names.py`, `audit_ap_names.py` | ELF-based generated parameter-name discovery and Timeshift name comparison; preserves interior string pointers and separate FILE/VA coordinates; offline metadata only |
 | `capture_workflow.c/h`, `support/workflow_model.py` | Asynchronous ownership/save/cancel/restore controller and explicit virtual pixel actors; separate from the CP runtime and unbound to native hardware |
@@ -202,13 +210,20 @@ The old `precapture_probe_once(...send_query=1)` now rejects before allocation:
 its16-byte packet becomes configuration input on the new runtime. Use the
 separate tagged12-byte query component; a matched reply is not quiescence.
 
-Phase109 已把单次查询的终态分成三类：精确成功、确认未发送的启动世代拒绝、以及未知/仍运行。
+## 简体中文
+
+Phase109 已把单次查询的结果分成三类：模型中的精确成功、确认未发送的启动世代拒绝、以及未知/仍运行。
 只有同一个子进程已经结束、两次进程观察一致且日志完整时，拒绝路径才会核对固定来源文件；
 它不会被记录成 CP 成功。结果文件本身不能授权清理。新增的生命周期、父进程/观察、操作员、
 后续观察和日志损坏控制均已通过。候选仍是离线研究，没有发送 CP 请求，也没有实现或执行预触发
 曝光、RAW 保留、全按存盘、取消释放或机内菜单开关。
 
-## 简体中文
+Phase110 对原厂 RPC 增加10段原指令核对，并保留原先30项结果：非零 callback 参数进入结束记账，
+不会注册远端回调；非同步发送虽不携带栈上等待对象，但发送返回后仍读取消息标头，不能据此提前释放。
+上一轮新增的抽象查询模型没有真实调用者，却能在空轮询后接受任意世代并报告可关闭，现已撤下并保留
+反例及历史。没有执行相机操作，发送后的真实生命周期仍未证实。
+另已定位6段、共288字节不在先前载入代码读取范围内；原文件核对不能替代当前RAM核对，
+后续仍需新的地址映射、精确重定位，以及独立的回调生命周期证据。
 
 本目录是未完成的预拍摄研究，公开工具只做离线验证，没有可安装的预拍摄版本。
 

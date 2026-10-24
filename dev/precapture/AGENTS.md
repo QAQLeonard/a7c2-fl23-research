@@ -80,6 +80,12 @@ original-source reports and model results, not just pass new replacement tests.
   Refusal is never reported as CP success, and the result file alone never
   grants cleanup. Offline controls cover lifecycle, parent/observer,
   operator/follow-up and journal-corruption cases; no physical query was sent.
+- Phase110 retires the unused QuerySession model: an empty poll plus claimed
+  reply and unbound positive generation falsely allowed closure. Preserve its
+  counterexample/history; never treat observed=True as a native quiet fence.
+  Original RPC slices show that nonzero callback selects finish bookkeeping,
+  and async sending still reads message metadata after its supplied return.
+  Neither is an admitted shortcut around actual send/completion lifetime.
 - The new phase84 seal admits metadata preflight ONLY: files/proc reads and
   device stat, no child/device open/ioctl. Its parent/observer models are not
   a physical execution. The stock diagnostic audit stops before registration
