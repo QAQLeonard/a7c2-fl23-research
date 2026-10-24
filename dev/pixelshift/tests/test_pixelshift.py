@@ -1854,6 +1854,58 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_native_image_parameter_acquisition_initializes_and_reaches_population_callback(self):
+        from cp_image_parameter_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 36)
+        reached_callback, returned_constructor, rejected, empty = 0, 0, 0, 0
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            for field in ('host_assigned_allocation_or_api_return', 'original_region_registration_executed',
+                          'capture_entry_connected', 'population_callback_body_executed',
+                          'positioning_or_exposure_executed', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+            self.assertTrue(result['registered_memory_regions_are_fixtures'])
+            if not inputs['dispatch']:
+                rejected += 1
+                self.assertEqual(result['boundary'], 'native_entry_mutex_rejected')
+                self.assertEqual(result['entry_mutex_status'], 0xffffffe7)
+                self.assertFalse(result['native_acquisition_returned'])
+                self.assertFalse(result['source_return_contract_checked'])
+                self.assertFalse(result['native_allocation_succeeded'])
+                self.assertEqual(result['native_primary_free_count'], inputs['free_count'])
+                self.assertEqual(result['native_zero_call_count'], 0)
+                continue
+            self.assertEqual(result['entry_mutex_status'], 0)
+            self.assertTrue(result['native_acquisition_returned'])
+            self.assertTrue(result['source_return_contract_checked'])
+            if not inputs['free_count']:
+                empty += 1
+                self.assertEqual(result['boundary'], 'native_constructor_null_allocation_error')
+                self.assertFalse(result['native_allocation_succeeded'])
+                self.assertEqual(result['native_zero_call_count'], 0)
+                continue
+            self.assertTrue(result['native_allocation_succeeded'])
+            self.assertTrue(result['native_zero_function_executed'])
+            self.assertEqual(result['native_primary_free_count'], inputs['free_count']-1)
+            self.assertEqual(result['native_secondary_activation_results'], [1])
+            self.assertEqual(result['native_zero_call_count'], 10)
+            self.assertEqual(result['prior_low_memory_notification_is_fixture'], inputs['free_count']<11)
+            if inputs['with_callback']:
+                reached_callback += 1
+                self.assertEqual(result['boundary'], 'before_original_frame_population_body')
+                self.assertTrue(result['original_population_callback_invoked'])
+                self.assertFalse(result['constructor_returned'])
+            else:
+                returned_constructor += 1
+                self.assertEqual(result['boundary'], 'no_callback_constructor_returned')
+                self.assertTrue(result['constructor_returned'])
+                self.assertFalse(result['original_population_callback_invoked'])
+        self.assertEqual((reached_callback, returned_constructor, rejected, empty), (8, 8, 18, 2))
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
