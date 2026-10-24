@@ -3569,3 +3569,61 @@ unsupported-mode CP query does not authorize that different service or patches.
 Prepare a concrete source/owner-bound candidate before any new physical request;
 real pre-trigger exposures, retained RAW, save/cancel/release and default-Off
 menu remain unfinished. Keep retired00030072 and all prior jobs untouched.
+
+## Phase133: actual RAW service and correction of the reply-ID label
+
+Main782785641ca9 was refreshed/reviewed, remains an ancestor; product files
+and camera are untouched. No camera I/O, request, upload, parameter/RAM/ROM
+write or physical test. Resource service checks live in support/resource_service.py,
+called by the existing transition audit. No additional host/transport operator.
+README's accumulating Chinese progress paragraphs were consolidated.
+
+Correction to phase132:45dd24 is NOT endpoint discovery. Flags2a/type5 allocate
+a dynamic reply queue ID. Original entry stops before its mutex; independent
+post-mutex/final-store slices write an explicit type5/slot3 ID50003. Queue
+destruction calls45dd24 with distinct flags. The actual resource target61003c
+is supplied separately to530176 ->40ab24. The old private reports are retained;
+new JSON keys say reply_queue_allocation rather than endpoint/lookup. After
+normalizing only those two key renames and the explanatory limit, all952 old
+resource cases compare identically. Other phase132 result fields are exact.
+
+Original495da4 registers61003c with callbackb1620a; source task descriptor256
+names MEMMGR_CP, entryb17ed8 ->b139f0 ->b1614a receives that same route. No
+registration/receive actually executes. Two dispatch tables are distinct:
+worker table VAea6404 and direct table VAea64bc.6 original dispatch cases stop
+at their handlers. Direct14 returns8014/statusfff9; worker14 goes tob12d0c,
+changes a bounded category-selector stack and reads a configured category byte.
+Thus the earlier term"capacity query"was too broad: it is not available RAW
+memory, pixel count or allocation evidence.48 category inputs and3 worker
+reply cases execute original stores/formatting; notifier remains an explicit
+boundary, and its post-notifier slice supplies no successful service return.
+Worker14 modifies selector state and notifies changes; it must NOT be deployed
+as a read-only query or inherit earlier diagnostic/query authorization.
+
+Originalb16b4c tests a10-bit slot and5-bit generation, ignoring the high marker
+bit in that check.324 cases cover generation mismatches, raw states and native
+reference-byte changes. Invalid slot3ff refuses. Generation reuse increments
+through31 then returns1. It cannot replace a never-reused capture generation.
+12b1645a cases consume a real synthetic free-index-ring entry, construct the
+metadata record/encoded handle and stop beforeb144d6 backing allocation, while
+the caller's output remains unpublished. Empty ring and missing/NULL type
+policy refuse without inventing pixel backing or a successful allocation.
+
+81b16a52 cases execute original descriptor address arithmetic, reference-byte
+limits and state checks, including64-bit carry. Inputs/descriptors are synthetic.
+An original pin -> unpin -> final-owner release sequence reachesb14ed6 before
+backing free. Native record state is already0 at that point, confirming that
+local clear is not a completed free. No pixel buffer contents were acquired.
+All476 matrix cases plus named negatives use original instructions; no fake
+successful locks, allocation, queue, logger, notification or hardware reply.
+
+Selected captured-current CP FILE spans include both tables, handlers and
+generation/reference functions; this does not qualify loaded RAM or the whole
+current image. Source-drift controls mutate a dispatch slot and generation
+check and must reject without output. Earlier successful/failed jobs remain
+immutable; consumed one-query admission is not renewed by this offline work.
+
+Next blocker: b144d6/b14554 backing allocator policy and address/size admission,
+and source/task-bound resource transaction completion. Native metadata allocation
+or pinning must not be offered as an owned real image. Physical exposure,
+retention, save/cancel/terminal release and default-Off menu remain incomplete.

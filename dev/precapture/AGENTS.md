@@ -39,6 +39,19 @@ from invalid local ID, a zero metadata count or that caller's return alone.
 Keep native locks/waits/endpoint lookup as unexecuted boundaries; post-service
 slices never supply successful native returns or qualify physical allocation.
 
+Phase133 corrects the45dd24 label: flags2a/type5 allocate a dynamic reply queue
+ID; the RAW service target is61003c, registered to callbackb1620a and received
+by task256 MEMMGR_CP. Direct/worker dispatch tables differ (direct14 unsupported,
+worker14 category selection/query). Never infer capability from the wrong table.
+Native handle checks use10-bit slot/5-bit generation; the high marker bit is
+not checked there and generation31 wraps to1 on reuse. Neither a metadata slot
+nor a successful pin is a physical-pixel lease or a never-reused capture epoch.
+Final-owner release clears native state before backing free; retain UNKNOWN
+ownership until the qualified resource transaction and backing release finish.
+Worker14 writes category-selector state and invokes a notifier. Do not present
+or deploy it as a read-only capacity query; physical use needs separate review
+and authorization even when only a returned configured value is wanted.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that

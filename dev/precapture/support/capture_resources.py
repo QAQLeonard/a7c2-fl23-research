@@ -108,8 +108,8 @@ def audit(cp):
         waits.append(dict(entry_file=hex(routine),first_boundary_file=hex(first),
             explicit_after_service_boundary_file=hex(target),service_success_supplied=False))
 
-    # Capacity query wrapper and real client, up to the first native endpoint
-    # lookup. Output pointer is pre-existing synthetic caller storage.
+    # Category query wrapper and real client, up to its dynamic reply-queue
+    # allocation. This45dd24 call does not find target service61003c.
     query=[]
     for kind in (0,1,2,5,255):
         out=OWNER+0x4000;u.mem_write(out,b'\xa5'*16)
@@ -119,11 +119,11 @@ def audit(cp):
         got=n.run(0xa13b4e,(0x45dd24,))
         assert got['args'][0]==0x2a and bytes(u.mem_read(out,16))==b'\xa5'*16
         assert got['args'][1]==5 and get(got['args'][2]-4)==2
-        query.append(dict(kind_raw=kind,lookup_boundary_file='0x45dd24',
+        query.append(dict(kind_raw=kind,reply_queue_allocation_boundary_file='0x45dd24',
             caller_output_unchanged=True,resource_query_executed=False))
 
     # Explicit AFTER-allocation packet builder. No allocator, send/receive,
-    # endpoint discovery or response ownership is made successful.
+    # dynamic reply-queue allocation or response ownership is made successful.
     packet=OWNER+0x5000;reply=OWNER+0x6000
     for kind in (0,1,5,255):
         u.mem_write(packet,b'\xa5'*0x40)
@@ -150,7 +150,7 @@ def audit(cp):
             output_value=value,accepted=accepted,reply_is_synthetic=True,
             reply_or_message_release_executed=False))
     # Connect staged slot configuration -> original active-pool copy -> real
-    # prefetch callback -> actual RAW service lookup. No service succeeds here.
+    # prefetch callback -> actual RAW client. No service succeeds here.
     staged,current=0x17205d0,0x17202b0
     startup=[]
     for identifiers in ((0x505,),(0x505,0x500,0x170000),(0x50504,)):
@@ -178,7 +178,7 @@ def audit(cp):
         got=n.run(0xa07542,(0xa3b61c,))
         assert got['args']==[4,0x13,identifiers[0],1]
         # Explicit post-log slice uses the real first identifier, then
-        # reaches the actual service client and its endpoint lookup.
+        # reaches the actual service client and its dynamic reply-queue allocation.
         got=n.run(0x37097e,(0x45dd24,))
         assert got['args'][0:2]==[0x2a,5]
         # Original client retains arguments in callee-saved registers.
@@ -353,8 +353,8 @@ def audit(cp):
         original_slot_take_cases=takes,
         original_frame_allocator_continuation=allocations,
         original_frame_handle_lifecycle=frame_cases,
-        original_release_reply_cases=release,release_endpoint_lookup_executed=False,
-        limits=['Every native mode, descriptor, endpoint and reply is an explicit synthetic fixture',
+        original_release_reply_cases=release,release_reply_queue_allocation_executed=False,
+        limits=['Every native mode, descriptor, reply queue and reply is an explicit synthetic fixture',
             'Separate post-service slices are not native lock/wait/allocation success',
             'The queried16-bit value is not an acquired RAW handle or available retained photos',
             'Prefetch flags11/31 can copy zero-count/zero-address reply metadata; copying is not ownership',

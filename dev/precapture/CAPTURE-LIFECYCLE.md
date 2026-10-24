@@ -96,6 +96,10 @@ complete this controller's release action: the adapter still needs the matched
 resource-service result and the lease's terminal ownership evidence. The native
 prefetch slot consumer can transfer a descriptor once and clear its source,
 but that metadata transfer alone does not establish retained pixel ownership.
+The service uses a 10-bit slot and a 5-bit native generation that wraps on reuse.
+Keep the controller's capture generation separate. Dynamic reply-ID allocation
+(`45dd24`) is also separate from target RAW service `61003c`; sending directly
+to a related handler can select different behavior from its task queue path.
 The stock full-press/AF/AE path must continue separately; this test does not
 establish normal camera shooting, FL2/FL3/six-look preservation or boot safety.
 Those requirements and physical pre-capture remain unfinished.

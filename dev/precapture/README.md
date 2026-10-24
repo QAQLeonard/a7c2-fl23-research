@@ -29,7 +29,7 @@ written by this experiment. This is one successful case, not broad stability.
 | [Shooting controller](CAPTURE-LIFECYCLE.md) | Continuous save/cancel/restore logic and eight VM virtual-pixel transactions | Native exposure, RAW references, durable photo writing and terminal release fencing |
 | Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | Native state feedback | Original feedback stores, masked completion, deferred task/notification dispatch and CAP handle checks;60 input combinations plus negative controls | Hardware feedback provenance, actual exposure/RAW ownership and a generation-bound terminal fence; two commands share event308 |
-| RAW resource path | Original staged-slot copy → prefetch task → RAW client; reply checks and512 slot-consumption cases, with source clearing/repeat-consume refusal | Actual allocation, pixel references and matched release; local invalidation does not prove resource release |
+| RAW resource path | Staged slots → RAW client → MEMMGR_CP dispatch; native reply-ID, descriptor transfer, handle generation and reference checks | Actual backing pixel allocation and matched terminal release; native handle generation wraps, local invalidation precedes backing free |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
 | Manual in-camera switch | Required independent Off/On control, initially Off | Implementation and safe enable/disable binding |
 
@@ -77,7 +77,7 @@ do not add up to physical pre-capture.
 | `support/ipc_journal.py`, `verify_ipc_journal.py` | Shared bounded never-sent context journal decoder and private-input corruption controls; file success never grants process cleanup |
 | `support/capture_native.py` | Shared original CAP object/cancellation fixture; six audits import it directly, with legacy replay exports retained |
 | `support/capture_completion.py` | Original requested/current state comparison, deferred notification and CAP callback boundaries; synthetic inputs only, no hardware completion or camera adapter |
-| `support/capture_resources.py` | Original resource preparation, staged/active descriptor transfer, RAW request/reply and release boundaries; no native service success or camera I/O |
+| `support/capture_resources.py`, `resource_service.py` | Resource preparation, RAW service/task routing, dynamic reply IDs, descriptor/handle/reference lifetime; no native service success or camera I/O |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
 | `vm/cp_boot/config_rmw/qemu_source_word.h`, `vm/cp_boot/mtg_select/` | Shared restricted single-word storage and the optional MTG selector fixture; no timing edges, frame IRQ or sensor |
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
@@ -194,13 +194,9 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 目前仍缺真实预触发曝光、RAW像素保留、全按保存、取消/结束后的资源释放，以及默认关闭、
 手动启用的机内菜单。VM里的虚拟像素保存与原厂核心等待/唤醒测试不能代替这些实机步骤。
 造成半按崩溃的 `00030072` 参数方案继续停用。后续新的实机发送/补丁需要独立具体范围与授权。
-后续离线工作已验证两机型AP拍摄开始／数据接收顺序、96个记录准入案例，以及CP的1224个准备后
-分支、544次原厂表查询、22个状态序列回调和一组固定状态动作。它们没有启动传感器；动态生成的
-状态表、实际读出／保留和硬件完成仍须接入，不能用假AP记录或伪造完成信号绕过。
-原厂反馈／完成链路另已完成60个离线组合及反例检查。两个读出命令共用事件308，通知包没有命令／代次，
-待通知槽还会在投递前清空；不能将收到这个事件当作本次预拍摄或RAW释放完成。拍摄回调的句柄与引用
-分支已核对，下一步继续连接实际读出／像素服务；这些结果仍不代表实机预拍摄。
-资源链路进一步完成952个离线输入组合：暂存槽到预取任务／RAW服务入口、容量与RAW回复、描述符一次消费、
-照片对象记录与释放检查。原厂预取回复可以复制某些空描述信息，照片对象也会不检查释放结果便清掉本地标识；
-因此描述符复制、本地标识无效都不能证明已经取得或释放真实RAW。这轮没有相机操作。
+离线已核对原厂拍摄顺序、状态反馈、暂存槽到RAW客户端／MEMMGR_CP任务、句柄和引用路径。
+还需连接实际像素分配、保留、保存及终止释放；软件事件、描述符复制或本地标识无效都不能作为完成证明。
+两个命令共用事件308，原厂句柄也只有会回绕的5位代次，接入时必须独立核对请求／拍摄代次与资源归属。
+更正：45dd24分配的是动态回复队列身份，RAW目标服务是61003c；直接／任务队列分派表的行为不同。
+这些检查都不连接相机，也不代表实机预拍摄可用。
 详细证据保留在 [CONTROL-PATHS.txt](CONTROL-PATHS.txt)，公开工具继续只做离线研究。
