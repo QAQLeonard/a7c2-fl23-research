@@ -8,11 +8,13 @@ from looktool.__main__ import main
 class SixTests(unittest.TestCase):
     def setUp(self):
         self.ap=b'synthetic AP fixture, not camera firmware'
-        self.cp=bytearray(0xa000)
+        self.cp=bytearray(0xb27590)
+        from looktool import uploadgate
+        self.cp[uploadgate.OFFSET:uploadgate.OFFSET+20]=uploadgate.NATIVE+bytes.fromhex('c0f27910007d400611d4d8f8080024e0')
         self.tables=[bytes([i])*1215 for i in range(6)]
         payload=six.prefix(self.tables);self.cp[six.TABLE_FILE:six.TABLE_FILE+len(payload)]=payload;self.cp=bytes(self.cp)
     def source(self):
-        stack=contextlib.ExitStack();stack.enter_context(patch.object(six,'AP_SHA',firmware.sha(self.ap)));stack.enter_context(patch.object(six,'CP_SHA',firmware.sha(self.cp)));return stack
+        stack=contextlib.ExitStack();stack.enter_context(patch.object(six,'AP_SHA',firmware.sha(self.ap)));stack.enter_context(patch.object(six,'CP_SHA',firmware.sha(six.uploadgate.legacy_hash_source(self.cp))));return stack
     def test_prefix_roundtrip_and_corrupt_each_slot(self):
         self.assertEqual(six.read_tables(self.cp),self.tables)
         for i in range(6):
