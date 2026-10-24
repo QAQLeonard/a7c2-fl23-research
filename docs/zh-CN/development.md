@@ -73,7 +73,11 @@
 
 替换前端时，只需调用 `jobs.new_job(action, arguments)` 和 `jobs.worker_command(...)`，并按上表理解阶段。参数名与 `Window.common()` 和动作表保持一致。
 
+可选动作 `backup_current` 由 `desktopapp.backup` 执行，只读保存当前项目检查点，也可另存语音包 ZIP，不要求供电写入确认；macOS 仍按相机只读任务取得所需权限。
+
 ## 核心流程
+
+**可选当前备份：**恢复页可生成沿用现有格式的 `checkpoint.private.zip`，保存当前 AP／CP 程序、运行／保存设置和 68 份名称资源；来源标记为 `current-project-backup`，可手动选择还原，但不参与自动寻找最早原始备份。可选 `voice-resources.private.zip` 单独保存二十份语音指南文件，不在当前项目检查点还原范围内。安装和内置原厂恢复均不要求先备份。语音资源也可由 `desktopapp.screenreader` 从用户自行提供的 2.01 更新文件在本机提取，应用不内置这些数据；相机语音文件写回尚未启用。
 
 **直接事务**（`looktool/direct.py` 的 `DirectJob`）：
 1. `plan()` 是纯函数：把相机当前字节转换为目标字节和要改的设置，每种模式只改自己声明的区域。`bundle.plan()` 把多个模式（FL23、外观、ST 恢复、声音、竖屏）叠成一个计划。

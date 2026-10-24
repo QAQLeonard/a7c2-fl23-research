@@ -1,4 +1,5 @@
 """Prepare a model/version-checked Sony reference locally. Never opens USB."""
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import shutil
@@ -36,19 +37,11 @@ def builtin():
     return json.loads((ROOT / 'src/looks/assets/factory-regions-2.01.json').read_text(encoding='utf-8'))
 
 
-def prepare(source, cache=None):
-    source = Path(source).expanduser().resolve()
-    cache = Path(cache or data_root() / 'factory-2.01')
-    if source.is_dir():
-        load(source)
-        return {'cache': str(source), 'camera_io': False}
+@contextmanager
+def firmware(source):
+    """Open a user-supplied official file locally; never download or contact USB."""
     sys.path.insert(0, str(ROOT / 'src/desktopapp/vendor'))
     from fwtool.sony import dat, fdat
-    from fwtool.archive import ext2, fat
-    cache.mkdir(parents=True, exist_ok=True)
-    generation = 'sony-2.01-' + uuid.uuid4().hex[:12]
-    folder = cache / generation
-    folder.mkdir()
     print('正在解码原厂文件，仅操作电脑文件…', flush=True)
     with source.open('rb') as stream, tempfile.TemporaryFile() as decoded:
         if stream.read(8) == fdat.fdatHeaderMagic:
@@ -76,6 +69,22 @@ def prepare(source, cache=None):
                 last = time.monotonic()
         decoded.seek(0)
         contents = fdat.readFdat(decoded)
+        yield contents, cipher
+
+
+def prepare(source, cache=None):
+    source = Path(source).expanduser().resolve()
+    cache = Path(cache or data_root() / 'factory-2.01')
+    if source.is_dir():
+        load(source)
+        return {'cache': str(source), 'camera_io': False}
+    sys.path.insert(0, str(ROOT / 'src/desktopapp/vendor'))
+    from fwtool.archive import ext2, fat
+    cache.mkdir(parents=True, exist_ok=True)
+    generation = 'sony-2.01-' + uuid.uuid4().hex[:12]
+    folder = cache / generation
+    folder.mkdir()
+    with firmware(source) as (contents, cipher):
         with tarfile.open(fileobj=contents.firmware, mode='r:') as archive:
             for member in archive:
                 if not member.isfile():

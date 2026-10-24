@@ -67,7 +67,7 @@ def discover(roots=()):
         seen.add(path)
         try:
             row = describe(path)
-            if row['provenance'].get('type') in ('before-full-rollback', 'rollback-target'):
+            if row['provenance'].get('type') in ('before-full-rollback', 'rollback-target', 'current-project-backup'):
                 continue
             result.append(row)
         except Exception as exc:

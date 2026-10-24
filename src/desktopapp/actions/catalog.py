@@ -1,5 +1,5 @@
 """Shared desktop action categories; no host-specific feature variants."""
-CAMERA_ACTIONS = {'connect', 'usb_prepare', 'driver_uninstall',
+CAMERA_ACTIONS = {'connect', 'usb_prepare', 'driver_uninstall', 'backup_current',
                   'restore', 'restore_auto', 'restore_verify',
                   'vertical_enable', 'vertical_disable',
                   'vertical_status', 'vertical_remove', 'sound_on', 'sound_off',

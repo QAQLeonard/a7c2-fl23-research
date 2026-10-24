@@ -176,6 +176,9 @@ def run(action, args, job):
         return {'model': manifest['model'], 'firmware': manifest['version'],
                 'files': len(target), 'legacy_backup': manifest.get('legacy_raw', False),
                 'limitations': manifest.get('limitations', []), 'camera_io': False}
+    if action == 'backup_current':
+        from .backup import run as backup_current
+        return backup_current(args,job)
     if action == 'restore_auto':
         from .recovery import restore_auto
         return restore_auto(args, job)

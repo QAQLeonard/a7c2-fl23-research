@@ -70,6 +70,7 @@ Data root: `%LOCALAPPDATA%\A7C2Tools` on Windows, `~/Library/Application Support
 | `compile_look` | `actions.look_compiler` → `looktool.compilelook` | Offline |
 | `plugin_install` | `desktopapp.plugins` | Optional Lightroom plugin; bundles ExifTool |
 | `restore`, `restore_auto`, `restore_verify` | `checkpointjob.Rollback` | Optional restoration from a selected or discovered complete backup |
+| `backup_current` | `desktopapp.backup` | Optional read-only current project checkpoint; voice resources can be saved in a separate ZIP |
 
 A replacement frontend only needs `jobs.new_job(action, arguments)` plus `jobs.worker_command(...)`, and must interpret phases as above. Keep the argument names used by `Window.common()` and the catalog.
 
@@ -87,6 +88,8 @@ A replacement frontend only needs `jobs.new_job(action, arguments)` plus `jobs.w
 - After a failure, a child that failed before any write gets a fresh `install-retry-*` plan. Unknown results stop with their evidence intact.
 
 **Factory restore:** the built-in reference `src/looks/assets/factory-regions-2.01.json` holds generic stock bytes only for the regions this project changes. It contains no full firmware and no body data. Bytes outside those regions, and body calibration, are preserved. Each restore request plans from current bytes; historical jobs do not gate new recovery (`requestcleanup.py`).
+
+**Optional current backup:** the recovery page can create an existing-format `checkpoint.private.zip` containing current AP/CP programs, live/saved settings and the 68 name resources. Its provenance is `current-project-backup`: it can be selected for rollback but is excluded from automatic earliest-original discovery. The optional `voice-resources.private.zip` contains the twenty captured voice-guide files; it is separate from the current project rollback scope. Neither backup is required for installation or built-in factory restoration. Official voice resources can instead be prepared locally from the user's own 2.01 update with `desktopapp.screenreader`; the application does not bundle them, and camera voice-file restoration is not yet enabled.
 
 **USB service entry** (`camera_runtime/transport.Session`):
 1. Check the normal USB product string.

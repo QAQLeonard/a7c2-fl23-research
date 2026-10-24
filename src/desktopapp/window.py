@@ -416,6 +416,19 @@ class Window(W.QMainWindow):
                     lambda: {'source': self.text('factory_file') or str(data_root() / 'factory-2.01')})
         self.button(expert, '使用导入的完整原厂文件恢复', 'direct_factory_reset',
                     lambda: self.direct_args('factory', mode='factory_reset', factory=str(data_root() / 'factory-2.01')))
+        backup = self.advanced(layout, '备份当前项目状态（可选）')
+        backup_form=W.QFormLayout()
+        self.field(backup_form,'backup_folder','保存位置',kind='folder',value=str(data_root()/'backups'))
+        self.backup_voice=W.QCheckBox('同时备份语音指南音频（约 287 MiB，耗时较长）')
+        backup_form.addRow('',self.backup_voice);backup.addLayout(backup_form)
+        self.button(backup,'备份当前程序、外观、设置和名称（只读）','backup_current',
+            lambda:dict(self.common(),workspace=str(Path(self.text('backup_folder'))/
+                ('backup-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:6])),
+                include_voice=self.backup_voice.isChecked()))
+        backup_note=W.QLabel('保存创建时的当前项目状态，可能已修改；不是原厂基准或完整相机镜像。'
+            '项目检查点可用下方“使用旧备份”入口恢复；语音包另存，不包含在当前项目还原范围内。'
+            '安装和一键恢复无需先备份。')
+        backup_note.setWordWrap(True);backup.addWidget(backup_note)
         legacy = self.advanced(layout, '使用旧备份回到过去的状态（可选）')
         self.backup_recovery_controls(legacy)
         layout.addStretch()
@@ -919,6 +932,15 @@ class Window(W.QMainWindow):
         self.refresh_factory_controls()
         if sound_notice:
             W.QMessageBox.information(self,sound_notice['title'],sound_notice['text'])
+        elif status.get('action')=='backup_current' and success:
+            result=status['result']
+            self.fields['restore_backup'].setText(result['workspace'])
+            self.settings['restore_backup']=result['workspace']
+            write_json(data_root()/'desktop.json',self.settings)
+            W.QMessageBox.information(self,'当前状态备份完成',
+                '已保存程序、外观、设置和名称，并通过本地校验。没有写入相机。\n'
+                '这是当前状态备份，不是原厂基准。\n保存位置：'+result['workspace']+
+                ('\n语音包也已另存；当前项目还原不会自动写回语音包。' if result.get('voice_backup') else ''))
         elif status.get('action')=='usb_stability':
             if success:
                 result=status['result']
