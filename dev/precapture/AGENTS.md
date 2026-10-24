@@ -60,6 +60,15 @@ validation. An unresolved backing path can already consume a metadata slot
 without publishing a handle: preserve that allocation context, never retry as
 "nothing happened". Growing pools and final parent-backed release are unqualified.
 
+Phase135 acquires five current existing files read-only, twice identical with
+mirrored backup and healthy USB exit. No CP request/upload/patch. Combined
+pool/completion/exposure checks bind that archive to its completed acquisition
+report; all three physical verdicts remain false. The proc-layout job got an
+empty boot_id file and stopped: no replay or inferred boot/runtime pool.
+The helper may repeat its native wait, and exposure end posts event2 without
+an end counter. Do not promote a per-wait raw timeout or old frame-clock latch
+to a physical terminal/exposure fence. No deployable CP observer is admitted.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that

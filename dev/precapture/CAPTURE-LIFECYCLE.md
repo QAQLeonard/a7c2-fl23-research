@@ -89,6 +89,10 @@ The adapter must provide normalized monotonic exposure timestamps, order
 ingress by exposure end, and deliver the real S2 edge before post-edge ingress.
 Generation/epoch/serial fields only enforce a supplied contract; they do not
 prove native source identity, clock meaning, task ownership or quiescence.
+The combined source audit follows the original exposure callbacks: start
+samples clock0 (`f48300e0`), while end posts event2 and stores no end counter.
+It never reads that hardware register. A saved start latch plus a later generic
+frame sample cannot satisfy the controller's real exposure-end contract.
 An adapter that invents those completions would invalidate the test's meaning.
 Original frame release `a04fe6` clears the local RAW ID/descriptor after calling
 `a13a60` without checking its return. Local ID `ffffffff` therefore cannot

@@ -3679,3 +3679,65 @@ accounting/notification completion, plus growing/parent-backed allocation when
 no cached node is suitable. The offline cached-node path supplies no real
 pre-S2 exposure or retained image. Preserve00030072 retirement, current looks,
 all job fences and the consumed one-query authorization boundary.
+
+## Phase135: combined pool/completion/exposure validation and fresh source read
+
+Owner asked to validate all three together and confirmed exclusive read-only
+camera availability. The new existing-file-only job uses the reviewed pinned
+host transport (141 source pins) and shared read-only session wrapper;13 wrapper
+controls pass before device entry. No executable upload/native execution,
+CP send, parameter/ROM/RAM write, file cleanup or automated rescue is allowed.
+Five current program/module files are acquired twice, byte-identical, packed
+and mirrored to E:/P: backups. Healthy USB exit is recorded. All match phase118,
+including current CP58389855... and its existing LUT preview repair. Sources
+are fresh FILE evidence only; there is no new loaded CP or runtime-pool claim.
+
+A separate fixed proc-file job stopped on an empty boot_id response BEFORE
+modules/iomem reads. It uploaded/sent no CP request and is never replayed.
+The local empty-file refusal unwound the healthy read-only session; host later
+observed normal0e8a USB identity. No runtime boot ID/layout is inferred from
+that empty result. Preserve both successful source and stopped-layout reports.
+
+The single offline audit_capture_validation.py binds the exact snapshot ZIP
+and CP member to a completed body-bound acquisition report, refuses writes/
+unfinished acquisition/source drift and emits all three verdicts together.
+Each physical verdict remains false, regardless of successful original-source
+execution. No approved/deployable live observer or installer is produced.
+
+Pool source: originalb13994 supplies metadata base22a4760 tob16314; native
+b14220 derives allocator pointers from that fixed arena. Real backing provenance
+also depends on AP-facing8f013a command0b/subcommand61 and native configuration
+fa0182 read by496044 into25b7ee8. Existing file hashes and initialized pointers
+cannot establish actual shared-block binding, backing-region ownership or
+coherent runtime state. Allocation/send/configuration-reader remain boundaries.
+
+Async completion: command20/23 notifier paths enter originalb176a4 first. Its
+zero/busy inputs and original40-byte wait descriptor for route910041 are checked;
+raw timeout10 is not calibrated elapsed time or a total deadline. The busy path
+can loop to another wait/unlock boundary. Original notifier packets to92a20524
+contain920232/920231 then zeros, with no frame handle/capture generation. Six
+software-state selections and two original packet-store cases execute; actual
+wait/lock/unlock/send/accounting never execute or receive a fake success.
+
+Exposure: verify original69f488 tail branch independently, then run pure getter
+prefix69f266 only until BEFORE hardware LDR69f272. ROM table selects counter
+registersf48300e0/f48400e0/f48500e0; no MMIO mapping/read is supplied, and shared
+service guards stay unchanged. Original397afc selector stores start3967f4 and
+end396878 callbacks on explicit input. Start samples clock0 and latches32 bits;
+three post-timer samples and native event1/event2 posts are checked as separate
+slices. The whole end callback's four direct calls contain no timer and it
+stores no end timestamp. No end-before-S2 ordering, sensor interval, real
+clock calibration/wrap/reset handling or retained pixel evidence follows.
+
+Five CLI controls reject pool-init,wait-loop,counter-table drift, unfinished
+acquisition and archive/report mismatch BEFORE creating output. Full prior
+transition and frame-clock results remain checked independently. Source and
+snapshot hashes stay in private evidence, firmware/body data remain private.
+
+Outstanding actual experiment: read a consistent current CP allocator snapshot
+through a qualified RAM/owner observer, observe matched resource request/reply/
+terminal notification, and collect exposure begin/end plus S2 and actual retained
+pixels in the same epoch. No safe live CP observer exists yet. New CP sends or
+patches cannot inherit phase129's consumed one-query allowance; do not broaden
+file-only permission into arbitrary memory reads, DMA or instrumentation writes.
+Physical pool/completion/exposure and pre-capture remain unfinished.
