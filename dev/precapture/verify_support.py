@@ -13,6 +13,7 @@ from support.build import compile_shared
 from support.ap_model import call_component, return_modeled_service
 from support.memory import STACK as MODEL_STACK, STOP as MODEL_STOP
 from support.elf import standalone_entry
+from support.kernel import text_literal_dependencies
 
 CODE, STACK, STOP = 0x10000000, 0x40000000, 0x50000000
 
@@ -176,6 +177,60 @@ class StandaloneEntryTests(unittest.TestCase):
         # The parser can read the identification before interpreting the header.
         with self.assertRaises(ValueError):
             standalone_entry(bytes(raw), 'aarch64')
+
+
+class LiteralScopeTests(unittest.TestCase):
+    """Synthetic ELF metadata checks; no source identity or native execution."""
+
+    @staticmethod
+    def fixture(word=0x58000080, relocations=(), backward=False):
+        class Symbol(dict):
+            def __init__(self, name, offset):
+                super().__init__(st_value=offset, st_shndx=1)
+                self.name = name
+        raw = bytearray(24)
+        struct.pack_into('<I', raw, 16 if backward else 0, word)
+        symbols = [Symbol('$d' if backward else '$x', 0),
+                   Symbol('$x' if backward else '$d', 16)]
+        symbols.append(Symbol('fixture_symbol', 0))
+        sections = {'.text': SimpleNamespace(data=lambda: bytes(raw)),
+                    '.symtab': SimpleNamespace(iter_symbols=lambda: iter(symbols), get_symbol=lambda n: symbols[n]),
+                    '.rela.text': SimpleNamespace(iter_relocations=lambda: iter(relocations))}
+        return SimpleNamespace(elf=SimpleNamespace(
+            get_section_by_name=lambda n: sections[n], get_section_index=lambda n: 1,
+            get_section=lambda n: SimpleNamespace(name='.text')))
+
+    def test_width_and_signed_displacement(self):
+        for word,width in ((0x58000080,8),(0x18000080,4),(0x98000080,4)):
+            found=text_literal_dependencies(self.fixture(word),[(0,4)])
+            self.assertEqual([(r['begin'],r['bytes'],r['readers']) for r in found],[(16,width,[0])])
+        found=text_literal_dependencies(self.fixture(0x58ffff80,backward=True),[(16,20)])
+        self.assertEqual((found[0]['begin'],found[0]['readers']),(0,[16]))
+
+    def test_inline_data_cannot_be_decoded_as_code(self):
+        for bounds in ((0,20),(16,24),(1,4),(0,3),(4,4)):
+            with self.subTest(bounds=bounds),self.assertRaises(ValueError):
+                text_literal_dependencies(self.fixture(),[bounds])
+
+    def test_vector_and_prefetch_are_not_scalar_pointer_loads(self):
+        for word in (0x5c000080,0xd8000080):
+            with self.subTest(word=word),self.assertRaises(ValueError):
+                text_literal_dependencies(self.fixture(word),[(0,4)])
+
+    def test_exact_abs64_and_adjacent_call_have_distinct_extents(self):
+        rows=[dict(r_offset=12,r_info_type=283,r_info_sym=2,r_addend=0),
+              dict(r_offset=16,r_info_type=257,r_info_sym=2,r_addend=32)]
+        found=text_literal_dependencies(self.fixture(relocations=rows),[(0,4),(0,4)])
+        self.assertEqual(found[0]['readers'],[0])
+        self.assertEqual(found[0]['relocations'],[dict(type=257,symbol='fixture_symbol',
+            target_section='.text',symbol_offset=0,addend=32)])
+
+    def test_partial_wrong_type_and_duplicate_relocations_reject(self):
+        for offset,kind,repeated in ((12,257,False),(20,257,False),(16,283,False),(16,257,True)):
+            rows=[dict(r_offset=offset,r_info_type=kind,r_info_sym=2,r_addend=0)]
+            if repeated:rows*=2
+            with self.subTest(rows=rows),self.assertRaises(ValueError):
+                text_literal_dependencies(self.fixture(relocations=rows),[(0,4)])
 
 
 class BuildFailureTests(unittest.TestCase):

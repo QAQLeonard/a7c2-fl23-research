@@ -86,6 +86,10 @@ The new code scope also identifies six fragments (288 bytes) outside the earlier
 loaded-read extents. Their file audit does not establish current RAM contents;
 future qualification needs fresh mappings and exact relocations as well as
 the separate callback-lifetime proof.
+Direct literal-load analysis adds two uncovered pointer words (16 bytes), making
+the offline read scope eight spans / 304 bytes. Code/data mapping symbols and
+encoded load targets are checked; the two pointer relocations are reconstructed
+exactly. This is a read-scope preparation, not a camera read or send admission.
 
 ## Earlier startup studies
 
@@ -108,7 +112,7 @@ do not add up to physical pre-capture.
 | `ap_rpc_conditions.c`, `verify_rpc_conditions.py` | Actual read-only condition checks in the RPC composition; failures and PID/FD drift controls. Known refusal permits never-sent cancellation; unknown gate resources retain the entire context |
 | `support/kernel_mapping.py`, `audit_kernel_mapping.py`, `verify_kernel_mapping.py` | Offline proc/resource plan, strict module-page translation and original-instruction comparison. No device access or live admission; private operators bind epoch/read extents separately |
 | `support/cp_mapping.py`, `cp_owner.py`, `native_gate.py`, `ap_codec.py` | Original-instruction fixtures shared directly by checks |
-| `support/kernel.py`, `uipc.py`, `boundaries.py`, `reference.py`, `memory.py` | Pinned inputs, synthetic memory and execution stopped before native services |
+| `support/kernel.py`, `uipc.py`, `boundaries.py`, `reference.py`, `memory.py` | Pinned inputs, synthetic memory and execution stopped before native services; explicit code slices also expose their direct literal-load dependencies |
 | `support/config_rmw.py`, `audit_config_rmw.py`, `vm/cp_boot/config_rmw/` | Pinned configuration-helper spans, original execution and isolated RAM-backed helper fixtures; no hardware initial value or native boot admission |
 | `support/readonly_session.py`, `verify_readonly_session.py` | Explicit named-file/settings-only wrapper for separately reviewed modern host transport; offline guards, no camera enumeration or uploader |
 | `support/initializer.py` | Shared integer-only AArch64 DSO initializer fixture on synthetic memory; supports only relative relocations, never a native loader |
@@ -224,6 +228,9 @@ Phase110 对原厂 RPC 增加10段原指令核对，并保留原先30项结果�
 反例及历史。没有执行相机操作，发送后的真实生命周期仍未证实。
 另已定位6段、共288字节不在先前载入代码读取范围内；原文件核对不能替代当前RAM核对，
 后续仍需新的地址映射、精确重定位，以及独立的回调生命周期证据。
+Phase111 又核对了这些指令直接读取的位址常量，补入2个未覆盖的指针字，共16字节。
+离线读取范围因此是8段/304字节；两处指针重定位已精确重建，也复现了原先82处重定位。
+这里只完成读取范围准备，没有执行相机读取，更不能当作发送许可或预拍摄完成。
 
 本目录是未完成的预拍摄研究，公开工具只做离线验证，没有可安装的预拍摄版本。
 

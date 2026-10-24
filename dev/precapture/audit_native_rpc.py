@@ -11,7 +11,7 @@ from pathlib import Path
 
 from unicorn import Uc,UC_ARCH_ARM64,UC_MODE_ARM,UC_HOOK_MEM_READ
 from unicorn import arm64_const as R
-from support.kernel import Module, UIPC_SHA, PCIE_SHA
+from support.kernel import Module, UIPC_SHA, PCIE_SHA, text_literal_dependencies
 from support.boundaries import BoundaryRunner
 from support.memory import MEM, STACK
 
@@ -202,17 +202,35 @@ def audit(uipc,pcie):
         alternatives.append(dict(kind='independent-post-send-tail',synchronous=synchronous,
             supplied_send_status=0,message_metadata_reads=reads,boundary=expected,
             real_send_or_wait_executed=False))
+    scope=[dict(module=module,begin=begin,end=end) for module,begin,end in (
+        ('osal_uipc',0x12f0,0x1324),('osal_uipc',0x3e30,0x3e54),
+        ('pcie_if',0x3c58,0x3c88),('pcie_if',0x34c0,0x34f8),
+        ('pcie_if',0x3534,0x3544),('pcie_if',0x3608,0x360c),
+        ('pcie_if',0x3594,0x35b4),('pcie_if',0x3668,0x3678),
+        ('pcie_if',0x2c38,0x2c9c),('pcie_if',0x35b8,0x35dc),
+        ('pcie_if',0x36b8,0x36bc))]
+    literals=[]
+    for name,module,expected in (('osal_uipc',a,{0x13b0:[0x130c]}),
+                                 ('pcie_if',b,{0x2d50:[0x2c68],0x3c00:[0x3594,0x3668]})):
+        found=text_literal_dependencies(module,[(s['begin'],s['end']) for s in scope if s['module']==name])
+        assert {row['begin']:row['readers'] for row in found}==expected
+        assert all(row['bytes']==8 and len(row['relocations'])==1 for row in found)
+        literals.extend(dict(module=name,**row) for row in found)
+    literal_controls=[]
+    for begin,end in ((0x12f1,0x1324),(0x12f0,0x1323),(0x13b0,0x13b8),
+                      (0x13ac,0x13b8),(-4,0),(0,1<<32),(0x12f0,0x12f0)):
+        try:text_literal_dependencies(a,[(begin,end)])
+        except ValueError:literal_controls.append(dict(begin=begin,end=end,rejected=True))
+        else:raise AssertionError('Invalid code scope accepted')
     return dict(schema='OFFLINE_NATIVE_DIRECT_RPC_BOUNDARIES/1',camera_io=False,uipc_sha256=UIPC_SHA,
         pcie_sha256=PCIE_SHA,owner_checks=owner_checks,info_checks=info_checks,map_checks=map_checks,sync_checks=sync_checks,wait_checks=wait_checks,
         lifetime_alternative_slices=alternatives,
         lifetime_alternative_code_scope=dict(coordinates='ET_REL .text offsets, not FILE offsets or physical addresses',
-            spans=[dict(module=module,begin=begin,end=end) for module,begin,end in (
-                ('osal_uipc',0x12f0,0x1324),('osal_uipc',0x3e30,0x3e54),
-                ('pcie_if',0x3c58,0x3c88),('pcie_if',0x34c0,0x34f8),
-                ('pcie_if',0x3534,0x3544),('pcie_if',0x3608,0x360c),
-                ('pcie_if',0x3594,0x35b4),('pcie_if',0x3668,0x3678),
-                ('pcie_if',0x2c38,0x2c9c),('pcie_if',0x35b8,0x35dc),
-                ('pcie_if',0x36b8,0x36bc))],loaded_bytes_proven=False),
+            spans=scope,loaded_bytes_proven=False),
+        direct_literal_dependencies=literals,literal_scope_controls=literal_controls,
+        literal_dependency_limits=['Direct literal loads only; not a transitive pointer or whole-function audit',
+            'Literal words require exact relocation, fresh loaded bases and independent RAM verification',
+            'A valid pointer literal does not establish the identity or lifetime of its referent'],
         alternative_limits=['Nonzero callback selects finish bookkeeping, not a remote send or callback registration',
             'Async request has no stack waiter but caller reads message metadata after supplied send return',
             'No real queue insertion/completion ordering, memory lifetime or transport drain is proven',

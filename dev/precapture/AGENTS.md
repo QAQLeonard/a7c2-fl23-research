@@ -86,6 +86,12 @@ original-source reports and model results, not just pass new replacement tests.
   Original RPC slices show that nonzero callback selects finish bookkeeping,
   and async sending still reads message metadata after its supplied return.
   Neither is an admitted shortcut around actual send/completion lifetime.
+- Phase111 expands the prepared source-read scope from6 code spans/288 bytes
+  to8 spans/304 bytes by adding the UIPC13b0 and PCIe2d50 literal words.
+  Keep .text code/data mapping and exact ABS64 reconstruction; matching LDR
+  instructions alone does not qualify their pointer literals or referents.
+  Historical section bases and offline expected bytes are not live read
+  authorization. No physical read or send occurred in this phase.
 - The new phase84 seal admits metadata preflight ONLY: files/proc reads and
   device stat, no child/device open/ioctl. Its parent/observer models are not
   a physical execution. The stock diagnostic audit stops before registration

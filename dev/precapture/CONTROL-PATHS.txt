@@ -3209,3 +3209,29 @@ filling these gaps will still not establish callback lifetime.
 Reviewed main782785641ca9f8b984940c7274b48706219e0da4 remains an ancestor;
 product files untouched. Next blocker: qualify original completion ownership
 and caller/callback scheduling lifetime before proposing a physical request.
+
+Phase111 closes a dependency omission in that offline read scope, not a live
+transport loop. Shared support/kernel.py now identifies direct scalar LDR
+literals in exact .text code slices. Original $x/$d mapping symbols exclude
+inline data from instruction decoding; target and width are independently
+decoded from the instruction word, then checked against Capstone. Code/data
+crossings, unaligned/reversed/out-of-range spans and partial/unsupported
+literal relocations reject. Seven code-scope negative controls pass.
+
+The11 code slices load3 unique8-byte literals: UIPC130c ->13b0 ->.bss+50;
+PCIe2c68 ->2d50 ->.bss+288; PCIe3594/3668 ->3c00 ->_tmon_on (.bss+840).
+The last word was already in phase107's read extents, but13b0 and2d50 were
+not. New offline scope:6 code fragments/288 bytes plus2 literals/16 bytes,
+8 spans/304 bytes total. The retained relocation generator reproduces all82
+earlier sites and reconstructs these2 ABS64 values without masks. Historical
+section bases are inputs only; they are not a fresh body/RAM identity.
+Every phase110 report field remains identical.24 shared-support and7 mapping
+tests also pass. The5 new synthetic metadata tests cover32/64-bit/signed
+literal loads, backward displacement, code/data separation, rejected vector/
+prefetch forms, exact/partial/duplicate relocations, and an adjacent4-byte call
+which must not be mistaken for an overlapping8-byte literal relocation.
+Direct literal analysis is NOT transitive pointer validation;
+the UIPC backing-map pointer, PCIe endpoint state, scheduling stability and
+callback completion still need independent proof. No diagnostic executable,
+device operation or sender admission is created. Main782785641ca9f8b remains
+the reviewed ancestor; current work does not change product files.

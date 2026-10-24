@@ -62,3 +62,88 @@ class Module:
 
     def at(self, section, offset):
         return self.names[section] + offset
+
+
+def text_literal_dependencies(module, ranges):
+    """Find scalar LDR literals in explicit original .text instruction slices.
+
+    Module already pins the original ELF. Mapping symbols distinguish code from
+    inline data; decoded targets are cross-checked against the instruction word.
+    Results are section offsets, never a memory-read or loaded-source permit.
+    This covers direct literal loads only, not arbitrary address computations
+    or the contents subsequently reached through a pointer.
+    """
+    from capstone import Cs, CS_ARCH_ARM64, CS_MODE_LITTLE_ENDIAN
+    from capstone.arm64_const import ARM64_OP_IMM
+
+    elf = module.elf
+    section = elf.get_section_by_name('.text')
+    raw = section.data()
+    section_index = elf.get_section_index('.text')
+    symbols = elf.get_section_by_name('.symtab')
+    markers = {}
+    for symbol in symbols.iter_symbols():
+        if symbol['st_shndx'] == section_index and symbol.name.split('.')[0] in ('$x', '$d'):
+            at, kind = symbol['st_value'], symbol.name[1]
+            if at in markers and markers[at] != kind:
+                raise ValueError('Conflicting original mapping symbols')
+            markers[at] = kind
+    ordered = sorted(markers)
+
+    def extent(begin, end, kind):
+        if not 0 <= begin < end <= len(raw):
+            raise ValueError('Original .text extent required')
+        preceding = [at for at in ordered if at <= begin]
+        if not preceding or markers[preceding[-1]] != kind:
+            raise ValueError('Code/literal mapping differs')
+        if any(markers[at] != kind for at in ordered if begin < at < end):
+            raise ValueError('Span crosses code/literal mapping')
+
+    decoder = Cs(CS_ARCH_ARM64, CS_MODE_LITTLE_ENDIAN)
+    decoder.detail = True
+    dependencies = {}
+    for begin, end in ranges:
+        if type(begin) is not int or type(end) is not int or begin & 3 or end & 3:
+            raise ValueError('Aligned instruction offsets required')
+        extent(begin, end, 'x')
+        instructions = list(decoder.disasm(raw[begin:end], begin))
+        if len(instructions)*4 != end-begin or any(i.size != 4 for i in instructions):
+            raise ValueError('Incomplete original instruction decoding')
+        for instruction in instructions:
+            word = struct.unpack_from('<I', raw, instruction.address)[0]
+            if word & 0x3b000000 != 0x18000000:
+                continue
+            opcode = word >> 30
+            if word & (1 << 26) or opcode == 3:
+                raise ValueError('Unsupported vector/prefetch literal')
+            width = 8 if opcode == 1 else 4
+            displacement = (word >> 5) & 0x7ffff
+            if displacement & (1 << 18):
+                displacement -= 1 << 19
+            target = instruction.address + 4*displacement
+            operands = instruction.operands
+            if (instruction.mnemonic not in ('ldr', 'ldrsw') or len(operands) != 2
+                    or operands[1].type != ARM64_OP_IMM or operands[1].imm != target):
+                raise ValueError('Literal decoder and encoding disagree')
+            extent(target, target+width, 'd')
+            key = (target, width)
+            row = dependencies.setdefault(key, dict(begin=target, end=target+width, bytes=width,
+                                                    readers=[], relocations=[]))
+            if instruction.address not in row['readers']:
+                row['readers'].append(instruction.address)
+    relocations = elf.get_section_by_name('.rela.text')
+    for (begin, width), row in dependencies.items():
+        for relocation in relocations.iter_relocations():
+            at = relocation['r_offset']
+            size = {257: 8, 282: 4, 283: 4}.get(relocation['r_info_type'], 8)
+            if at < begin+width and begin < at+size:
+                if relocation['r_info_type'] != 257 or at != begin or width != 8:
+                    raise ValueError('Unqualified or partial literal relocation')
+                symbol = symbols.get_symbol(relocation['r_info_sym'])
+                index = symbol['st_shndx']
+                row['relocations'].append(dict(type=257, symbol=symbol.name,
+                    target_section=elf.get_section(index).name if type(index) is int else index,
+                    symbol_offset=symbol['st_value'], addend=relocation['r_addend']))
+        if len(row['relocations']) > 1:
+            raise ValueError('Overlapping literal relocations')
+    return [dependencies[key] for key in sorted(dependencies)]
