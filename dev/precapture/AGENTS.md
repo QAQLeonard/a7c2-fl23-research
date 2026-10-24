@@ -21,6 +21,15 @@ experiment does not admit the dynamic rows, full native initialization, physical
 readout or completion. The next boundary is action application/real completion,
 not another generic transport test. Current-source comparisons are FILE spans.
 
+Phase131 traces original requested/current feedback through masked completion,
+deferred task and internal events to the CAP callback. Commands3014/3032 share
+event308; the32-byte event has no command/generation token and original code
+clears the pending slot BEFORE posting. Never use it alone as a shot/RAW terminal
+ACK or replay it after ambiguous delivery. Mask8027 waits only indices0/1/2/5;
+unwatched current words can differ when the local check succeeds. This is not
+physical sensor/RAW quiescence. Native CAP continuation still stops before
+a05976 or a06e5e under explicit synthetic configuration/reference inputs.
+
 Current CP source supersedes phase113:333 changed bytes exactly reconstruct
 from the existing nine-window LUT-preview repair;17 original spans and the
 diagnostic constructor/callback/registration are unchanged. Preserve that

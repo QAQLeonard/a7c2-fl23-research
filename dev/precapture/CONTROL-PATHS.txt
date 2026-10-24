@@ -3447,3 +3447,58 @@ reads and dynamic callbacks; never equate action8027, local flags, queued work
 or an empty software counter with hardware completion. Pre-capture/menu remain
 unfinished; further physical requests/patches need their own concrete review
 and explicit approval beyond the consumed one-query scope.
+
+## Phase131: original feedback, completion notification and CAP continuation
+
+Main782785641ca9 was refreshed/reviewed again and remains an ancestor. This
+phase stays offline, with no camera session, upload, CP request or write.
+support/capture_completion.py reuses NativeCapture and is called by the existing
+capture-transition audit rather than creating another transport/operator path.
+All phase130 result fields are unchanged outside the explicitly extended
+current-span inventory and new software_state_completion field.
+
+Original3d2b12 requires a separate upstream byte before feedback selection.
+Four raw-byte cases check that admission;14 selector patterns execute actual
+3d2b22..3d2cf4 current-word stores through nativea171bc. Distinct source values
+identify native/configuration provenance; unselected index11 stops before its
+real94147c getter. The synthetic current-word fixture is never physical feedback.
+
+Original3aab54 checks active state and the current terminal word's mask.
+For the source-qualified pair11->3b, word8027 watches indices0,1,2,5 ONLY.
+28 active/mismatched-word cases prove each watched mismatch refuses and each
+unwatched mismatch can still pass. A nonterminal-word input reaches the original
+diagnostic before any logger executes. Foura171cc cases check native state/
+command/flag bookkeeping: unmatched feedback preserves state; matched explicit
+feedback advances it. No hardware completion is inferred from this software test.
+
+The original post-completion constructor slice binds task9d/queue42 at1a6a728.
+Actual3d2cf8 builds thea26f74 functor and stops before407f1c enqueue. The callback's
+initial logger remains a boundary. An explicitly separate originala179fe slice
+consumes the pending command and builds type1/32-byte internal events:
+3013->309,3014->308,3015->30b,3032->308. All remaining event words are zero.
+The original slot is cleared BEFORE3adfe4 post. Event308 therefore cannot
+identify a particular command or generation, and ambiguous delivery cannot be
+replayed. An empty slot reaches the following master accessor without posting.
+
+Four actual receive-table dispatch cases map308 to3ada5e,309 to3ada70 and30b
+to the common3adf1e continuation. Receive tests start AFTER omitted native entry
+observers/queue delivery; no OS scheduling success is supplied. Original308
+handling loads its capture handle, builds a36d0e8 callback on CAM_CAP_MGR and
+stops before actual enqueue. The CAP prefix accepts its matching parameter
+handle and rejects a mismatched one at the original diagnostic. Two further
+explicit raw-mode1/pre-existing-reference inputs continue through original
+configuration accessors and bookkeeping, stopping beforea05976 or a06e5e.
+Neither acquires RAW pixels or supplies a successful sensor/OS service.
+
+All old capture-transition evidence is preserved exactly;24 shared-support
+tests pass. Two real CLI source-drift controls change the terminal mask or
+completion callback, reject before report creation, and retain their stderr.
+Selected spans of the captured current CP match stock, preserving the later
+LUT preview fix; this is not fresh loaded-state evidence or whole-image identity.
+
+Next native blocker: the CAP a05976/a06e5e continuation through actual readout/
+pixel-resource services, and the provenance/lifetime of real current feedback.
+The common event308 is not a substitute for the workflow's generation/lease/
+serial terminal fence. Dynamic configuration rows, real exposure/retention,
+writer/cancel/release and manual default-Off menu remain unfinished. No new
+physical admission follows from these offline results.
