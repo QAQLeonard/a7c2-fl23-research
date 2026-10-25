@@ -4273,3 +4273,25 @@ match;CP full-file reread is identical. Three private archives match and USB
 ended normally. No code upload,native job,custom UIPC request,parameter/ROM/RAM
 write or capture occurred. This closes the CP-endpoint scalar observation gap,
 not physical primary-table identity,the actual stream bytes or RAW ownership.
+
+Phase174: current configuration files and grouped capture-evidence verification.
+Current/cp/DmmCfg.bin43508,tomco741,mini_ldr40752 and loader_spi39184 bytes match
+the original sources exactly. Current CP remains the accepted LUT-preview file.
+Five file reads/rereads complete under normal/service body binding and common
+device lock,no upload/execution/direct CP request/parameter or firmware write.
+Three private archives match and USB ends normally. This establishes current
+FILE evidence only;there is no CP memory/DMA access or new capture here.
+The existing audit_capture_validation command now uses support/capture_acquisition
+to bind exact report/archive/source receipts before original execution. Its new
+optional policy inputs bind the phase173 eight-byte reply and both BK4 snapshots,
+require the same CP bytes as the current configuration archive,and select the
+single matching retained segment as an explicit model input. All five original
+backing/notification models execute,including2411 getter bodies each;the existing
+pool/completion/exposure checks run against the same captured CP FILE spans.
+Report keeps loaded_policy_stream_bytes_verified and physical_resource_ownership
+false,and explicitly reports missing common boot-ID evidence between captures.
+Twenty-five provenance/scope/order/archive/reply controls reject invalid
+evidence. Prior pool/completion/exposure behavior fields remain identical;
+expected source hashes and acquisition archive hashes differ for the newer run.
+No viewfinder,pixel,actual exposure-end/S2 trace,durable save/cancel,in-camera
+switch or physical terminal-release evidence is created by this combined audit.

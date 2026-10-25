@@ -144,6 +144,20 @@ have three verified private host copies. This confirms the CP endpoint value,
 not the entire loaded primary bank or stream bytes. The one private vendor-read
 intent is consumed;no custom-query,patch,exposure or pixel-read scope follows.
 
+Phase174 acquires current/cp DmmCfg,tomco,mini_ldr,loader_spi and CP program via
+existing-file reads only. All five reread unchanged;the four configuration/
+loader files match retained originals,three host archives match and USB exits
+normally. File identity still does not prove pointed-to runtime bytes.
+audit_capture_validation now binds this exact acquisition and the completed
+phase173 vendor observation together,requires the same full CP FILE bytes,and
+executes all five original backing/notification models plus the existing
+pool/completion/exposure checks. Model bank selection remains explicit;there is
+no verified shared boot ID between the two acquisitions. Physical verdicts stay
+false. Do not reinterpret the combined report as an installer,observer,menu,
+exposure,RAW lease,photo save or terminal notification. Acquisition schema,
+archive/source receipts,unique read intent/reply/order and final USB status are
+checked before any model runs;private raw files/results remain excluded.
+
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
 inject fake AP pending records to defeat the earlier empty-deque assertion.

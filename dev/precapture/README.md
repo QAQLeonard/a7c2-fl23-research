@@ -66,6 +66,13 @@ rereads match and USB ended normally. The endpoint value is now observed;
 actual pointed-to configuration bytes and physical resource ownership remain
 unverified. This used no uploaded code or firmware/settings write.
 
+Phase174 reads current CP DmmCfg,tomco and both loaders;all match the retained
+originals and reread unchanged alongside the CP file. The combined validation
+can bind that archive and the earlier vendor-policy receipt to the same CP FILE
+bytes,then run all five backing/notification scenarios plus pool/completion/
+exposure checks in one command. It reports the remaining physical requirements
+together;runtime policy bytes,RAW ownership,timing and saved photos stay unverified.
+
 | Area | Verified evidence | Remaining work |
 |---|---|---|
 | Fixed CP metadata access | Four pointer reads, then one separately approved three-word callback sample816/699/907; both exact inverses and cold reloads accepted | Owner-coherent pool state, backing pixels and resource lifetime; ring consistency alone is insufficient |
@@ -157,6 +164,7 @@ do not add up to physical pre-capture.
 | `support/dmm_config.py`, `support/backing_config.py`, `audit_backing_config.py` | Shared bounded config decoder and original CP parser/root/parent-allocation/pin/local-return audit; explicit post-query fixture inputs and unexecuted terminal notification |
 | `support/pool_notification.py` | Same local return continued through original CPU-context/lock instructions on synthetic CPU0; message, wait, clock, error and contended-WFE boundaries remain unexecuted |
 | `support/backup_binding.py` | Original BK4 primary binding and scalar-getter body on retained snapshot bytes; explicit bank choice and unexecuted semaphore boundaries |
+| `support/capture_acquisition.py` | Bind completed file/configuration and single vendor-read reports to private archives; does not admit loaded RAM or physical capture |
 | `support/readonly_session.py`, `verify_readonly_scope.py` | Existing-file/settings constraints plus an explicit optional one-use vendor policy read; defaults reject CP packets, all writes/other keys/replays refuse |
 | `support/capture_validation.py`, `audit_capture_validation.py` | Combined pool/completion/exposure source checks bound to a completed read-only snapshot; physical verdicts stay unverified |
 | `cp_trace.c/h`, `cp_trace_native.c`, `cp_trace_hooks.S` | Bounded owner-lane recording core, uninstalled native metadata/edge adapters and exposure entry wrappers; no loader/storage/export admission |
@@ -241,6 +249,7 @@ python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --notification default_category --output NEW_PRIVATE_JSON
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --backup-segment PRIVATE_COMPLETE_BK4_SEGMENT --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
+python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_CURRENT_CONFIG_ARCHIVE --acquisition-report PRIVATE_CONFIG_ACQUISITION_JSON --policy-snapshot PRIVATE_VENDOR_READ_ARCHIVE --policy-report PRIVATE_VENDOR_READ_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/audit_metadata_capacity.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
 python dev/precapture/verify_cp_trace.py --zig PATH_TO_ZIG --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_FOLDER
