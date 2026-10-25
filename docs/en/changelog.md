@@ -4,6 +4,8 @@
 
 ## Unreleased — restore native LUT upload conditions
 
+- Give paid flashing/resale/unlocking restrictions and false-authorization restrictions separate prominent headings in the startup notice, both README introductions and full terms. The restriction states the author's use requirements; this change does not alter the code license.
+
 - Remove the old non-revocation sentence from the startup notice and full terms. Emphasize free distribution, opposition to commercial profit, and no author authorization for third parties to charge, resell or promise warranty coverage in the author's or Sony's official name; bold all summary paragraphs. Align recovery fixtures with user-provided sources and preset fixtures with complete voice-cleanup results, including post-reload verification. Production checks and write/readback behavior remain unchanged.
 
 - Split the sound page into independent mechanical-speaker and electronic-speaker controls. Mechanical audio uses native KA/SHA segments while custom audio remains registered only as kind3 for electronic capture. Preserve native front-policy checks, counter handling, the other switch, shutter type, AF audio settings and unrelated bytes. Save/removal retain the mechanical switch; extend factory recovery to the two additional instruction windows. Native instruction replay and GUI dispatch are offline evidence; physical sound, timing and boot acceptance remain pending.

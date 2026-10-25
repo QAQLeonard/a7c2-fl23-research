@@ -56,13 +56,17 @@ Only operate a device you lawfully own or for which the lawful owner has given e
 
 The software is provided as is to the extent permitted by law, without promises of correctness, fitness, safety or successful recovery. Users decide whether to proceed and bear risks that lawfully fall to them. **This statement does not exclude or limit liability that cannot lawfully be excluded**, including applicable non-excludable liability for intentional misconduct or gross negligence.
 
-### Free distribution, opposition to commercial profit and false affiliation
+### No paid flashing, resale or paid unlocking of this tool
 
-**Do not impersonate Sony or claim authorization from the project author.** The author provides no paid flashing service and has not authorized third parties to advertise, charge, promise warranty coverage or give safety guarantees in Sony's or the author's name.
+**Author's use requirement: do not charge for flashing, resell this tool or require payment to unlock it. This includes paid remote installation, resale or paid bundles of the tool, activation keys/dongles for paid unlocking, and charging for the tool as part of a hardware bundle. The author provides the project free of charge and offers no paid flashing service.**
 
-**The author explicitly opposes any use of this project for commercial profit, including paid flashing, paid remote installation, resale bundles, activation keys/dongles and hardware bundles offered by individuals, online sellers, studios or commercial entities, including sellers on Xianyu, Taobao, Pinduoduo and Zhuanzhuan.** Third-party fees do not imply the author's involvement, approval or guarantee. Those parties remain responsible for their own transactions and conduct under applicable law.
+### Do not impersonate Sony or claim author authorization
 
-**The author has never authorized anyone to charge for flashing, remote installation, resale or other commercial activities, or promise warranty coverage, in the author's or Sony's official name. This statement provides no endorsement or guarantee of third-party commercial activities.** See [LICENSE](../../LICENSE) for the code license. Third-party components, firmware material and trademarks retain their separate rights and licenses; the code license grants no additional rights to them.
+**The author has never authorized anyone to offer paid services, advertise or promise warranty coverage in the author's or Sony's official name. Do not impersonate Sony, the author or an authorized service provider.** Third-party fees imply no author involvement, approval, endorsement or guarantee. Those parties remain responsible for their own transactions and conduct under applicable law.
+
+### License files and liability
+
+The use restriction above states the author's requirements. See [LICENSE](../../LICENSE) for the code license. Third-party components, firmware material and trademarks retain their separate rights and licenses; the code license grants no additional rights to them. This statement does not exclude liability that cannot lawfully be excluded.
 
 ### Firmware sources, copyright and DMCA considerations
 

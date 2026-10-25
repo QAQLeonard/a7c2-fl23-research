@@ -3,17 +3,26 @@
 **English** · [简体中文](README.zh-CN.md)
 
 > [!WARNING]
-> **Read before use · Disclaimer**
+>
+> ### Read before use · Disclaimer
 >
 > **This is an unofficial, independent research tool for learning and technical discussion. It is not affiliated with, authorized or endorsed by Sony.**
 >
-> **Use at your own risk: modifying a camera can cause boot failure, repeated restarts, malfunctions or data loss, and can affect official updates, warranty or repair. Successful writes and matching readback do not establish boot safety; restoration is not guaranteed to recover the camera.**
+> ### No paid flashing, resale or paid unlocking of this tool
 >
-> **Do not claim official or author authorization: the author provides this project free of charge, offers no paid flashing service, and explicitly opposes any use of this project for commercial profit, including third-party resale, paid flashing, paid remote installation, activation keys/dongles and hardware bundles. Do not advertise, charge or promise warranty coverage in Sony's or the author's name.**
+> **Author's use requirement: do not charge for flashing, resell this tool or require payment to unlock it. This includes paid remote installation, resale or paid bundles of the tool, activation keys/dongles for paid unlocking, and charging for the tool as part of a hardware bundle. The author provides the project free of charge and offers no paid flashing service.**
+>
+> ### Do not impersonate Sony or claim author authorization
+>
+> **The author has never authorized anyone to offer paid services, advertise or promise warranty coverage in the author's or Sony's official name. Do not impersonate Sony, the author or an authorized service provider. Third-party fees imply no author involvement, approval, endorsement or guarantee.**
+>
+> ### Use at your own risk · Recovery is not guaranteed
+>
+> **Modifications can cause boot failure, repeated restarts, malfunctions or data loss, and can affect official updates, warranty or repair. Successful writes and matching readback do not establish boot safety; restoration is not guaranteed to recover the camera.**
 >
 > **Only operate a device you lawfully own or for which the owner has given explicit permission. Back up important data. Do not proceed if you cannot accept device damage and repair costs.**
 >
-> **The author has never authorized anyone to charge for flashing, remote installation, resale or other commercial activities, or promise warranty coverage, in the author's or Sony's official name. This statement provides no endorsement or guarantee of third-party commercial activities and does not exclude liability that cannot lawfully be excluded. See [LICENSE](LICENSE) for the code license and [Sources and licenses](docs/en/notices.md) for third-party rights.**
+> **The use restriction above states the author's requirements. See [LICENSE](LICENSE) for the code license and [Sources and licenses](docs/en/notices.md) for third-party rights. This statement does not exclude liability that cannot lawfully be excluded.**
 >
 > **[Read the full risk notice and use statement](docs/en/notices.md#risk-notice-and-use-statement)**
 
