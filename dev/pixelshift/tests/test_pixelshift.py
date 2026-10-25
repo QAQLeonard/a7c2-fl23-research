@@ -1968,6 +1968,63 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_native_manager_notification_returns_and_complete_frame_header_constructs_shared_group(self):
+        from cp_frame_header_replay import compare_continued
+        report = compare_continued(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 32)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            frame = result['native_continuation']
+            self.assertEqual(frame['native_mapped_mode'], 23)
+            self.assertEqual(frame['native_group_count'], inputs['source_count'])
+            self.assertEqual(frame['native_frame_ordinal'], 0)
+            self.assertEqual(frame['native_next_ordinal'], 1)
+            self.assertEqual(frame['native_pool_allocations'], 2)
+            self.assertEqual(frame['native_shared_group_reference_count'], 2)
+            self.assertEqual(frame['native_notification_callbacks'], 1)
+            self.assertTrue(frame['first_ordinal_produced_by_native_reset'])
+            self.assertEqual(frame['native_image_helper_result'], inputs['aux_flag'] if inputs['bank_gate'] else 1)
+            self.assertEqual(frame['boundary'], 'after_original_frame_header')
+            for field in ('asynchronous_manager_notification_executed', 'manager_mapper_returned',
+                          'shared_group_creation_reached', 'complete_frame_header_returned',
+                          'notification_actor_binding_and_configuration_banks_are_fixtures',
+                          'native_snapshot_preserved', 'all_stages_share_one_ram',
+                          'stage_handoffs_are_harness_driven', 'upstream_group_count_is_fixture'):
+                self.assertTrue(frame[field], field)
+            for field in ('selected_mode_and_count_assigned_by_host', 'frame_fields_assigned_by_host',
+                          'api_returns_assigned_by_host', 'complete_population_executed',
+                          'continuous_capture_callback_executed', 'sensor_settling_or_exposure_executed',
+                          'camera_io', 'installable'):
+                self.assertFalse(frame[field], field)
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
+    def test_newly_created_frame_group_ends_through_queue_without_dropping_active_reference(self):
+        from cp_frame_header_replay import compare_queued_clear
+        report = compare_queued_clear(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 16)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            frame = result['native_continuation']
+            self.assertEqual(frame['native_group_count'], 4)
+            self.assertEqual(frame['native_shared_group_reference_count'], 1)
+            self.assertEqual(frame['native_group_end_invocations'], 1)
+            self.assertEqual(frame['native_image_helper_result'], inputs['aux_flag'])
+            self.assertTrue(frame['queued_group_end_executed'])
+            self.assertTrue(frame['first_ordinal_produced_by_native_reset'])
+            self.assertTrue(frame['active_frame_reference_preserved_after_group_end'])
+            self.assertTrue(frame['asynchronous_manager_notification_executed'])
+            self.assertEqual(frame['native_runtime_mode_clear_executed'], inputs['disable_runtime_mode'])
+            for field in ('group_end_disables_persistent_experiment', 'saved_off_setting_executed',
+                          'ap_cp_hardware_transport_executed', 'complete_population_executed',
+                          'continuous_capture_callback_executed', 'sensor_settling_or_exposure_executed',
+                          'camera_io', 'installable'):
+                self.assertFalse(frame[field], field)
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)

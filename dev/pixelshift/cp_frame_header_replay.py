@@ -1,11 +1,15 @@
-"""Native selected-mode -> manager mapping -> allocated frame-header prefix.
+"""Native selected-mode -> manager notification -> allocated frame header.
 
 The existing native TRINITY dispatch, snapshot, eligibility and mode selection
 supply the configuration in the same RAM. Original manager mapping executes
 until its asynchronous notification, which is not dispatched. A separately
 invoked original reset/capture-ID slice and the original image constructor then
 reach and execute the actual frame-population prefix. Stop before the original
-configuration-dependent image helper; no return value is fabricated.
+configuration-dependent image helper; no return value is fabricated. Optional
+--continue-header executes the complete original helper/header and notification.
+--queued-clear adds actual queued group-end and AP-built runtime-mode clearing.
+Registered actor bindings/configuration banks remain fixtures in both variants;
+neither the rest of frame population nor saved-OFF writes execute.
 
 Registered memory/OS state, initial counters and stage invocations are fixtures.
 This is not a continuous capture callback, complete population, exposure,
@@ -75,7 +79,9 @@ def profile(directory):
     return data, p
 
 
-def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_count=4):
+def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_count=4,
+           continue_header=False, queue_start=0, bank_gate=0, aux_flag=0, clear_after_header=False,
+           disable_runtime_mode=False):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, p = profile(directory)
@@ -86,9 +92,20 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
         selected = struct.unpack('<I', cpu.mem_read(live+0x158, 4))[0]
         if selected != 23 or struct.unpack('<I', cpu.mem_read(live+0x1a0, 4))[0] != 1:
             raise ValueError('Expected the prior original mode selection and TRINITY snapshot')
-        cpu, _, initial = prepare_registered_pool(directory, cpu=cpu, dirty=dirty)
+        cpu, _, initial = prepare_registered_pool(directory, cpu=cpu, dirty=dirty,
+            free_count=3 if continue_header else 2, reserved_count=int(continue_header))
         kernel, base, stride = initial['kernel'], initial['base'], initial['stride']
         stack, finish = 0x3001f000, 0x3001e000
+        extension = None
+        regions = list(p['regions'])
+        if continue_header:
+            from cp_frame_extensions import prepare
+            from cp_shared_group_lifecycle_replay import profile as shared_profile
+            extension = prepare(cpu, directory, kernel, queue_start=queue_start, bank_gate=bank_gate, aux_flag=aux_flag)
+            shared = shared_profile(directory)[1]
+            regions += extension['profile']['regions']+shared['regions']
+            for index in range(initial['total']):
+                cpu.mem_write(base+index*stride+0x52d8, b'\0')
 
         def map_range(at, size):
             for page in range(at & ~4095, (at+size+4095) & ~4095, 4096):
@@ -112,19 +129,48 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
         resets = []
         protected = [getattr(arm, 'UC_ARM_REG_R'+str(n)) for n in range(4, 12)]
         saved = [0x77660000+n for n in range(8)]
+        sent, received, callback_count, receiver = [], [], 0, None
+        header_entry = None
+        end_entries, clear_verified = 0, False
 
         def hook(uc, at, n, unused):
-            nonlocal mapper_entries, header_entries, allocations
-            if at == p['notification']:
+            nonlocal mapper_entries, header_entries, allocations, callback_count, receiver, header_entry, end_entries
+            if at == p['notification'] and not continue_header:
                 raise ValueError('Asynchronous manager notification is outside this replay')
-            if at == p['image_helper']:
+            if at == p['image_helper'] and not continue_header:
                 raise ValueError('Configuration-dependent image helper is outside this prefix')
             if at in image['mutex']['waits'] or at in image['locks']['waits']:
                 raise ValueError('Native uncontended frame-header setup reached an OS wait')
-            if not any(lo <= at and at+n <= hi for lo, hi in p['regions']):
+            if extension:
+                ep = extension['profile']
+                c, q = ep['actor']['completion'], ep['actor']['queue']
+                if at == q['send']:
+                    length = uc.reg_read(arm.UC_ARM_REG_R2)
+                    if uc.reg_read(arm.UC_ARM_REG_R0) != q['ident'] or length != 28:
+                        raise ValueError('Manager notification used a different queue or record size')
+                    sent.append(bytes(uc.mem_read(uc.reg_read(arm.UC_ARM_REG_R1), length)))
+                if at == q['receive']:
+                    receiver = uc.reg_read(arm.UC_ARM_REG_R1)
+                if at == c['worker']+0x32:
+                    length = uc.reg_read(arm.UC_ARM_REG_R0)
+                    if length != 28 or receiver is None:
+                        raise ValueError('Notification worker did not receive its complete original message')
+                    received.append(bytes(uc.mem_read(receiver, length)))
+                if at == ep['callback']:
+                    callback_count += 1
+                if at == ep['clear']['group']['end']:
+                    end_entries += 1
+                    if phase != 'clear-worker' or uc.reg_read(arm.UC_ARM_REG_LR) & ~1 != c['worker']+0x76:
+                        raise ValueError('Native group end did not come from the queued worker')
+                if phase in ('notification-worker', 'clear-worker') and at == c['worker']+0x76:
+                    uc.emu_stop()
+                    return
+            if not any(lo <= at and at+n <= hi for lo, hi in regions):
                 raise ValueError('Native frame header reached an unresolved dependency: '+hex(at))
             mapper_entries += int(at == p['mapper'])
             header_entries += int(at == p['header'])
+            if at == p['header']:
+                header_entry = (uc.reg_read(arm.UC_ARM_REG_SP), [uc.reg_read(r) for r in protected])
             allocations += int(at == image['allocate'])
             if at in p['reset_aux']:
                 resets.append(at)
@@ -133,28 +179,55 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
 
         def write_hook(uc, access, at, n, value, unused):
             allowed = kernel['writes']+[(kernel['lock']['object'], 12), (kernel['core']+0x10, 4),
-                (image['primary'], 24), (base, stride), (stack-4096, 4096),
+                (image['primary'], 24), (base, stride*initial['total']), (stack-4096, 4096),
                 (p['manager_id'], 0x70), (p['reset_state'], 16)]
+            if extension:
+                allowed += extension['writes']+[(0x3100e000, 0x1000), (0x3001c000, 0x1000)]
             if not any(lo <= at and at+n <= lo+size for lo, size in allowed):
                 raise ValueError('Native manager/frame prefix changed unrelated state: '+hex(at))
             writes.append((phase, at, n, value))
 
         ch, wh = cpu.hook_add(UC_HOOK_CODE, hook), cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
         try:
+            if extension:
+                c = extension['profile']['actor']['completion']
+                phase = 'notification-actor-init'
+                cpu.reg_write(arm.UC_ARM_REG_SP, stack)
+                cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
+                cpu.emu_start(c['initialize'] | 1, finish, count=1000)
+                if cpu.reg_read(arm.UC_ARM_REG_PC) != finish or cpu.reg_read(arm.UC_ARM_REG_SP) != stack:
+                    raise ValueError('Native notification actor initializer did not return')
+            phase = 'manager'
             cpu.reg_write(arm.UC_ARM_REG_R0, live+0x20)
             cpu.reg_write(arm.UC_ARM_REG_R1, 0)
             cpu.reg_write(arm.UC_ARM_REG_R2, 0)
             cpu.reg_write(arm.UC_ARM_REG_SP, stack)
             cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
-            cpu.emu_start(p['mapper'] | 1, p['notification'], count=1000)
+            cpu.emu_start(p['mapper'] | 1, finish if continue_header else p['notification'], count=30000)
             expected_mode, expected_count, expected_limit = (1, debug_count >> 4, 0) if debug_count else (23, source_count, 1)
             mode, count, limit = (struct.unpack('<I', cpu.mem_read(p['mode'], 4))[0],
                 struct.unpack('<I', cpu.mem_read(p['count'], 4))[0], cpu.mem_read(p['limit'], 1)[0])
-            if (cpu.reg_read(arm.UC_ARM_REG_PC) != p['notification']
+            if (cpu.reg_read(arm.UC_ARM_REG_PC) != (finish if continue_header else p['notification'])
                     or cpu.reg_read(arm.UC_ARM_REG_SP) != stack
                     or (mode, count, limit) != (expected_mode, expected_count, expected_limit)):
                 raise ValueError('Native mapper differs: mode/count/limit='+str((mode, count, limit))+
                     ', PC/SP='+str(tuple(hex(cpu.reg_read(r)) for r in (arm.UC_ARM_REG_PC, arm.UC_ARM_REG_SP))))
+            if extension:
+                ep = extension['profile']
+                c = ep['actor']['completion']
+                phase = 'notification-worker'
+                cpu.reg_write(arm.UC_ARM_REG_R0, c['manager'])
+                cpu.reg_write(arm.UC_ARM_REG_SP, 0x3100f000)
+                cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
+                cpu.emu_start(c['worker'] | 1, finish, count=30000)
+                queue_words = struct.unpack('<10I', cpu.mem_read(extension['queue']['root'], 40))
+                expected_message = struct.pack('<7I', ep['notification_invoker'] | 1, 0,
+                    ep['callback'] | 1, 0, 0, 0, 0)
+                if (cpu.reg_read(arm.UC_ARM_REG_PC) != c['worker']+0x76
+                        or sent != received or sent != [expected_message] or callback_count != 1
+                        or queue_words[6:] != (128, (queue_start+32)%128, (queue_start+32)%128, 0)
+                        or struct.unpack('<2I', cpu.mem_read(ep['target']+0x14, 8)) != (1, 0)):
+                    raise ValueError('Native notification did not initialize its target and empty its queue')
             phase = 'reset'
             cpu.reg_write(arm.UC_ARM_REG_SP, stack)
             cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
@@ -167,9 +240,10 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
                 raise ValueError('Original reset did not clear both nonzero prior counters through its helpers')
             # The upstream completed-frame count is an explicit input. No host
             # writes frame+208/+210/count fields or changes an API return.
-            cpu.hook_del(wh)
-            cpu.mem_write(p['ordinal'], struct.pack('<I', initial_ordinal))
-            wh = cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
+            if not continue_header or initial_ordinal:
+                cpu.hook_del(wh)
+                cpu.mem_write(p['ordinal'], struct.pack('<I', initial_ordinal))
+                wh = cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
             phase = 'capture-id'
             capture_id = struct.unpack('<I', cpu.mem_read(snapshot['root'], 4))[0]
             cpu.reg_write(arm.UC_ARM_REG_R8, capture_id)
@@ -186,16 +260,75 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
                                     (arm.UC_ARM_REG_R2, 0), (arm.UC_ARM_REG_SP, stack),
                                     (arm.UC_ARM_REG_LR, finish | 1)):
                 cpu.reg_write(register, value)
-            cpu.emu_start(image['construct'] | 1, p['prefix_end'], count=40000)
-            if cpu.reg_read(arm.UC_ARM_REG_PC) != p['prefix_end']:
+            stop = image['populate']+16 if continue_header else p['prefix_end']
+            cpu.emu_start(image['construct'] | 1, stop, count=80000)
+            if cpu.reg_read(arm.UC_ARM_REG_PC) != stop:
                 raise ValueError('Native constructor/population missed the exact helper boundary')
+            if continue_header and header_entry != (cpu.reg_read(arm.UC_ARM_REG_SP), [cpu.reg_read(r) for r in protected]):
+                raise ValueError('Complete native frame header did not restore its caller stack/registers')
+            if clear_after_header:
+                if extension is None:
+                    raise ValueError('Queued group clear requires the complete native frame header')
+                ep, g = extension['profile'], shared['group']
+                c = ep['actor']['completion']
+                group = struct.unpack('<I', cpu.mem_read(base+0x5aa0, 4))[0]
+                group_before = bytes(cpu.mem_read(group, stride))
+                if struct.unpack_from('<I', group_before, 4)[0] != 2:
+                    raise ValueError('Expected both native frame and retained references before queued end')
+                phase = 'clear-handler'
+                cpu.reg_write(arm.UC_ARM_REG_SP, 0x3001d000)
+                cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
+                cpu.emu_start(ep['clear']['handler'] | 1, finish, count=30000)
+                if cpu.reg_read(arm.UC_ARM_REG_PC) != finish or cpu.reg_read(arm.UC_ARM_REG_R0) != 1:
+                    raise ValueError('Original clear handler did not return after native enqueue')
+                phase = 'clear-worker'
+                cpu.reg_write(arm.UC_ARM_REG_R0, c['manager'])
+                cpu.reg_write(arm.UC_ARM_REG_SP, 0x3100f000)
+                cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
+                cpu.emu_start(c['worker'] | 1, finish, count=30000)
+                expected_group = bytearray(group_before)
+                struct.pack_into('<I', expected_group, 4, 1)
+                expected_clear = struct.pack('<7I', ep['clear']['invoker'] | 1, 0, g['end'] | 1, 0, 0, 0, 0)
+                words = struct.unpack('<10I', cpu.mem_read(extension['queue']['root'], 40))
+                if (cpu.reg_read(arm.UC_ARM_REG_PC) != c['worker']+0x76 or end_entries != 1
+                        or sent != received or sent[1:] != [expected_clear]
+                        or bytes(cpu.mem_read(group, stride)) != bytes(expected_group)
+                        or struct.unpack('<I', cpu.mem_read(g['group'], 4))[0] != 0
+                        or cpu.mem_read(g['ended'], 1)[0] != 1
+                        or cpu.mem_read(g['ordinal'], 1)[0] != 0
+                        or struct.unpack('<I', cpu.mem_read(g['mode'], 4))[0] != 1
+                        or words[6:] != (128, (queue_start+64)%128, (queue_start+64)%128, 0)):
+                    raise ValueError('Queued end freed an active frame reference or changed its mode/data/queue')
+                clear_verified = True
+            if disable_runtime_mode:
+                if not clear_verified:
+                    raise ValueError('This runtime-disable experiment follows a verified queued group end')
+                from trinity_replay import configure
+                packet = bytes.fromhex(configure(directory, mode=0)['packet'])
+                if len(packet) != 12 or struct.unpack_from('<H', packet, 2)[0] != 0x40ee:
+                    raise ValueError('Original AP builder did not produce the expected mode command')
+                # Explicit transport fixture, unchanged AP-generated bytes.
+                # This is not a real AP/CP connection or a saved-setting write.
+                address = 0x31005000
+                cpu.hook_del(wh)
+                cpu.mem_write(address, packet)
+                wh = cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
+                phase = 'runtime-mode-clear'
+                cpu.reg_write(arm.UC_ARM_REG_R0, address)
+                cpu.reg_write(arm.UC_ARM_REG_R1, 0x80020002)
+                cpu.reg_write(arm.UC_ARM_REG_SP, 0x3001d000)
+                cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
+                cpu.emu_start(extension['profile']['dispatch']['dispatcher'] | 1, finish, count=30000)
+                if (cpu.reg_read(arm.UC_ARM_REG_PC) != finish
+                        or bytes(cpu.mem_read(shared['group']['mode'], 4)) != bytes(4)):
+                    raise ValueError('Original AP-built clear did not disable the native CP source mode')
         finally:
             cpu.hook_del(ch)
             cpu.hook_del(wh)
         actual = [struct.unpack('<I', cpu.mem_read(base+offset, 4))[0] for offset in (0x208, 0x20c, 0x210, 0x5c04, 0x5c08)]
         expected_secondary = 0
         if (actual != [initial_ordinal, expected_secondary, mode, capture_id, count]
-                or mapper_entries != 1 or header_entries != 1 or allocations != 1
+                or mapper_entries != 1 or header_entries != 1 or allocations != (2 if continue_header else 1)
                 or cpu.mem_read(base+0x5c0c, 1)[0] != limit
                 or cpu.mem_read(base+0xbca, 1)[0] != 1
                 or bytes(cpu.mem_read(snapshot['root'], 0xe00)) != before_live):
@@ -203,6 +336,16 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
         native_ordinal = struct.unpack('<I', cpu.mem_read(p['ordinal'], 4))[0]
         if native_ordinal != initial_ordinal+int(initial_ordinal < count):
             raise ValueError('Original per-frame counter did not advance/saturate as expected')
+        group_count, helper_result = None, None
+        if continue_header:
+            group = struct.unpack('<I', cpu.mem_read(base+0x5aa0, 4))[0]
+            group_count = struct.unpack('<I', cpu.mem_read(group+4, 4))[0]
+            helper_result = cpu.mem_read(base+0x9b0, 1)[0]
+            if (group != base+stride or group_count != (1 if clear_verified else 2)
+                    or struct.unpack('<I', cpu.mem_read(image['primary']+8, 4))[0] != 1
+                    or helper_result != (aux_flag if bank_gate else int(initial_ordinal == 0))):
+                raise ValueError('Native group/helper differs: '+str((hex(group), group_count, helper_result,
+                    dirty, bank_gate, aux_flag, source_count)))
         return dict(native_selected_mode=selected, native_mapped_mode=mode, native_group_count=count,
             native_frame_ordinal=actual[0], native_secondary_ordinal=actual[1], native_next_ordinal=native_ordinal,
             native_limit=limit, native_activity_flag=1, native_pool_allocations=allocations,
@@ -210,9 +353,19 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
             capture_id_from_original_store=True, native_snapshot_preserved=True,
             selected_mode_and_count_assigned_by_host=False, frame_fields_assigned_by_host=False,
             api_returns_assigned_by_host=False, all_stages_share_one_ram=True,
-            boundary='before_configuration_dependent_image_helper',
-            asynchronous_manager_notification_executed=False, manager_mapper_returned=False,
-            complete_population_executed=False, shared_group_creation_reached=False,
+            boundary='after_original_frame_header' if continue_header else 'before_configuration_dependent_image_helper',
+            asynchronous_manager_notification_executed=continue_header, manager_mapper_returned=continue_header,
+            complete_population_executed=False, shared_group_creation_reached=continue_header,
+            complete_frame_header_returned=continue_header,
+            notification_actor_binding_and_configuration_banks_are_fixtures=continue_header,
+            native_notification_callbacks=callback_count,
+            first_ordinal_produced_by_native_reset=continue_header and initial_ordinal == 0,
+            native_shared_group_reference_count=group_count, native_image_helper_result=helper_result,
+            queued_group_end_executed=clear_verified, native_group_end_invocations=end_entries,
+            active_frame_reference_preserved_after_group_end=clear_verified,
+            group_end_disables_persistent_experiment=False,
+            native_runtime_mode_clear_executed=disable_runtime_mode,
+            saved_off_setting_executed=False, ap_cp_hardware_transport_executed=False,
             continuous_capture_callback_executed=False, source_os_pool_and_prior_counters_are_fixtures=True,
             upstream_group_count_is_fixture=True,
             stage_handoffs_are_harness_driven=True, sensor_settling_or_exposure_executed=False,
@@ -245,13 +398,51 @@ def compare(c2, reference):
         camera_io=False, physical_shift_verified=False, installable=False)
 
 
+def compare_continued(c2, reference):
+    rows = []
+    for dirty in (0, 0x6b):
+        for queue_start in (0, 112):
+            for bank_gate in (0, 1):
+                for aux_flag in (0, 1):
+                    for count in (2, 4):
+                        values = dict(continue_header=True, dirty=dirty, queue_start=queue_start,
+                            bank_gate=bank_gate, aux_flag=aux_flag, source_count=count)
+                        a, b = replay(c2, **values), replay(reference, **values)
+                        if a != b:
+                            raise ValueError('Native C2/CR notification and complete frame-header propagation differ')
+                        rows.append(dict(input=values, target=a, reference=b))
+    return dict(schema='a7c2-native-complete-frame-header/1', paired_cases=len(rows), cases=rows,
+        camera_io=False, physical_shift_verified=False, installable=False)
+
+
+def compare_queued_clear(c2, reference):
+    rows = []
+    for dirty in (0, 0x6b):
+        for queue_start in (0, 112):
+            for aux_flag in (0, 1):
+                for disable in (False, True):
+                    values = dict(continue_header=True, clear_after_header=True, dirty=dirty,
+                        queue_start=queue_start, bank_gate=1, aux_flag=aux_flag, disable_runtime_mode=disable)
+                    a, b = replay(c2, **values), replay(reference, **values)
+                    if a != b:
+                        raise ValueError('Native C2/CR frame-header/queued-end/runtime-mode-clear differs')
+                    rows.append(dict(input=values, target=a, reference=b))
+    return dict(schema='a7c2-native-frame-header-queued-clear/1', paired_cases=len(rows), cases=rows,
+        camera_io=False, physical_shift_verified=False, installable=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--c2', type=Path, required=True)
     parser.add_argument('--reference', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--continue-header', action='store_true',
+        help='Execute original notification and complete header on explicit actor/configuration fixtures')
+    parser.add_argument('--queued-clear', action='store_true',
+        help='Follow complete header with native queued group-end and optional runtime-mode clear')
     args = parser.parse_args()
-    result = compare(args.c2, args.reference)
+    runner = compare_queued_clear if args.queued_clear else compare_continued if args.continue_header else compare
+    result = runner(args.c2, args.reference)
     with args.output.open('x', encoding='utf-8') as handle:
         json.dump(result, handle, indent=2)
     print(json.dumps({key: result[key] for key in ('paired_cases', 'camera_io', 'physical_shift_verified')}))
