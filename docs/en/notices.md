@@ -60,7 +60,7 @@ The software is provided as is to the extent permitted by law, without promises 
 
 ### No commercial use or profit-making
 
-**All commercial use and profit-making are prohibited.**
+**All commercial use and profit-making are prohibited. The author explicitly opposes paid flashing, paid remote installation, resale or paid bundles of the tool, paid unlocking, selling activation keys/dongles, and hardware bundles for profit. This project is provided free of charge. The author offers no paid flashing service and has not authorized anyone to offer these paid services in the author's name.**
 
 ### Do not impersonate Sony or claim author authorization
 
