@@ -74,7 +74,7 @@ def profile(directory):
 
 def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, native_state=0,
            native_context=False, guard_actions=(), pipeline_source=None, native_request=False,
-           queue_start=0):
+           queue_start=0, continuation=None, source_initializer=None):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, s, p = profile(directory)
@@ -108,6 +108,8 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
             cpu.mem_write(p['context']+0x10, struct.pack('<I', 0x30012000))
             cpu.mem_write(0x30012102, bytes([pipeline]))
             cpu.mem_write(0x3001213c, bytes(4))
+        if source_initializer is not None:
+            source_initializer(cpu, snapshot, dispatch, source)
 
     def run_snapshot(cpu, snapshot, dispatch, source, capture_id, stack):
         nonlocal gate_value, written_flag, write_phase, snapshot_calls, manager_evidence
@@ -258,6 +260,8 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
         result['native_manager_initialization'] = {key: value for key, value in manager_evidence.items()
             if key not in ('stop_pc', 'expected_header', 'capture_id')}
         result['native_capture_request'] = request_evidence
+    if continuation is not None:
+        result['native_continuation'] = continuation(cpu, snapshot, p)
     return result
 
 

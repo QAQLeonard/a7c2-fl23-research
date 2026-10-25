@@ -1906,6 +1906,68 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_native_shared_group_allocation_retention_and_recycling_share_one_pool(self):
+        from cp_shared_group_lifecycle_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 24)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            self.assertEqual(result['native_pool_allocations'], 1)
+            self.assertEqual(result['native_constructor_calls'], 1)
+            self.assertEqual(result['native_addrefs'], 1+inputs['reuses'])
+            self.assertEqual(result['native_reference_counts'], [2, 1]*(1+inputs['reuses'])+[0])
+            self.assertEqual(result['native_cleanup_calls'], 1)
+            self.assertEqual(result['native_pool_returns'], 1)
+            self.assertEqual(result['free_count_before'], inputs['free_count'])
+            self.assertEqual(result['free_count_after'], inputs['free_count'])
+            self.assertEqual(result['native_allocation_stride'], 0x67b8)
+            self.assertEqual(result['native_group_ended_flag'], 1)
+            for field in ('native_retained_pointer_cleared', 'original_first_and_reuse_slices_executed',
+                          'registered_pool_and_os_inputs_are_fixtures', 'unrelated_outstanding_allocation_is_fixture',
+                          'preexisting_empty_cache_state_is_fixture', 'lifecycle_invocations_are_harness_driven'):
+                self.assertTrue(result[field], field)
+            for field in ('host_assigned_group_or_reference_count', 'actual_region_registration_or_retirement_executed',
+                          'image_capture_completion_executed', 'live_resource_release_executed',
+                          'full_capture_scheduler_executed', 'sensor_centering_or_exposure_executed', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
+    def test_native_capture_configuration_maps_into_allocated_frame_population_prefix(self):
+        from cp_frame_header_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 32)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            frame = result['native_continuation']
+            count = inputs['debug_count'] >> 4 if inputs['debug_count'] else inputs['source_count']
+            self.assertEqual(frame['native_selected_mode'], 23)
+            self.assertEqual(frame['native_mapped_mode'], 1 if inputs['debug_count'] else 23)
+            self.assertEqual(frame['native_group_count'], count)
+            self.assertEqual(frame['native_limit'], int(not inputs['debug_count']))
+            self.assertEqual(frame['native_frame_ordinal'], inputs['initial_ordinal'])
+            self.assertEqual(frame['native_next_ordinal'], inputs['initial_ordinal']+int(inputs['initial_ordinal'] < count))
+            self.assertEqual(frame['native_secondary_ordinal'], 0)
+            self.assertEqual(frame['native_activity_flag'], 1)
+            self.assertEqual(frame['native_pool_allocations'], 1)
+            self.assertEqual(frame['native_frame_population_prefix_entries'], 1)
+            self.assertEqual(frame['boundary'], 'before_configuration_dependent_image_helper')
+            for field in ('native_counter_reset_returned', 'capture_id_from_original_store',
+                          'native_snapshot_preserved', 'all_stages_share_one_ram',
+                          'source_os_pool_and_prior_counters_are_fixtures', 'upstream_group_count_is_fixture',
+                          'stage_handoffs_are_harness_driven'):
+                self.assertTrue(frame[field], field)
+            for field in ('selected_mode_and_count_assigned_by_host', 'frame_fields_assigned_by_host',
+                          'api_returns_assigned_by_host', 'asynchronous_manager_notification_executed',
+                          'manager_mapper_returned', 'complete_population_executed', 'shared_group_creation_reached',
+                          'continuous_capture_callback_executed', 'sensor_settling_or_exposure_executed',
+                          'camera_io', 'installable'):
+                self.assertFalse(frame[field], field)
+        self.assertFalse(report['physical_shift_verified'])
+        self.assertFalse(report['installable'])
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)

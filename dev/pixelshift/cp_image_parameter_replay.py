@@ -82,14 +82,19 @@ def profile(directory):
     return data, p
 
 
-def replay(directory, *, ready_state=3, free_count=2, with_callback=True, dirty=0x6b, dispatch=True):
-    from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
-    import unicorn.arm_const as arm
+def prepare_registered_pool(directory, *, ready_state=3, free_count=2, dirty=0x6b, dispatch=True,
+                            reserved_count=0, cpu=None):
+    """Shared fixture setup; do not rerun it between acquisition and recycling."""
     data, p = profile(directory)
-    cpu = machine(data, [])
+    if cpu is None:
+        cpu = machine(data, [])
+    else:
+        for page in range(0x30000000, 0x30020000, 4096):
+            if not any(lo <= page <= hi for lo, hi, _ in cpu.mem_regions()):
+                cpu.mem_map(page, 4096)
     kernel = setup_kernel(cpu, directory, dispatch=dispatch)
     base, stride, secondary_base = 0x32000010, 0x67b8, 0x33000010
-    total = max(2, free_count)
+    total = max(2, free_count+reserved_count)
     size = (total*stride+0x20+4095)&~4095
     cpu.mem_map(0x32000000, size)
     cpu.mem_map(0x33000000, 4096)
@@ -111,7 +116,7 @@ def replay(directory, *, ready_state=3, free_count=2, with_callback=True, dirty=
     cpu.mem_write(p['secondary'], secondary)
     cpu.mem_write(base-4, bytes([dirty])*(total*stride+8))
     for n in range(total):
-        cpu.mem_write(base+n*stride, struct.pack('<I', base+(n+1)*stride if n+1<total else 0))
+        cpu.mem_write(base+n*stride, struct.pack('<I', base+(n+1)*stride if n+1<free_count else 0))
     cpu.mem_write(secondary_base-4, b'\x6b'*40)
     cpu.mem_write(secondary_base, struct.pack('<I', secondary_base+16))
     cpu.mem_write(secondary_base+16, bytes(4))
@@ -121,6 +126,24 @@ def replay(directory, *, ready_state=3, free_count=2, with_callback=True, dirty=
     secondary_before = bytes(cpu.mem_read(p['secondary']-4, 32))
     backing_before = bytes(cpu.mem_read(base-4, total*stride+8))
     secondary_bytes = bytes(cpu.mem_read(secondary_base-4, 40))
+    return cpu, p, dict(kernel=kernel, base=base, stride=stride, secondary_base=secondary_base,
+        total=total, notification_history=notification_history, primary=primary, secondary=secondary,
+        state_before=state_before, primary_before=primary_before, secondary_before=secondary_before,
+        backing_before=backing_before, secondary_bytes=secondary_bytes)
+
+
+def replay(directory, *, ready_state=3, free_count=2, with_callback=True, dirty=0x6b, dispatch=True):
+    from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+    import unicorn.arm_const as arm
+    cpu, p, initial = prepare_registered_pool(directory, ready_state=ready_state, free_count=free_count,
+                                               dirty=dirty, dispatch=dispatch)
+    kernel, base, stride = initial['kernel'], initial['base'], initial['stride']
+    secondary_base, total = initial['secondary_base'], initial['total']
+    notification_history = initial['notification_history']
+    primary, secondary = initial['primary'], initial['secondary']
+    state_before, primary_before = initial['state_before'], initial['primary_before']
+    secondary_before, backing_before = initial['secondary_before'], initial['backing_before']
+    secondary_bytes = initial['secondary_bytes']
     request, record, stack, finish = 0x30008000, 0x30008100, 0x3001f000, 0x3001e000
     request_words = (p['invoker'] | 1, 0, p['populate'] | 1, 0, 0) if with_callback else (0, 0, 0, 0, 0)
     record_words = (0x12345678, 0, 0, 0, 0)
