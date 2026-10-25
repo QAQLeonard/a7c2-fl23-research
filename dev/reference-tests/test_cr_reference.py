@@ -12,7 +12,8 @@ import zipfile
 SOURCE = Path(__file__).resolve().parents[1]/'pixelshift'
 sys.path.insert(0, str(SOURCE))
 from collect_cr_reference import initialize, check, pack
-from cr_usb_readonly import ReadOnlyChannel, read_snapshots, collect, CP_UNITS, Connection
+from cr_usb_readonly import (ReadOnlyChannel, read_snapshots, collect, CP_UNITS, Connection,
+                             wait_normal_identity, release_linux_storage)
 
 
 def raw(*, shot=0, count=0, group=0, model=b'ILCE-7CR\0', iso=100):
@@ -100,6 +101,8 @@ class ReferenceFiles(unittest.TestCase):
 
 
 class RecordingChannel:
+    exit_observation = dict(normal_identity_observed=True, product_id='0x096f',
+                            matched_by='physical-port', usb_selection_required=True)
     def __init__(self, fail_at=None):
         self.calls = []
         self.fail_at = fail_at
@@ -187,7 +190,38 @@ class ReadOnlyProtocol(unittest.TestCase):
             report = json.loads(next((root/'runtime').glob('*/snapshot.json')).read_text())
             self.assertFalse(report['complete'])
             self.assertEqual(report['stage'], 'service-exit')
+            self.assertTrue(report['data_complete'])
+            self.assertFalse(report['service_exit_confirmed'])
             self.assertEqual(len(report['files']), 2)
+
+    def test_old_exit_error_does_not_discard_complete_data_or_rewrite_original(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)/'reference'
+            complete(root)
+            collect(root, label='off-before', connector=RecordingChannel)
+            snapshot = next((root/'runtime').glob('*/snapshot.json'))
+            row = json.loads(snapshot.read_text())
+            row.update(complete=False, stage='service-exit', error_type='GenericUsbException')
+            row.pop('data_complete')
+            snapshot.write_text(json.dumps(row))
+            original = snapshot.read_bytes()
+            report, _ = check(root)
+            self.assertTrue(report['runtime_snapshots'][0]['data_complete'])
+            self.assertFalse(report['runtime_snapshots'][0]['complete'])
+            self.assertTrue(report['usb_collection_recorded'])
+            self.assertFalse(report['camera_io'])
+            self.assertIn('exit unconfirmed: off-before', '\n'.join(report['warnings']))
+            self.assertNotIn('missing: off-before', '\n'.join(report['warnings']))
+            self.assertEqual(snapshot.read_bytes(), original)
+
+    def test_missing_shadow_is_incomplete_even_if_report_claims_finished(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)/'reference'
+            complete(root)
+            collect(root, label='off-before', cp_shadows=True, connector=RecordingChannel)
+            next((root/'runtime').glob('*/cp-shadow-02a40000.bin')).unlink()
+            report, _ = check(root)
+            self.assertFalse(report['runtime_snapshots'][0]['data_complete'])
 
 
 class UsbConnection(unittest.TestCase):
@@ -195,20 +229,30 @@ class UsbConnection(unittest.TestCase):
         events = []
         class Device:
             iProduct = 1
+            bus = 1
+            port_numbers = (2,)
             def __init__(self, name, pid=0x9999):
                 self.product = name
                 self.idProduct = pid
             def get_active_configuration(self):
-                return {(0, 0): types.SimpleNamespace(bInterfaceClass=8)}
+                return {(0, 0): types.SimpleNamespace(bInterfaceClass=8, bInterfaceNumber=0)}
+            def is_kernel_driver_active(self, number):
+                return self.product == 'ILCE-7CR'
+            def detach_kernel_driver(self, number):
+                events.append(('detach', self.product, number))
+            def attach_kernel_driver(self, number):
+                events.append(('reattach', self.product, number))
         devices = [Device(name, pid) for name, pid in products]
         service = Device('Sony USB Device', 0x0336)
+        exited = []
         modules = {name: types.ModuleType(name) for name in (
             'usb', 'usb.core', 'usb.util', 'usb.backend', 'usb.backend.libusb1', 'libusb_package')}
         modules['usb'].core = modules['usb.core']
         modules['usb'].util = modules['usb.util']
         modules['usb'].backend = modules['usb.backend']
         modules['usb.backend'].libusb1 = modules['usb.backend.libusb1']
-        modules['usb.core'].find = lambda **args: [service] if args.get('idProduct') == 0x0336 else devices
+        modules['usb.core'].find = lambda **args: ([service] if args.get('idProduct') == 0x0336
+            else devices if exited or not any(e[0] == 'authenticate' for e in events) else [service])
         modules['usb.util'].get_string = lambda dev, key: dev.product
         modules['usb.util'].dispose_resources = lambda dev: events.append(('dispose', dev.product))
         modules['usb.backend.libusb1'].get_backend = lambda **args: object()
@@ -221,6 +265,7 @@ class UsbConnection(unittest.TestCase):
                 self.backend = backend
             def vendorRequestOut(self, *args):
                 events.append(('stop', self.backend.dev.product))
+                exited.append(True)
         class Auth:
             SONY_VendorRequest_StopSenser = (1, 0xc800, 0x2855)
             def __init__(self, driver):
@@ -262,6 +307,73 @@ class UsbConnection(unittest.TestCase):
                 with Connection():
                     raise OSError('unknown transfer result')
         self.assertFalse(any(event[0] == 'stop' for event in events))
+
+    def test_stop_error_is_accepted_only_after_matching_normal_reenumeration(self):
+        for observed in (True, False):
+            modules, vendors, events = self.environment([('ILCE-7CR', 0x1234)])
+            outcome = dict(normal_identity_observed=True, product_id='0x096f',
+                           matched_by='physical-port', usb_selection_required=True)
+            observer = dict(return_value=outcome) if observed else dict(side_effect=RuntimeError('no normal device'))
+            def fail_stop(*args):
+                raise OSError('device disappeared during stop')
+            with patch.dict(sys.modules, modules), patch('cr_usb_readonly.vendor_modules', return_value=vendors), \
+                    patch('cr_usb_readonly.time.sleep'), patch.object(vendors[1].GenericUsbDriver, 'vendorRequestOut', fail_stop), \
+                    patch('cr_usb_readonly.wait_normal_identity', **observer):
+                if observed:
+                    with Connection() as connection:
+                        pass
+                    self.assertEqual(connection.exit_observation['stop_request_error_type'], 'OSError')
+                else:
+                    with self.assertRaisesRegex(RuntimeError, 'no normal device'):
+                        with Connection():
+                            pass
+
+    def test_exit_observer_rejects_disappearance_unrelated_port_and_service_identity(self):
+        modules, _, _ = self.environment([('ILCE-7CR', 0x1234)])
+        usb = modules['usb']
+        for devices in ([], [types.SimpleNamespace(idProduct=0x096f, bus=1, port_numbers=(9,), product='Sony')],
+                        [types.SimpleNamespace(idProduct=0x0336, bus=1, port_numbers=(2,), product='Sony')]):
+            usb.core.find = lambda **kwargs: devices
+            with self.assertRaisesRegex(RuntimeError, 'not confirmed'):
+                wait_normal_identity(usb, None, port=(1, (2,)), normal_pid=0x1234, timeout=0)
+        usb.core.find = lambda **kwargs: [types.SimpleNamespace(idProduct=0x096f, bus=1, port_numbers=(2,), product='Sony')]
+        result = wait_normal_identity(usb, None, port=(1, (2,)), normal_pid=0x1234, timeout=0)
+        self.assertTrue(result['normal_identity_observed'])
+        self.assertTrue(result['usb_selection_required'])
+
+    def test_linux_detaches_only_selected_active_interface(self):
+        events = []
+        device = types.SimpleNamespace(is_kernel_driver_active=lambda n: n == 2,
+            detach_kernel_driver=lambda n: events.append(n))
+        with patch('cr_usb_readonly.sys.platform', 'linux'):
+            self.assertTrue(release_linux_storage(device, 2))
+            self.assertFalse(release_linux_storage(device, 3))
+        with patch('cr_usb_readonly.sys.platform', 'win32'):
+            self.assertFalse(release_linux_storage(device, 2))
+        self.assertEqual(events, [2])
+
+    def test_exit_without_port_information_requires_original_product_and_model(self):
+        modules, _, _ = self.environment([('ILCE-7CR', 0x1234)])
+        usb = modules['usb']
+        for pid, name in ((0x096f, 'ILCE-7CR'), (0x1234, 'ILCE-7CM2')):
+            usb.core.find = lambda **kwargs: [types.SimpleNamespace(idProduct=pid, product=name, iProduct=1)]
+            with self.assertRaises(RuntimeError):
+                wait_normal_identity(usb, None, port=None, normal_pid=0x1234, timeout=0)
+        usb.core.find = lambda **kwargs: [types.SimpleNamespace(idProduct=0x1234, product='ILCE-7CR', iProduct=1)]
+        result = wait_normal_identity(usb, None, port=None, normal_pid=0x1234, timeout=0)
+        self.assertEqual(result['matched_by'], 'model-and-product')
+
+    def test_linux_authentication_failure_reattaches_original_interface(self):
+        modules, vendors, events = self.environment([('ILCE-7CR', 0x1234)])
+        with patch.dict(sys.modules, modules), patch('cr_usb_readonly.vendor_modules', return_value=vendors), \
+                patch('cr_usb_readonly.sys.platform', 'linux'), \
+                patch.object(vendors[0].SonySenserAuthDevice, 'authenticate', side_effect=OSError('auth failed')):
+            with self.assertRaisesRegex(OSError, 'auth failed'):
+                with Connection():
+                    pass
+        self.assertEqual([e for e in events if e[0] in ('detach', 'reattach')],
+                         [('detach', 'ILCE-7CR', 0), ('reattach', 'ILCE-7CR', 0)])
+        self.assertFalse(any(e[0] == 'stop' for e in events))
 
 
 if __name__ == '__main__':

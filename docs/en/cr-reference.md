@@ -56,7 +56,9 @@ python -m pip install -r cr-reference-usb-requirements.txt
 
 Windows needs a WinUSB/libusbK-accessible camera interface. If Zadig is needed, select the connected **ILCE-7CR**; the service identity is **Sony USB Device, 054C:0336**. Do not reuse a C2 product ID or replace another device's driver. The first identity switch may stop because the service driver is missing. Preserve its report, wait for the program to finish, address the driver, disconnect and normally reconnect in Mass Storage mode before making a fresh attempt. The collector does not install or replace drivers.
 
-macOS does not use Zadig; the dependencies supply libusb. Close photo-import applications using the camera. File handling uses portable Python. USB operation has not been physically validated on an A7CR or Mac; the first report needs review and is not established hardware support.
+macOS does not use Zadig; the dependencies supply libusb. Close photo-import applications using the camera. File handling uses portable Python. Mac USB remains untested.
+
+Linux: unmount the camera's storage volumes and close import applications first. Version 1.2 detaches the kernel driver from the selected camera interface through libusb before authentication; it does not unload `usb-storage`, install a driver or change unrelated devices. The new USB identity normally binds its driver again. Without a suitable udev rule, run only the `usb` command with root privileges, using the same Python environment in which the dependencies were installed; do not run `pip` as root. A contributor completed all reads on A7CR 2.01/Linux after manually releasing `usb-storage`. Automatic detachment and the revised exit observer have offline tests, but have not yet been retested on that body.
 
 Connect only one A7CR, with adequate battery, in **Mass Storage** mode. **Wait for each command to finish before unplugging or changing menus.** Do not shoot during collection.
 
@@ -64,7 +66,9 @@ Connect only one A7CR, with adequate battery, in **Mass Storage** mode. **Wait f
 python collect_cr_reference.py usb CR-reference --label off-before --cp-shadows
 ```
 
-Run this first with native Pixel Shift **OFF**. `--cp-shadows` additionally reads nineteen native CP backup-shadow units for reference. They are not CP execution RAM or automatically identified displacement calibration.
+Run this first with native Pixel Shift **OFF**. `--cp-shadows` additionally reads nineteen native CP backup-shadow units for reference. One A7CR 2.01/Linux collection returned all nineteen, including `0x02a40000` (4,608 bytes); a timeout reported on another setup is not a universal restriction. They are not CP execution RAM or automatically identified displacement calibration.
+
+After the single StopSenser request, version 1.2 observes re-enumeration for up to 15 seconds. It confirms exit only when a matching normal identity reappears and the service identity is gone. A StopSenser transfer error is retained in the report even if re-enumeration confirms success; mere disconnection is insufficient. The camera may display **Choose USB connection mode** afterward: select **Mass Storage** again before the next USB command. Do not rerun the command while the first is still finishing.
 
 Disconnect USB, select native **four-shot** mode without shooting, reconnect Mass Storage and run:
 
@@ -91,6 +95,8 @@ python collect_cr_reference.py pack CR-reference
 
 This creates the adjacent `CR-reference.private.zip`. The tool checks model, four-source grouping/ordinals and exposure consistency, preserves originals and uses no firmware-provenance hash gate. Missing optional USB snapshots are reported; videos are neither required nor collected. Required RAW errors prevent normal packaging; `pack CR-reference --allow-partial` explicitly produces an `INCOMPLETE` report if only partial data is available.
 
+`data_complete` distinguishes finished reads from session exit. For older reports that failed at `service-exit`, `check` recognizes the retained data when all requested files are present and nonempty, while keeping the original `complete:false` and unconfirmed-exit warning. It does not rewrite the old report or infer successful exit from a narrative log. `validation.json`'s `camera_io:false` describes this offline check/pack invocation; `usb_collection_recorded` and the runtime reports describe earlier USB collection. Neither flag means that the whole session avoided USB.
+
 **Share the ZIP privately, not in a public issue or repository.** Original photos/settings may contain capture times, locations, serial numbers and other camera/owner information. Files are preserved without metadata changes, and nothing is uploaded automatically. Reference CR data must not be written into another body.
 
-The collector has offline file/protocol tests; that is not physical A7CR USB validation. Include completed steps, actual firmware version and whether the camera ended with normal live view/capture.
+Include completed steps, actual firmware version, any existing firmware modifications, and whether the camera ended with normal live view/capture. A disclosed modified body remains useful reference evidence; it must not be described as a verified stock firmware baseline. The first Linux report establishes successful reads on that setup, not Windows/Mac validation or a tested C2 Pixel Shift implementation.

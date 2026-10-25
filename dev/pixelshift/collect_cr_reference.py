@@ -11,7 +11,7 @@ import zipfile
 
 from raw_group import inspect, validate
 
-VERSION = '1.1'
+VERSION = '1.2'
 ROLES = ('before', 'four-shot', 'four-shot-repeat', 'after')
 STAGES = ('off-before', 'four-selected', 'off-after')
 EVIDENCE_TYPES = {'.jpg', '.jpeg', '.png', '.txt', '.arq'}
@@ -113,7 +113,16 @@ def check(root):
         report = json.loads(report_path.read_text(encoding='utf-8'))
         if report.get('schema') != 'a7cr-readonly-settings/1':
             continue
+        expected = {'settings-ram.bin', 'settings-saved.bin'}
+        shadows = report.get('cp_shadows_requested') or any(name.startswith('cp-shadow-') for name in report.get('files', []))
+        if shadows:
+            expected.update('cp-shadow-%08x.bin' % key for key in range(0x02a40000, 0x02a40013))
+        data_present = expected <= set(report.get('files', [])) and all(
+            contained(root, folder/name).is_file() and (folder/name).stat().st_size > 0 for name in expected)
+        data_complete = data_present and report.get('stage') in ('service-exit', 'finished')
         snapshots.append(dict(label=report.get('label'), complete=report.get('complete', False),
+            data_complete=data_complete, service_exit_confirmed=report.get('service_exit_confirmed', False),
+            error_stage=report.get('stage') if not report.get('complete') else None,
             settings_ram_captured=report.get('settings_ram_captured', False),
             cp_execution_ram_captured=False))
         selected.append(report_path)
@@ -121,14 +130,18 @@ def check(root):
             if Path(name).name != name or not name.endswith('.bin'):
                 raise ValueError('Unexpected snapshot member name')
             selected.append(contained(root, folder/name))
-    completed = {row['label'] for row in snapshots if row['complete']}
+    completed = {row['label'] for row in snapshots if row['data_complete']}
     if not set(STAGES) <= completed:
         warnings.append('Optional USB snapshots missing: '+', '.join(stage for stage in STAGES if stage not in completed))
+    for row in snapshots:
+        if row['data_complete'] and not row['complete']:
+            warnings.append('USB data present, session exit unconfirmed: '+str(row['label'])+'; original report preserved')
     report = dict(schema='a7cr-reference-validation/1', collector_version=VERSION,
         created_utc=now(), status='READY' if not errors else 'INCOMPLETE',
         errors=errors, warnings=warnings, session=session, raw_files=records,
         groups=groups, runtime_snapshots=snapshots,
-        camera_io=False, originals_modified=False, physical_shift_verified=False,
+        camera_io=False, camera_io_scope='This check/pack invocation only; earlier collection is recorded separately',
+        usb_collection_recorded=bool(snapshots), originals_modified=False, physical_shift_verified=False,
         centering_verified=False, settling_verified=False,
         limits=['RAW metadata is not proof of sensor motion or settling',
                 'USB settings snapshots are not CP execution memory or per-exposure traces',

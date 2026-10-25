@@ -13,6 +13,56 @@ import time
 
 MODEL = 'ILCE-7CR'
 CP_UNITS = tuple(range(0x02a40000, 0x02a40013))
+SERVICE_PID = 0x0336
+USB_SELECTION_PID = 0x096f  # Observed on the contributing A7CR after StopSenser.
+
+
+def physical_port(device):
+    ports = getattr(device, 'port_numbers', None)
+    bus = getattr(device, 'bus', None)
+    return (bus, tuple(ports)) if bus is not None and ports else None
+
+
+def release_linux_storage(device, interface):
+    """Detach only the selected interface, never unload a host-wide driver."""
+    if sys.platform.startswith('linux') and device.is_kernel_driver_active(interface):
+        device.detach_kernel_driver(interface)
+        return True
+    return False
+
+
+def wait_normal_identity(usb, backend, *, port, normal_pid, timeout=15):
+    """Observe a matching normal identity after releasing the service handle.
+
+    Disappearance alone is insufficient. No second StopSenser, authentication,
+    capture, settings request or reconnect command is sent here.
+    """
+    deadline = time.monotonic()+timeout
+    while True:
+        matches, service_present = [], False
+        for dev in usb.core.find(find_all=True, idVendor=0x054c, backend=backend):
+            try:
+                same_port = port is not None and physical_port(dev) == port
+                if port is not None and not same_port:
+                    continue
+                if dev.idProduct == SERVICE_PID:
+                    service_present = True
+                    continue
+                if same_port and dev.idProduct in (normal_pid, USB_SELECTION_PID):
+                    matches.append(dict(product_id='0x%04x' % dev.idProduct,
+                        matched_by='physical-port', usb_selection_required=dev.idProduct == USB_SELECTION_PID))
+                elif port is None and dev.idProduct == normal_pid:
+                    name = usb.util.get_string(dev, dev.iProduct) if dev.iProduct else ''
+                    if name == MODEL:
+                        matches.append(dict(product_id='0x%04x' % dev.idProduct,
+                            matched_by='model-and-product', usb_selection_required=False))
+            finally:
+                usb.util.dispose_resources(dev)
+        if not service_present and len(matches) == 1:
+            return dict(normal_identity_observed=True, **matches[0])
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Service exit not confirmed: matching normal USB identity did not reappear; do not retry StopSenser')
+        time.sleep(0.25)
 
 
 class ReadOnlyChannel:
@@ -91,6 +141,8 @@ class Connection:
         self.device = None
         self.auth = None
         self.healthy = False
+        self.exit_observation = None
+        self.kernel_driver_detached = False
         backend = usb.backend.libusb1.get_backend(find_library=libusb_package.find_library)
         if backend is None:
             raise RuntimeError('libusb is unavailable; install the optional USB requirements')
@@ -139,16 +191,35 @@ class Connection:
                 usb.util.dispose_resources(dev)
             raise RuntimeError('Connect exactly one ILCE-7CR in Mass Storage mode; no camera was authenticated')
         normal = matches[0]
+        self.normal_port = physical_port(normal)
+        self.enumeration_backend = backend
+        detached_interface = None
+        switched = False
         try:
             interface = normal.get_active_configuration()[(0, 0)]
             if interface.bInterfaceClass != 8:
                 raise RuntimeError('Choose Mass Storage mode on the A7CR')
             self.normal_product_id = normal.idProduct
+            number = interface.bInterfaceNumber
+            if release_linux_storage(normal, number):
+                detached_interface = number
+                self.kernel_driver_detached = True
             auth = Auth(generic.GenericUsbDriver(Bounded(normal)))
             auth.start()
             auth.authenticate()
+            switched = True
         finally:
             usb.util.dispose_resources(normal)
+            if detached_interface is not None and not switched:
+                # A failed authentication can leave the original identity alive.
+                # Reattach its interface if possible; re-enumerated devices bind
+                # their kernel drivers independently.
+                try:
+                    normal.attach_kernel_driver(detached_interface)
+                except Exception:
+                    pass
+                finally:
+                    usb.util.dispose_resources(normal)
         deadline = time.monotonic()+15
         while time.monotonic() < deadline:
             devices = list(usb.core.find(find_all=True, idVendor=0x054c, idProduct=0x0336, backend=backend))
@@ -166,6 +237,9 @@ class Connection:
             # Native service initialization needs a short enumeration boundary.
             time.sleep(2)
             self.backend = Bounded(self.device)
+            interface = self.device.get_active_configuration()[(0, 0)]
+            if release_linux_storage(self.device, interface.bInterfaceNumber):
+                self.kernel_driver_detached = True
             self.auth = Auth(generic.GenericUsbDriver(self.backend))
             self.auth.start()
             self.auth.authenticate()
@@ -185,11 +259,25 @@ class Connection:
             raise
 
     def __exit__(self, kind, value, traceback):
+        stop_error = None
         try:
             if kind is None and self.healthy:
-                self.auth.stop()
+                try:
+                    self.auth.stop()
+                except Exception as exc:
+                    # Some bodies disconnect before the host receives the
+                    # final control-transfer status. Observe the next identity
+                    # instead of suppressing an arbitrary transport failure.
+                    stop_error = exc
         finally:
             self.usb.util.dispose_resources(self.device)
+        if kind is None and self.healthy:
+            self.exit_observation = dict(normal_identity_observed=False,
+                stop_request_error_type=type(stop_error).__name__ if stop_error else None)
+            if stop_error:
+                self.exit_observation['stop_request_error'] = str(stop_error)
+            self.exit_observation.update(wait_normal_identity(self.usb, self.enumeration_backend,
+                port=self.normal_port, normal_pid=self.normal_product_id))
 
 
 def collect(root, *, label, cp_shadows=False, connector=Connection):
@@ -204,7 +292,8 @@ def collect(root, *, label, cp_shadows=False, connector=Connection):
     folder.mkdir(parents=True, exist_ok=False)
     report = dict(schema='a7cr-readonly-settings/1', model_from_usb=None,
         firmware_user_reported=session.get('firmware_user_reported'), label=label,
-        files=[], complete=False, settings_ram_captured=False, cp_execution_ram_captured=False,
+        files=[], complete=False, data_complete=False, settings_ram_captured=False, cp_execution_ram_captured=False,
+        camera_io=True, service_exit_confirmed=False, cp_shadows_requested=cp_shadows,
         firmware_writes=False, camera_file_writes=False, settings_writes=False,
         save_commands=False, memory_patches=False, native_payload_uploaded=False,
         capture_commands=False, temporary_usb_identity_change=True,
@@ -229,15 +318,23 @@ def collect(root, *, label, cp_shadows=False, connector=Connection):
         record()
 
     record()
+    connection = None
     try:
         print('Reading native A7CR settings only. Keep USB connected until this command finishes.', flush=True)
         with connector() as connection:
             report['model_from_usb'] = MODEL
             gate = read_snapshots(connection, save, cp_shadows=cp_shadows, event=event)
             report['read_operations'] = gate.operations
+            report['data_complete'] = True
+            report['kernel_driver_detached'] = getattr(connection, 'kernel_driver_detached', False)
             report['stage'] = 'service-exit'
             report.pop('current_read', None)
             record()
+        report['service_exit'] = getattr(connection, 'exit_observation', None)
+        report['service_exit_confirmed'] = bool(report['service_exit'] and
+            report['service_exit']['normal_identity_observed'])
+        if not report['service_exit_confirmed']:
+            raise RuntimeError('Collector connector did not confirm normal USB identity')
         report['complete'] = True
         report['stage'] = 'finished'
         record()
@@ -245,10 +342,11 @@ def collect(root, *, label, cp_shadows=False, connector=Connection):
         # Preserve partial bytes and the failed session; no automatic retry.
         report['error_type'] = type(exc).__name__
         report['error'] = str(exc)
+        report['service_exit'] = getattr(connection, 'exit_observation', None)
         record()
         raise RuntimeError('Read-only collection stopped. Preserve runtime/'+folder.name+
                            '/snapshot.json; do not run another command blindly. '+str(exc)) from exc
     return dict(complete=True, folder=folder.name, files=len(report['files']),
         settings_ram_captured=True, cp_execution_ram_captured=False,
         camera_io_finished=True, originals_modified=False,
-        message='USB reads have ended. Disconnect USB before changing camera menu settings.')
+        message='USB reads have ended. The camera may ask you to choose Mass Storage again. Disconnect USB before changing camera menu settings.')
