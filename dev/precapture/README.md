@@ -59,7 +59,7 @@ repair. This is existing-file evidence, not live CP pool or exposure evidence.
 | Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | Native state feedback | Original feedback stores, masked completion, deferred task/notification dispatch and CAP handle checks;60 input combinations plus negative controls | Hardware feedback provenance, actual exposure/RAW ownership and a generation-bound terminal fence; two commands share event308 |
 | RAW resource path | Staged slots → RAW client → MEMMGR_CP dispatch; native reply-ID, descriptor transfer, handle generation and reference checks | Actual backing pixel allocation and matched terminal release; native handle generation wraps, local invalidation precedes backing free |
-| Existing free-block allocator | Original configuration-row → node creation → allocation → pinned descriptor; original policy-reader address conversion, page checks and sequential copies on synthetic RAM | Current selected configuration stream and its full extent/ownership, real pixels, terminal completion and growing/parent-backed paths; DmmCfg extents are not proven to be this stream |
+| Backing allocator and configuration | Retained original DmmCfg parsed through original CP instructions; root-node/1023-record initialization, parent-backed allocation, pin/unpin and local return execute on synthetic RAM | Current selected configuration/extent ownership, actual pixels, task locks and terminal notification; offline parsing does not bind the file to the current body |
 | Metadata capacity and shared bookkeeping | Original1023-record initialization,2048 pops/2048 returns and shared bookkeeping layout on synthetic RAM | These counts and bookkeeping addresses do not establish RAW buffer capacity or ownership |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
 | Manual in-camera switch | Required independent Off/On control, initially Off | Implementation and safe enable/disable binding |
@@ -136,6 +136,7 @@ do not add up to physical pre-capture.
 | `support/capture_completion.py` | Original requested/current state comparison, deferred notification and CAP callback boundaries; synthetic inputs only, no hardware completion or camera adapter |
 | `support/capture_resources.py`, `resource_service.py` | Resource preparation, RAW service/task routing, dynamic reply IDs, descriptor/handle/reference lifetime; no native service success or camera I/O |
 | `support/backing_memory.py` | Original cached-free-node allocator and request/reply composition on synthetic memory; explicit queue/accounting/notifier boundaries |
+| `support/dmm_config.py`, `support/backing_config.py`, `audit_backing_config.py` | Shared bounded config decoder and original CP parser/root/parent-allocation/pin/local-return audit; explicit post-query fixture inputs and unexecuted terminal notification |
 | `support/capture_validation.py`, `audit_capture_validation.py` | Combined pool/completion/exposure source checks bound to a completed read-only snapshot; physical verdicts stay unverified |
 | `cp_trace.c/h`, `cp_trace_native.c`, `cp_trace_hooks.S` | Bounded owner-lane recording core, uninstalled native metadata/edge adapters and exposure entry wrappers; no loader/storage/export admission |
 | `support/trace.py`, `decode_cp_trace.py`, `verify_cp_trace.py` | Offline record decoder and compiled cross-ISA/entry-wrapper checks; no camera entry or physical validation |
@@ -215,7 +216,7 @@ python dev/precapture/audit_mtg_select.py --cp PRIVATE_STOCK_CP --donor PRIVATE_
 python dev/precapture/audit_source_spans.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_ap_capture_order.py --ap PRIVATE_STOCK_AP --donor-ap PRIVATE_DONOR_AP --current-ap PRIVATE_CAPTURED_AP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
-python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --factory PRIVATE_ORIGINAL_FACTORY --output NEW_PRIVATE_JSON
+python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/audit_metadata_capacity.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER

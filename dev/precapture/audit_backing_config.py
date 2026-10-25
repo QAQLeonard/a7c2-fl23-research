@@ -17,6 +17,7 @@ from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1,
 from support.backup import factory_segments
 from support.capture_native import NativeCapture, BASE, OWNER, STACK, STOP, words
 from support.reference import SPECS
+from support.backing_config import audit as audit_stream
 
 TABLE = 0xcee830
 PAGE_ROOT = OWNER + 0x8000
@@ -182,17 +183,23 @@ def main():
     parser.add_argument('--cp', type=Path, required=True)
     parser.add_argument('--factory', type=Path)
     parser.add_argument('--current-cp', type=Path)
+    parser.add_argument('--config', type=Path,
+        help='Retained original CP DmmCfg; execute its native parser on synthetic RAM')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     cp = args.cp.read_bytes()
     if hashlib.sha256(cp).hexdigest() != SPECS['a7c2-2.01']['sha256']:
         raise ValueError('Exact original target CP required')
     report = audit(cp, args.factory.read_bytes() if args.factory else None)
+    selected_spans = list(SPANS)
+    if args.config:
+        report['retained_configuration_stream'] = stream_audit = audit_stream(cp, args.config.read_bytes())
+        selected_spans.extend((s['offset'], s['bytes']) for s in stream_audit['source_spans'])
     report['original_CP_sha256'] = hashlib.sha256(cp).hexdigest()
-    report['selected_FILE_spans'] = [dict(offset=hex(at), bytes=size) for at,size in SPANS]
+    report['selected_FILE_spans'] = [dict(offset=hex(at), bytes=size) for at,size in selected_spans]
     if args.current_cp:
         current = args.current_cp.read_bytes()
-        if len(current) != len(cp) or any(current[at:at+size] != cp[at:at+size] for at,size in SPANS):
+        if len(current) != len(cp) or any(current[at:at+size] != cp[at:at+size] for at,size in selected_spans):
             raise ValueError('Current CP differs in selected configuration-reader FILE spans')
         report['current_FILE_spans_match'] = True
         report['current_CP_sha256'] = hashlib.sha256(current).hexdigest()
@@ -202,6 +209,7 @@ def main():
         stream.write('\n')
     print(json.dumps(dict(status='OFFLINE_ORIGINAL_CONFIG_READER_PASSED',
         range_cases=len(report['range_cases']), page_cases=len(report['synthetic_original_page_and_copy_cases']),
+        config_stream_reads=len(stream_audit['original_read_slices']) if args.config else 0,
         camera_io=False, physical_backing_ownership_verified=False)))
 
 

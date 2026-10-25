@@ -4181,3 +4181,25 @@ do not bound the whole copy or qualify an image-buffer lease. Next native work
 is to bind the selected current policy stream and its extent to original node
 construction and matched terminal release. No camera operation,CP send,patch,
 exposure or installable pre-capture artifact was produced in this phase.
+
+Phase170: retained configuration to parent-backed descriptor/local return.
+Reviewed main7827856. The shared DMM parser moved to support/dmm_config.py with
+its old audit_loader_metadata export retained;host output remains identical.
+The original CPb16314 initializer reaches each496044 read boundary,then stops
+beforeae133a. An independent post-query slice takes an explicit synthetic
+address input on each read. No native query,lock,task or service return is faked.
+Across2411 read slices,all43508 retained DmmCfg bytes are consumed exactly once.
+Independent output checks match1 root group/11 root nodes,172 extent groups,
+346 types,their raw child/reference arrays and the44-byte version. Original
+metadata initialization creates1023 management records,not1023 RAW photographs.
+Type505 is absent and refuses before reserving metadata. Retained type50504
+selects extenteb;the original parent-backed allocator runs to its real return,
+publishing handle8400 on fixture metadata. Original pin produces descriptor
+low0/high5/size1180000,then unpin and local release restore count1023 before the
+unexecuted23 notificationb1746c. No descriptor address or physical pixel is read.
+The first immutable-image guard correctly stopped at original allocation error
+cell120614c. Three source-checked STRH sites are now explicitly admitted for that
+two-byte initialized guest-data cell only;instructions and every other image
+write remain protected. Instruction/data FILE observations bind retained CP
+comparisons. Current runtime policy selection,task locks,terminal completion,
+exposure,RAW ownership and actual pre-trigger photographs remain unverified.

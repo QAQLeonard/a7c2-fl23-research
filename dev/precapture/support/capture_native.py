@@ -38,14 +38,16 @@ class NativeCapture:
                 cpu.emu_stop()
         u.hook_add(UC_HOOK_CODE, trace)
 
-    def run(self, start, stops, inputs=()):
+    def run(self, start, stops, inputs=(), *, instruction_budget=15000):
+        if type(instruction_budget) is not int or not 1 <= instruction_budget <= 500000:
+            raise ValueError('Invalid bounded original-instruction budget')
         u = self.u
         for reg, value in inputs:
             u.reg_write(reg, value)
         self.stops = {BASE + n for n in stops} | {STOP}
         self.observed.clear()
         try:
-            u.emu_start(BASE + start | 1, 0xffffffff, count=15000)
+            u.emu_start(BASE + start | 1, 0xffffffff, count=instruction_budget)
         except UcError as error:
             raise RuntimeError('Original execution failed at ' + hex(u.reg_read(UC_ARM_REG_PC)) +
                 ' args=' + repr([hex(u.reg_read(r)) for r in

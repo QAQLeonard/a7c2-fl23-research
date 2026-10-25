@@ -82,6 +82,22 @@ synthetic crossing case copies beyond the classification range. This evidence
 applies to the synthetic fixture. Neither a successful page check
 nor copied policy bytes establish RAW pixels,ownership or a terminal lease.
 
+Phase170 supplies retained original CP DmmCfg bytes as an explicit synthetic
+stream. Original CP parsing,root-node/1023-record initialization,parent-backed
+allocation,pin/unpin and local return now execute across separate post-query
+slices;2411 native property queries/locks remain OMITTED,not successful stubs.
+The independent decoder matches1 root group,172 groups,346 types and the version
+field. Type505 was an arbitrary prior fixture;the retained stream contains50504,
+which allocates a descriptor then returns its metadata before notifierb1746c.
+This proves static-file format/control-flow compatibility,not that currentfa0182
+selects these bytes. No descriptor address is dereferenced as physical pixels.
+Local metadata recovery is not terminal notification or task/IRQ qualification.
+Only the exact original allocation-diagnostic halfword is mutable in the guest's
+initialized image data;all other image writes refuse. Preserve the earlier
+cached-node matrix and original metadata reports;the decoder's old import remains
+as compatibility for retained replays. Shared execution retains its15000 default
+instruction bound;this initializer explicitly selects a bounded500000 budget.
+
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
 inject fake AP pending records to defeat the earlier empty-deque assertion.
