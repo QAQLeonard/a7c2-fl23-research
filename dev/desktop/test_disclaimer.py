@@ -34,7 +34,8 @@ def test_reading_link_does_not_accept_or_check_the_parent(app):
     assert not dialog.agreement.isChecked() and dialog.result()==W.QDialog.Rejected
     reader=disclaimer.TermsDialog(dialog)
     text=reader.body.toPlainText()
-    assert all(phrase in text for phrase in ('风险告知','MIT','DMCA','同机备份','重大过失','收费代刷'))
+    assert all(phrase in text for phrase in ('风险告知','LICENSE','DMCA','同机备份','重大过失','收费代刷','从未授权任何人','商业盈利'))
+    assert '不撤回' not in text
 
 
 @pytest.mark.parametrize('exit_action',['reject','close'])

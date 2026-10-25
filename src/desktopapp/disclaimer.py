@@ -7,14 +7,15 @@ from .theme import WINDOW as STYLE
 HEADING='## 风险告知与使用声明'
 SUMMARY=(
     '<p><b>本工具属于非官方独立研究，仅供学习与技术交流，与索尼无隶属、授权或背书关系。</b></p>'
-    '<p><b>风险自担：</b>修改相机可能导致无法开机、反复重启、功能异常或数据丢失，'
-    '也可能影响官方更新、保修或维修。写入成功及读回一致不代表启动安全，恢复功能也不保证能救回相机。</p>'
-    '<p><b>严禁冒充官方或作者授权：</b>作者免费提供本项目，不提供有偿代刷，明确反对第三方'
-    '倒卖、收费远程安装、激活码／加密狗及捆绑硬件牟利。不得假借索尼或作者名义宣传、收费或承诺保修。</p>'
-    '<p>仅操作本人合法持有或已获机主明确授权的设备；请妥善备份重要数据。'
-    '如无法承担设备损坏与维修风险，请退出。</p>'
-    '<p>代码继续采用 MIT；本声明不撤回该许可证已授予的商用及再分发权利，'
-    '也不排除法律禁止免除的责任。</p>'
+    '<p><b>风险自担：修改相机可能导致无法开机、反复重启、功能异常或数据丢失，'
+    '也可能影响官方更新、保修或维修。写入成功及读回一致不代表启动安全，恢复功能也不保证能救回相机。</b></p>'
+    '<p><b>严禁冒充官方或作者授权：作者免费提供本项目，不提供有偿代刷，明确反对将本项目用于任何商业盈利活动。'
+    '作者从未授权任何人以作者或索尼官方名义收费代刷、远程安装、倒卖、制作激活码／加密狗或捆绑硬件牟利，'
+    '也未授权任何人以这些名义承诺保修。</b></p>'
+    '<p><b>仅操作本人合法持有或已获机主明确授权的设备；请妥善备份重要数据。'
+    '如无法承担设备损坏与维修风险，请退出。</b></p>'
+    '<p><b>任何第三方收费均不代表作者参与、认可、背书或担保。具体代码及第三方资料许可见随附许可文件；'
+    '本声明不排除法律禁止免除的责任。</b></p>'
 )
 
 
@@ -43,7 +44,7 @@ class ConsentDialog(W.QDialog):
     def __init__(self,parent=None):
         super().__init__(parent)
         self.setWindowTitle('使用前请阅读 · A7C II Tools')
-        self.resize(710,510);self.setMinimumWidth(580);self.setStyleSheet(STYLE)
+        self.resize(710,600);self.setMinimumWidth(580);self.setStyleSheet(STYLE)
         layout=W.QVBoxLayout(self);layout.setContentsMargins(26,22,26,22);layout.setSpacing(14)
         title=W.QLabel('使用前，请先了解风险')
         title.setStyleSheet('font-size:23px;font-weight:650;');layout.addWidget(title)

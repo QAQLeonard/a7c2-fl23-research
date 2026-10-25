@@ -1,4 +1,4 @@
-"""A fresh built-in reset supersedes inert work files on both desktop OSes."""
+"""A fresh reset uses a provided source and supersedes inert work files."""
 import copy
 from pathlib import Path
 import sys
@@ -99,7 +99,7 @@ def test_changing_temporary_state_is_not_deleted(tmp_path):
 
 
 @pytest.mark.parametrize('platform',['win32','darwin'])
-def test_gui_failed_reset_uses_builtin_without_older_worker_files(tmp_path,monkeypatch,platform):
+def test_gui_failed_reset_uses_provided_source_without_older_worker_files(tmp_path,monkeypatch,platform):
     import json
     from unittest.mock import Mock
     from desktopapp import worker
@@ -110,10 +110,14 @@ def test_gui_failed_reset_uses_builtin_without_older_worker_files(tmp_path,monke
     (root/'direct.private.json').write_text(json.dumps(prior))
     fresh=Mock();fresh.root=tmp_path/'new'
     fresh.run_direct.return_value=dict(mode='factory_reset',phase='AWAITING_RELOAD')
-    with patch('looktool.direct.DirectJob',return_value=fresh),patch('desktopapp.official.load',return_value={'builtin':True}) as load:
+    reference={'source':'user-provided'}
+    with patch('looktool.direct.DirectJob',return_value=fresh), \
+         patch('desktopapp.official.prepare_restore',return_value=(reference,str(tmp_path/'reference.json'),None)) as prepare:
         result=worker.run('direct_resume_factory',dict(workspace=str(fresh.root),failed_workspace=str(root),
-            firmware='2.01',power_confirmed=True),tmp_path)
-    load.assert_called_once_with('builtin')
+            firmware='2.01',power_confirmed=True,sony_firmware='user-owned.DAT',restore_voice=False),tmp_path)
+    prepare.assert_called_once()
+    assert prepare.call_args.args[0]['sony_firmware']=='user-owned.DAT'
+    assert fresh.run_direct.call_args.kwargs['factory_values']==reference
     fresh.continue_factory.assert_not_called()
     assert fresh.run_direct.call_args.args==('factory_reset',)
     assert result['phase']=='AWAITING_RELOAD' and not result['recovery_complete']
@@ -174,10 +178,12 @@ def test_restore_buttons_never_discover_read_or_verify_an_old_task(tmp_path,monk
             raise AssertionError('Old task must not be read')
         return original_read(path, *args, **kwargs)
     with patch('looktool.direct.DirectJob', return_value=job), \
-            patch('desktopapp.official.load', return_value={'builtin': True}), \
+            patch('desktopapp.official.prepare_restore',return_value=({'source':'user-provided'},str(tmp_path/'reference.json'),None)) as prepare, \
             patch.object(Path, 'read_text', reject_old_read):
         result = worker.run(action, dict(workspace=str(job.root), firmware='2.01',
-            power_confirmed=True, failed_workspace=str(old)), tmp_path)
+            power_confirmed=True, failed_workspace=str(old),sony_firmware='user-owned.DAT',restore_voice=False), tmp_path)
+    prepare.assert_called_once()
+    assert prepare.call_args.args[0]['sony_firmware']=='user-owned.DAT'
     job.run_direct.assert_called_once()
     assert job.run_direct.call_args.args == ('factory_reset',)
     assert job.run_direct.call_args.kwargs.get('recovery_identity') is None

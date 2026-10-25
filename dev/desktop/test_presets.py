@@ -54,6 +54,9 @@ class PresetTests(unittest.TestCase):
         def dispatch(action, args, folder):
             calls.append((action, args))
             self.assertEqual(len(list((self.root / 'setup/inputs').glob('*.a7look'))), 6)
+            if action=='voice_cleanup':
+                return dict(phase='COMPLETED',voice_audio_removed=True,
+                    voice_setting_locked_off=True,voice_menu_flags_verified=True)
             return dict(phase='AWAITING_RELOAD' if action == 'direct_install_all' else 'LOADED')
         args = dict(workspace=str(self.root / 'setup'), firmware='2.01', power_confirmed=True,
             options=dict(preset_pack=presets.PACK, fl23=True, sound=False, vertical=False))
@@ -67,6 +70,7 @@ class PresetTests(unittest.TestCase):
             result = allinone.run(dict(args, options=dict(looks=[])), dispatch=dispatch)
         self.assertEqual(result['phase'], 'COMPLETE')
         self.assertEqual([a for a, _ in calls].count('direct_install_all'), 1)
+        self.assertEqual([a for a, _ in calls].count('voice_cleanup'), 1)
         self.assertEqual(len(result['options']['looks']), 6)
 
     @unittest.skipUnless(AVAILABLE, 'Distribution six-pack is a separate asset')
