@@ -23,7 +23,7 @@
 | `src/camera_runtime/` | USB 服务会话（`transport.py`）、FL23 规划与资源、macOS 主机辅助（`macos_host.py`）、内置 Sony-PMCA-RE |
 | `src/shutter_sound/` | 声音转换／音量、试听、持久安装；`native/` 是 AArch64 相机 worker |
 | `src/vertical/` | 竖屏显示 worker 与竖屏资源（**正在重写**） |
-| `src/double_exposure/native/` | 实验性的平均／串流核心、拍摄配对器、AP 绑定／存活期、POSIX 核心接收器、显式调用的加载控制器与输出预留；设备传输／入口、拍摄钩子及媒体库发布尚未接通 |
+| `src/double_exposure/native/` | 实验性的平均／串流核心、文件请求入口、SDK 事件转发、后台流程、DCF 发布及 SIDB 登记；离线候选，实机验收待进行 |
 | `src/fl23/` | 旧版独立 FL23 安装器；其 `native/` worker 被各引擎复用 |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic 自动识别插件 |
 | `calibration/` | 编译器使用的 2.01 虚拟响应模型 |
@@ -137,7 +137,7 @@ python desktop.py
 
 `ap_runtime.c` 只绑定已载入的 SDK（`RTLD_NOLOAD`），核对函数所属模块并保留核心自身引用。`BOUND` 只代表导出已解析，不代表相机／SDK 已就绪。任务使用引用需要持续到读写及句柄核对完成；回调使用引用需要持续到注销与原生回调全部结束。退出会拒绝仍有使用引用的情况，并将模块引用交还调用者，在核心函数之外关闭。绑定本身不初始化 SDK、不操作照片、不安装回调。`--harness` 还会构建加载测试程序及 `test-sdk/` 中的模拟 SDK 库；它们只用于测试，不能作为设备资源。`A7C2_BINDING_COMMAND` 是该 ARM64 测试运行器命令的 JSON 参数数组。
 
-`output_reservation.c` 将纯规划／意图状态与实际创建目录／打开暂存文件分开，每个 SDK 步骤前需先持久记录意图。它使用选定 DCF 照片目录下新建的独立目录，单独的“写入＋创建”标志 6 不建立独占所有权。既有或结果不确定的状态会保留，不自动重试或删除。最终文件名分配、移动／发布、媒体库登记及设备加载仍未完成；当前 SDK 测试全都使用本地模拟后端。
+`output_reservation.c` 将纯规划／意图状态与实际创建目录／打开暂存文件分开，每个 SDK 步骤前需先持久记录意图。它使用选定 DCF 照片目录下新建的独立目录，单独的“写入＋创建”标志 6 不建立独占所有权。既有或结果不确定的状态会保留，不自动重试或删除。下面的统一流程接入发布、媒体库登记及模块加载；当前实际执行的 SDK 测试仍全都使用本地模拟后端。
 
 `bootstrap.c` 是独立的小型显式调用加载控制器。它解析并核对核心 ABI／启动／查询／退出导出的所属模块，在控制调用期间保持临时模块引用，只在核心返回后关闭交还的自身引用。查询／退出使用 `RTLD_NOLOAD`，关闭失败即停止，不重试。外层调用者必须串行执行请求、先持久记录调用意图并保留未知结果。`dev/double_exposure/build_bootstrap.py --output <dir> --harness` 构建 ARM64 控制器（限制为 64 KiB 内）及测试加载程序。它没有 libJit `_init` 分发入口或设备传输。载入已校验核心仍可能执行其 ELF 启动代码，因此必须先验证文件及其所有权。控制器报告不包含可转交的加载句柄。
 
@@ -145,7 +145,21 @@ python desktop.py
 
 `staging.c/.h` 将模型落实为原生 Linux POSIX 接收器。80 字节的小端请求包含事务身份、核心大小／哈希、操作和块编号；CREATE 另附各块哈希。CREATE 取得新目录所有权，PUT 只接受下一块，ASSEMBLE 独立核对完整核心哈希并以不覆盖方式发布，QUERY 重新核对不可变计划、意图／数据／确认记录及实际文件内容。未完成意图会停止而不重放；丢失回复后，只有持久确认和字节匹配才能通过 QUERY 核对结果，重复 PUT／ASSEMBLE 仍会被拒绝。目录 `flock` 串行化配合协议的调用者；基于目录描述符、不跟随链接、独占创建的操作保留外来文件，只移除成功发布后本次组装的临时链接。报告为 112 字节，`pending_fd` 仅作诊断证据，不能据此重试关闭。
 
-使用 `build_bootstrap.py --component staging --output <dir> --harness` 构建独立小型 ARM64 接收器及本地测试程序。`A7C2_STAGING_COMMAND` 是原生运行器的 JSON 参数数组，`A7C2_STAGING_FAULT_COMMAND` 是单独的故障注入运行器。二十九项 ARM64 测试覆盖 SHA-256 填充边界、并发请求、损坏、部分／零写入、读回／刷新／关闭失败、进程中断及发布重名；其中一项由 C 接收器接收实际核心，再使用模拟 SDK 库载入／退出。另有两项主机协议编码测试。仍没有 libJit 请求入口、设备传输或自动暂存后加载的分发器；相机文件系统及断电行为未验证，接收器不写相机固件、设置、实拍照片或媒体库。
+使用 `build_bootstrap.py --component staging --output <dir> --harness` 构建独立小型 ARM64 接收器及本地测试程序。`A7C2_STAGING_COMMAND` 是原生运行器的 JSON 参数数组，`A7C2_STAGING_FAULT_COMMAND` 是单独的故障注入运行器。二十九项 ARM64 测试覆盖 SHA-256 填充边界、并发请求、损坏、部分／零写入、读回／刷新／关闭失败、进程中断及发布重名；其中一项由 C 接收器接收实际核心，再使用模拟 SDK 库载入／退出。另有两项主机协议编码测试。接收器本身没有 SDK／照片读写，下面的文件入口和统一流程接入其已校验的输出。
+
+`file_entry.c` 是小型一次性 libJit 文件请求入口。构造函数只读取固定的 `/tmp/jiritsu/a7c2.dex.{request,payload}`，执行前独占建立结果意图文件，返回时追加带校验与完成标记的结果。暂存使用 80 字节协议，控制使用 64 字节 `A7DEX001` 的 ARM／WORK／QUERY／DISABLE 协议。ARM 要求核心暂存完整且已校验；QUERY／DISABLE 只使用 `RTLD_NOLOAD`。命令凭据完整不等于照片已完成。使用 `build_bootstrap.py --component entry --output <dir> --harness` 构建，入口文件限制在 64 KiB 内；大的暂存缓冲放在堆／模块内存，不占 AP 请求线程的大块栈空间。测试运行器关闭自动构造函数执行，仅使用明确的本地测试目录。
+
+`device_request.c`、`pipeline.c`、`native_session.c` 与 `resident_entry.c` 连接请求、回调队列、JPEG 平均、发布、SIDB 事务与独立确认。一个后台线程使用 512 KiB 栈，回调只复制有界事件并唤醒线程，文件／编解码／媒体库操作都在后台执行。意图和结果以只追加、带校验的记录写入独立的新建 POSIX 任务目录。未知结果保留源／结果路径、待核对句柄、原生错误和 UID，不重放。DISABLE 可以排在正在运行的任务之后，等上下文排空才完成。实例身份及递增请求编号阻止旧请求启动新任务。报告不包含指针：流程报告 2,800 字节，设备报告 2,832 字节。
+
+`sony_sdk.c` 核对已载入 Sony 库的导出，并检查映射范围和 2.01 AP／DCF 布局。`sony_begin.c` 原样转交 SDK countdown／write-finished 的原始参数指针；SDK 的 88 字节通知保留了 AP 转换前的照片 UID，再由后台重新 Select SIDB 解析路径。原有 AP delegate 的注册／注销仍由原所有者管理。停用时排空 sink／上下文，转发代码、SDK 引用及 AP 代码因缺少可证明的 SDK 指针分发卸载边界而保留至 AP 进程结束，停用一组拍摄不能据此热卸载／替换驻留核心。独立的 `capture_delegate.c` 适配接口要求调用者掌握原 delegate 所有者的完整生命周期，生产路径使用 SDK 转发。这些适配不安装传感器、固件或设置补丁。
+
+`dcf_publish.c` 选取空闲的 DCF 数字目录，在原生编号互斥锁下预留／确认目录条目及文件编号位图，建立新目录并发布 `A7AV0001.JPG`，重新枚举数字别名，对照编码写入流的摘要核对暂存文件完整读回，再校验移动后的目标哈希；目录缓存更新使用原生字符串构造与赋值。当前原型每组结果新建一个目录，适用 DCF 的 100..999 上限。`media_catalog.c` 使用原生记录 clear／Select、IssueUniqueId、Update 和 Flush，保留源图时间，只领取一次新 UID，重新 Select 确认路径／大小／时间后才进入 COMPLETE。
+
+`dev/double_exposure/device_driver.py` 只接受调用者明确提供的已打开会话，导入／构造不会枚举、认证或连接 USB。显式 stage／arm／query／disable 操作使用有界上传、持久主机意图及对应凭据归档；删除前核对全部本次临时内容，最后删除结果，遇到不确定结果保留证据并阻止后续命令。现有传输允许列表只增加三个固定临时文件名；桌面尚未提供这个开发接口。
+
+ARM 可以传明确的原生介质 ID，也可使用驱动默认的 `UINT32_MAX`，由第一条有效 SDK begin 通知选择介质，再将两张照片绑定到该 ID。应在没有拍摄进行时 ARM，并查询确认请求已接受后再拍两张。
+
+`A7C2_PIPELINE_LIBRARY` 用于主机集成测试，`A7C2_PIPELINE_COMMAND` 用于 ARM64 异步流程运行器，`A7C2_FILE_ENTRY_COMMAND` 用于 ARM64 文件入口运行器（后两项为 JSON 参数数组）。`A7C2_NATIVE_MPR` 可指向本地原始 2.01 库，在模拟 RAM 中重放编号位图辅助函数，原始库不随项目分发。测试使用模拟 SDK／AP 提供者和本地文件，验证实际编译的编解码／控制代码及失败／排空约定，不是对真实 Sony SDK 执行。真实拍摄、预览／回放、介质插拔、相机文件系统／缓存行为、AP 重启和断电验收仍待进行；介质代次由调用者提供，其逻辑编号或导出解析成功都不能代替实机验收。
 
 **打包：**
 1. 准备被 Git 忽略的发行资源：`python dev/desktop/prepare_assets.py`。用 `--preset-archive <zip>` 从导出的资源包或 Windows 安装包中导入默认六款和配对库；用 `--export-presets <zip>` 导出资源包。

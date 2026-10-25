@@ -20,7 +20,8 @@ CP_KEYS=[0x02a40001,0x02a4000d]
 AP_KEYS=[0x02cf1287,0x02cf1289]
 COLOUR_SLOTS=[(55,23),(56,25)]
 NATIVE_PATHS={'libJit.so','a7c2.install.request','a7c2.install.result','a7c2.probe.result',
-              'a7c2.wbi.request','a7c2.wbi.result','a7c2.runtime.result','a7c2-preview-staged.so'}
+              'a7c2.wbi.request','a7c2.wbi.result','a7c2.runtime.result','a7c2-preview-staged.so',
+              'a7c2.dex.request','a7c2.dex.payload','a7c2.dex.result'}
 
 def sha(data):return hashlib.sha256(data).hexdigest()
 def read_json(path):return json.loads(Path(path).read_text(encoding='utf-8'))

@@ -92,13 +92,15 @@ def build(source, output, *, target='camera', zig=None, cmake=None, ninja=None, 
     sources = [native / 'average.c', native / 'jpeg_stream.c']
     sources.append(native / ('mpr_stream.c' if component == 'stream' else 'jpeg_average.c'))
     if component == 'stream':
-        sources.extend([native / 'ap_runtime.c', native / 'output_reservation.c'])
+        sources.extend([native / name for name in ('ap_runtime.c', 'output_reservation.c',
+                       'capture_pair.c', 'media_catalog.c', 'pipeline.c', 'device_request.c',
+                       'dcf_publish.c', 'capture_delegate.c', 'sony_sdk.c', 'sony_begin.c', 'native_session.c', 'resident_entry.c')])
     flags = (['-shared', '-fPIC', '-Wl,--no-undefined'] if component == 'stream' else ['-static'])
     if component == 'stream' and 'windows' not in triple:
         # Keep the statically linked codec local to this module. Existing AP
         # libraries may export the same libjpeg function names.
         exports = output / 'core.exports.map'
-        exports.write_text('{ global: a7_jpeg_mean; a7_mpr_*; a7_ap_*; a7_output_*; local: *; };\n', encoding='ascii')
+        exports.write_text('{ global: a7_jpeg_mean; a7_mpr_*; a7_ap_*; a7_output_*; a7_catalog_*; a7_pipeline_*; a7_device_*; a7_dcf_*; a7_capture_delegate_*; a7_sony_*; a7_native_session_*; a7_resident_*; local: *; };\n', encoding='ascii')
         flags.extend(['-Wl,-Bsymbolic', '-Xlinker', '--version-script',
                       '-Xlinker', exports.as_posix()])
         flags.append('-ldl')
@@ -126,6 +128,12 @@ def build(source, output, *, target='camera', zig=None, cmake=None, ninja=None, 
                             'a7_ap_acquire', 'a7_ap_release', 'a7_ap_retire'}
                 required |= {'a7_output_plan', 'a7_output_prepare_mkdir', 'a7_output_create_dir',
                              'a7_output_prepare_open', 'a7_output_open_temp', 'a7_output_note_closed'}
+                required |= {'a7_device_create', 'a7_device_execute', 'a7_device_background_work',
+                             'a7_pipeline_work', 'a7_catalog_prepare', 'a7_catalog_issue', 'a7_catalog_update',
+                             'a7_catalog_verify', 'a7_dcf_publish', 'a7_capture_delegate_attach',
+                             'a7_capture_delegate_detach', 'a7_sony_sdk_bind', 'a7_sony_find_ap',
+                             'a7_native_session_create', 'a7_native_session_submit', 'a7_native_session_poll',
+                             'a7_resident_request', 'a7_resident_abi'}
                 if not required.issubset(symbols) or any(not s.startswith('a7_') for s in symbols):
                     raise ValueError('Invalid stream-library exports: ' + str(sorted(symbols)))
                 needed = [t.needed for t in elf.get_section_by_name('.dynamic').iter_tags('DT_NEEDED')]
@@ -141,6 +149,10 @@ def build(source, output, *, target='camera', zig=None, cmake=None, ninja=None, 
                                 if number > (2, 25):
                                     raise ValueError('Stream library needs newer libc: ' + version.name)
     if harness:
+        run([zig, 'cc', '-target', triple, '-O2', '-g0', '-s', '-std=c11',
+             '-Wall', '-Wextra', '-Werror', '-I', native,
+             ROOT / 'dev/double_exposure/pipeline_harness.c', executable,
+             '-Wl,-rpath,$ORIGIN', '-o', output / 'a7c2-pipeline-harness'], log)
         run([zig, 'cc', '-target', triple, '-O2', '-g0', '-s', '-std=c11',
              '-Wall', '-Wextra', '-Werror', '-I', native,
              ROOT / 'dev/double_exposure/stream_harness.c', executable,

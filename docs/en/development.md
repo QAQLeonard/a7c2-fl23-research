@@ -23,7 +23,7 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), shared Sony-PMCA-RE under `src/fl23/vendor` |
 | `src/shutter_sound/` | Sound conversion/volume, audition, persistent install; `native/` holds the AArch64 camera workers |
 | `src/vertical/` | Vertical Display workers and portrait resources (**being rewritten**) |
-| `src/double_exposure/native/` | Experimental mean/stream core, capture coordinator, AP binding/lifetime, POSIX core receiver, explicit-call loader control and output reservation; device transport/entry, capture hooks and catalog publication are not connected |
+| `src/double_exposure/native/` | Experimental mean/stream core, file request entry, SDK event forwarding, background pipeline, DCF publication and SIDB registration; offline candidate with physical acceptance pending |
 | `src/fl23/` | Standalone legacy FL23 installer; its `native/` workers are reused by the engines |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic auto-profile plugin |
 | `calibration/` | Virtual 2.01 response model used by the compiler |
@@ -180,9 +180,9 @@ outside the core. No SDK init/file I/O or callback installation occurs on bind.
 and temporary-file opening. Persist each intent before its SDK step. It uses
 a newly-created private directory under the selected DCF photo folder;
 write|create flag 6 alone does not establish exclusive ownership. Existing or
-uncertain state is retained, with no automatic retry/delete. Final filename
-allocation, move/publication, media registration and device loading remain
-unfinished; all current SDK tests use local synthetic backends.
+uncertain state is retained, with no automatic retry/delete. The integrated
+pipeline below supplies publication, media registration and module loading;
+all current executing SDK tests use local synthetic backends.
 
 `bootstrap.c` is a separate small explicit-call control helper. It resolves and
 qualifies the core's ABI/start/query/retire exports, retains a temporary module
@@ -227,10 +227,77 @@ ARM64 tests cover SHA-256 padding boundaries, concurrent requests, corruption,
 partial/zero writes, readback/flush/close errors, process interruption and
 publication collisions. One test receives the actual core through this C
 receiver, then loads/retires it against synthetic SDK libraries. Two host
-protocol tests check wire encoding. There is still no libJit request entry,
-device transport or automatic stage-to-load dispatch. Camera filesystem and
-power-loss behavior are unverified; the receiver does not write camera firmware,
-settings, captured photos or media database entries.
+protocol tests check wire encoding. This receiver itself has no SDK/photo I/O;
+the file entry and integrated pipeline below connect its verified output.
+
+`file_entry.c` is the small one-shot libJit request entry. Its constructor reads
+only fixed `/tmp/jiritsu/a7c2.dex.{request,payload}` inputs, creates an exclusive
+result intent before executing, and appends a checked result/commit marker.
+Stage requests use the 80-byte protocol; control uses the 64-byte `A7DEX001`
+ARM/WORK/QUERY/DISABLE protocol. ARM requires verified complete core staging;
+QUERY/DISABLE use `RTLD_NOLOAD`. A complete command receipt is not a completed
+photo. Build `build_bootstrap.py --component entry --output <dir> --harness`;
+the entry file stays within 64 KiB. Large staging buffers are heap/module-owned,
+not placed on the AP request thread's stack. Test runners disable automatic
+constructor execution and use explicit local fixture directories.
+
+`device_request.c`, `pipeline.c`, `native_session.c` and `resident_entry.c`
+connect requests, callback queues, JPEG means, publication, SIDB transactions
+and independent confirmation. One worker has a 512 KiB stack. Callback paths
+only copy bounded events and wake it; file/codec/catalog calls run on that
+worker. Intents/results are append-only checked records in a separate owned
+POSIX run directory. Unknown outcomes retain source/result paths, pending
+handles, native errors and UID results; they cannot be replayed. DISABLE can
+queue behind running work and completes only after context rundown. Instance
+identity and increasing request IDs prevent an old request from starting a new
+job. Reports are pointer-free: pipeline 2,800 bytes, device 2,832 bytes.
+ARM's media ID can be explicit or `UINT32_MAX` (the driver's default): choose
+the first eligible SDK begin media, then bind both photos to that native ID.
+Arm from an idle capture state and poll acceptance before taking the two shots.
+
+`sony_sdk.c` qualifies exports from already-loaded Sony libraries and checks
+the mapped 2.01 AP/DCF profile. `sony_begin.c` forwards the SDK countdown and
+write-finished events with their original pointers. The SDK's 88-byte payload
+retains the JPEG UID before AP marshaling; its UID is resolved by fresh SIDB
+Select on the worker. Native AP delegate registration/unregistration stays
+under its original owner. Detaching drains sink/context users, while forwarding
+code, SDK references and AP code remain pinned until AP process exit because
+SDK pointer dispatch has no proven unload rundown. A disabled pair therefore
+does not permit hot retirement/replacement of the resident core. The separate
+`capture_delegate.c` seam requires ownership of the delegate owner's lifetime;
+production uses SDK forwarding. No sensor/firmware/settings patch is
+installed by these adapters.
+
+`dcf_publish.c` selects a free numeric DCF folder, reserves/confirms that entry
+and its native file-number bitmap under the numbering mutex, creates a new owned folder and publishes
+`A7AV0001.JPG`. It re-enumerates numeric aliases, compares staging readback
+with the encoded write-stream digest, and verifies the destination hash after
+moving. Native folder-cache updates use native string construction
+and assignment. This prototype uses one new result folder per pair (the DCF
+100..999 ceiling applies). `media_catalog.c` uses native record clear/Select,
+IssueUniqueId, Update and Flush; source time is retained, a fresh UID is issued
+once, and a new Select must confirm path/size/time before COMPLETE.
+
+`dev/double_exposure/device_driver.py` accepts an explicitly supplied open
+session; import/construction never enumerates/authenticates/connects USB. Its
+explicit stage/arm/query/disable operations use bounded uploads, durable host
+intents and matching archived receipts. All owned temporary contents are checked
+before deletion and results are removed last; uncertainty preserves evidence
+and disables further commands. Only its three fixed temporary names were added
+to the existing transport allowlists. The desktop does not expose this driver.
+
+Use `A7C2_PIPELINE_LIBRARY` for integrated host tests,
+`A7C2_PIPELINE_COMMAND` for the ARM64 asynchronous pipeline runner, and
+`A7C2_FILE_ENTRY_COMMAND` for the ARM64 file entry runner (JSON argv lists).
+The command variables are JSON argv lists. `A7C2_NATIVE_MPR` optionally points
+to a local original 2.01 library for replaying its numeric bitmap helper in
+synthetic RAM; the original library is never distributed. The tests use
+synthetic SDK/AP providers and local files; they exercise the
+actual compiled codec/controller and failure/rundown contracts, not a live
+Sony SDK. Physical capture/preview/playback, media insertion/removal, camera
+filesystem/cache behavior, AP restart and power-loss acceptance remain pending.
+The caller supplies the selected media generation; no physical acceptance is
+inferred from that logical identifier or from successful symbol binding.
 
 **Packaging:**
 1. Prepare the ignored distribution assets: `python dev/desktop/prepare_assets.py`. Use `--preset-archive <zip>` to import the six defaults and the paired library from an exported pack or a Windows build; use `--export-presets <zip>` to create such a pack.

@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -19,6 +20,7 @@ struct stage {
     size_t plan_length;
     u64 size;
     u32 count;
+    u8 *buffer;
     struct a7_stage_report *out;
 };
 #ifdef A7_STAGE_TESTING
@@ -270,7 +272,7 @@ static int verify_directory(struct stage *s)
 }
 static int verify(struct stage *s)
 {
-    u8 buffer[A7_STAGE_CHUNK];
+    u8 *buffer = s->buffer;
     for (u32 i = 0; i < s->count; ++i) {
         char name[32];
         snprintf(name, sizeof(name), "%04u.intent", i);
@@ -311,8 +313,7 @@ static int put_chunk(struct stage *s, const u8 *request, const u8 *data, size_t 
     snprintf(name, sizeof(name), "%04u.chunk", index);
     if ((result = create_file(s, name, data, bytes))) return result;
     STEP("chunk-data");
-    u8 readback[A7_STAGE_CHUNK];
-    if ((result = read_chunk(s, index, readback))) return result;
+    if ((result = read_chunk(s, index, s->buffer))) return result;
     snprintf(name, sizeof(name), "%04u.done", index);
     if ((result = create_file(s, name, request, A7_STAGE_HEADER))) return result;
     STEP("chunk-done");
@@ -328,7 +329,7 @@ static int assemble(struct stage *s, const u8 *request)
     int fd = openat(s->dir, "assembling.tmp", O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
     if (fd < 0) return io_failure(s);
     SHA256 sha; sha_init(&sha);
-    u8 data[A7_STAGE_CHUNK], checksum[32];
+    u8 *data = s->buffer, checksum[32];
     for (u32 i = 0; !result && i < s->count; ++i) {
         result = read_chunk(s, i, data);
         size_t bytes = chunk_size(s, i);
@@ -369,15 +370,18 @@ int a7_stage_execute(const char *root, const void *wire, size_t length,
     out->operation = read32(request + 8);
     out->chunks = read32(request + 40);
     memcpy(out->transaction, request + 16, 16); memcpy(out->sha256, request + 48, 32);
+    s.buffer = malloc(A7_STAGE_CHUNK);
+    if (!s.buffer) { errno = ENOMEM; return out->status = io_failure(&s); }
     if (out->operation == A7_STAGE_CREATE) {
         if (mkdir(root, 0700)) {
             out->io_error = errno; out->phase = A7_STAGE_REVIEW;
-            return out->status = errno == EEXIST ? A7_STAGE_EXISTS : A7_STAGE_IO;
+            int status = errno == EEXIST ? A7_STAGE_EXISTS : A7_STAGE_IO;
+            free(s.buffer); return out->status = status;
         }
         out->mutated = 1;
     }
     s.dir = open(root, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
-    if (s.dir < 0) { out->phase = A7_STAGE_REVIEW; return out->status = io_failure(&s); }
+    if (s.dir < 0) { out->phase = A7_STAGE_REVIEW; int status = io_failure(&s); free(s.buffer); return out->status = status; }
     int result = 0;
     if (flock(s.dir, LOCK_EX | LOCK_NB)) {
         out->io_error = errno;
@@ -411,5 +415,6 @@ done:
     int closing = close_file(&s, s.dir); /* releases the directory lock */
     if (closing) { result = closing; out->phase = A7_STAGE_REVIEW; }
     out->status = result;
+    free(s.buffer);
     return result;
 }

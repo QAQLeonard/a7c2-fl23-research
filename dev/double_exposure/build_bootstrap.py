@@ -1,4 +1,4 @@
-"""Build the explicit-call control helper offline; no libJit entry/transport."""
+"""Build native control, staging or one-shot file entry helpers offline."""
 import argparse
 import os
 from pathlib import Path
@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def build(output, *, target='camera', zig=None, harness=False, component='control'):
-    if component not in ('control', 'staging'):
+    if component not in ('control', 'staging', 'entry'):
         raise ValueError('Unknown helper component')
     if harness and target != 'camera':
         raise ValueError('The loader harness requires the camera ABI target')
@@ -20,13 +20,15 @@ def build(output, *, target='camera', zig=None, harness=False, component='contro
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     windows = target == 'host' and os.name == 'nt'
-    if windows and component == 'staging':
+    if windows and component != 'control':
         raise ValueError('Native POSIX staging tests run on Linux or ARM64/QEMU')
     triple = 'aarch64-linux-gnu.2.25' if target == 'camera' else (
         'x86_64-windows-gnu' if windows else 'x86_64-linux-gnu')
-    stem = 'a7c2-bootstrap' if component == 'control' else 'a7c2-staging'
-    entry = 'a7_boot_dispatch' if component == 'control' else 'a7_stage_execute'
-    source = 'bootstrap.c' if component == 'control' else 'staging.c'
+    stem, entry, source = {
+        'control': ('a7c2-bootstrap', 'a7_boot_dispatch', 'bootstrap.c'),
+        'staging': ('a7c2-staging', 'a7_stage_execute', 'staging.c'),
+        'entry': ('a7c2-file-entry', 'a7_file_entry_run', 'file_entry.c'),
+    }[component]
     destination = output / (stem + ('.dll' if windows else '.so'))
     with tempfile.TemporaryDirectory(prefix='bootstrap-', dir=output) as scratch:
         temporary = Path(scratch) / destination.name
@@ -42,7 +44,10 @@ def build(output, *, target='camera', zig=None, harness=False, component='contro
             command += ['-Wl,-Bsymbolic', '-Xlinker', '--version-script', '-Xlinker', str(exports)]
             if component == 'staging':
                 command += ['-Wl,-soname,' + destination.name]
-        command += [str(ROOT / 'src/double_exposure/native' / source), *flags, '-o', str(temporary)]
+        sources = [ROOT / 'src/double_exposure/native' / source]
+        if component == 'entry':
+            sources.extend(ROOT / 'src/double_exposure/native' / name for name in ('staging.c', 'bootstrap.c'))
+        command += [*map(str, sources), *flags, '-o', str(temporary)]
         result = subprocess.run(command, capture_output=True, text=True, timeout=180,
                                 creationflags=0x08000000 if os.name == 'nt' else 0)
         if result.returncode:
@@ -60,11 +65,13 @@ def build(output, *, target='camera', zig=None, harness=False, component='contro
                 dynamic = elf.get_section_by_name('.dynamic')
                 # Zig's normal GNU CRT supplies a small DT_INIT scaffold.
                 # No project constructor or libJit _init entry is installed.
-                if any(t.entry.d_tag == 'DT_INIT_ARRAY' for t in dynamic.iter_tags()):
+                if component != 'entry' and any(t.entry.d_tag == 'DT_INIT_ARRAY' for t in dynamic.iter_tags()):
                     raise ValueError('Unexpected bootstrap constructors')
+                if component == 'entry' and not any(t.entry.d_tag == 'DT_INIT_ARRAY' for t in dynamic.iter_tags()):
+                    raise ValueError('File entry constructor is missing')
                 needed = {t.needed for t in dynamic.iter_tags('DT_NEEDED')}
                 permitted = {'libc.so.6', 'libdl.so.2', 'ld-linux-aarch64.so.1'}
-                if component == 'staging':
+                if component != 'control':
                     permitted.add('libpthread.so.0')
                 if not needed <= permitted:
                     raise ValueError('Unexpected dependencies: ' + str(sorted(needed)))
@@ -103,6 +110,17 @@ def build(output, *, target='camera', zig=None, harness=False, component='contro
                 if result.returncode:
                     raise RuntimeError(result.stderr)
                 os.replace(runner, output / runner.name)
+        if harness and component == 'entry':
+            runner = Path(scratch) / 'a7c2-file-entry-harness'
+            result = subprocess.run([str(zig), 'cc', '-target', triple, '-O2', '-g0', '-s',
+                                     '-std=c11', '-Wall', '-Wextra', '-Werror', '-DA7_ENTRY_NO_AUTORUN',
+                                     '-I', str(ROOT / 'src/double_exposure/native'),
+                                     str(ROOT / 'dev/double_exposure/file_entry_harness.c'),
+                                     *map(str, sources), '-ldl', '-o', str(runner)], capture_output=True,
+                                    text=True, timeout=180, creationflags=0x08000000 if os.name == 'nt' else 0)
+            if result.returncode:
+                raise RuntimeError(result.stderr)
+            os.replace(runner, output / runner.name)
     return destination
 
 
@@ -112,5 +130,5 @@ if __name__ == '__main__':
     parser.add_argument('--target', choices=('camera', 'host'), default='camera')
     parser.add_argument('--zig')
     parser.add_argument('--harness', action='store_true')
-    parser.add_argument('--component', choices=('control', 'staging'), default='control')
+    parser.add_argument('--component', choices=('control', 'staging', 'entry'), default='control')
     print(build(**vars(parser.parse_args())))
