@@ -20,7 +20,7 @@ CONTEXT = 0x30000000
 
 def execute(cp, selector, descriptor_word, *, trial=False, skip_policy=False,
             skip_pending=False, defer_dispatch=False, counter_limit=0, capture_count=0,
-            patched_cp=None, capture_request=None):
+            patched_cp=None, capture_request=None, mechanical_tail_only=False):
     from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UC_HOOK_CODE
     from unicorn.arm_const import UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_R0
     cpu = Uc(UC_ARCH_ARM, UC_MODE_THUMB)
@@ -60,6 +60,7 @@ def execute(cp, selector, descriptor_word, *, trial=False, skip_policy=False,
     cpu.mem_write(CONTEXT + 0x5c1c, struct.pack('<I', 0x12345678))
     cpu.mem_write(0x1ac5644 + 0x81, struct.pack('>H', counter_limit))
     cpu.mem_write(CONTEXT + 0x11e0, struct.pack('<H', capture_count))
+    cpu.mem_write(CONTEXT + 0x9d7,bytes([bool(mechanical_tail_only)]))
     if skip_policy:
         cpu.mem_write(CONTEXT + 0x5c10, struct.pack('<I', 1))
     if skip_pending:

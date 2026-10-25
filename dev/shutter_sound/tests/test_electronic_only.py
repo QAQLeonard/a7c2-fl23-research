@@ -40,7 +40,8 @@ def stock():
     ap=bytearray(0x288549c);ap[:4]=b'\x7fELF'
     ap[0x286cde8:0x286cdfc]=bytes.fromhex('20af029000601391008c409100800391c0035fd6')
     ap[0x2885488:0x288549c]=bytes.fromhex('40ae02f0006013910004429100002f91c0035fd6')
-    cp=bytearray(0x970000)
+    # Include the native KA/SHA dispatch wrapper, not only the selector.
+    cp=bytearray(max(va-0x108000+len(bytes.fromhex(raw)) for va,raw in CP_CODE.items()))
     for va,raw in CP_CODE.items():
         raw=bytes.fromhex(raw);cp[va-0x108000:va-0x108000+len(raw)]=raw
     return bytes(ap),bytes(cp)
@@ -54,7 +55,7 @@ def test_native_mechanical_leak_reproduces_before_fix(stock):
 
 
 def test_real_capture_flag_and_all_selector_paths(stock):
-    ap,cp=stock;fixed=candidate.patch(ap,cp)['cpapp-b.bin']
+    ap,cp=stock;fixed=candidate.patch(ap,cp,mechanical=False)['cpapp-b.bin']
     cases=0
     for request in (0,1,2):
         for selector in range(5):
@@ -71,7 +72,7 @@ def test_real_capture_flag_and_all_selector_paths(stock):
                         if guard in ('policy','pending'):
                             assert before==after
                         else:
-                            wanted=(1 if limit and count<limit else 3) if request==1 and selector==1 else 0
+                            wanted=(1 if limit and count<limit else 3) if request==1 and selector in (1,2,4) else 0
                             assert after['mode']==wanted,(request,selector,descriptor,guard,limit,count,after)
                         cases+=1
     assert cases==360
@@ -79,10 +80,10 @@ def test_real_capture_flag_and_all_selector_paths(stock):
 
 @pytest.mark.parametrize('capture_input,front,sub',[(0,0,0),(1,0,0),(0,1,0),(0,1,1)])
 def test_mechanical_electronic_and_front_policy_inputs(stock,capture_input,front,sub):
-    ap,cp=stock;fixed=candidate.patch(ap,cp)['cpapp-b.bin']
+    ap,cp=stock;fixed=candidate.patch(ap,cp,mechanical=False)['cpapp-b.bin']
     selector=cp_selector(cp,capture_input,front_policy=front,front_subpolicy=sub)
     mode=execute(cp,selector,0,patched_cp=fixed,capture_request=capture_input)['mode']
-    assert mode==(3 if capture_input==1 and front==0 else 0)
+    assert mode==(3 if capture_input==1 and selector in (1,2,4) else 0)
 
 
 def test_upgrade_idempotence_partial_states_and_factory_inverse(stock):
@@ -97,7 +98,10 @@ def test_upgrade_idempotence_partial_states_and_factory_inverse(stock):
             mixed=bytearray(cp)
             mixed[candidate.SELECTOR_TABLE:candidate.SELECTOR_TABLE+len(table)]=table
             mixed[candidate.GATE:candidate.GATE+len(gate)]=gate
-            assert candidate.patch(ap,bytes(mixed))['cpapp-b.bin']==target
+            upgraded=candidate.patch(ap,bytes(mixed))['cpapp-b.bin']
+            assert candidate.is_current(upgraded)
+            expected_mechanical=table==candidate.TABLE_BEFORE and gate in (candidate.CONTEXT,candidate.LEGACY_GATE)
+            assert candidate.switches(upgraded)==dict(mechanical=expected_mechanical,electronic=True)
             assert candidate.patch(ap,bytes(mixed),restore=True)['cpapp-b.bin']==cp
     from looktool.direct import plan
     current={'appFw.so':ap,'cpapp-b.bin':bytes(legacy)}
@@ -105,13 +109,13 @@ def test_upgrade_idempotence_partial_states_and_factory_inverse(stock):
     assert enabled['cpapp-b.bin']==target and settings==[{},{}]
     assert plan(enabled,[{},{}],'sound_enable')[0]==enabled
     disabled=plan(enabled,[{},{}],'sound_disable')[0]
-    assert candidate.sound_state(disabled['cpapp-b.bin'])=='muted'
+    assert candidate.sound_state(disabled['cpapp-b.bin'])=='mechanical_only'
     assert plan(disabled,[{},{}],'sound_disable')[0]==disabled
     assert plan(disabled,[{},{}],'sound_enable')[0]==enabled
 
 
 def test_disabled_switch_keeps_mechanical_and_electronic_silent_with_custom_registration(stock):
-    ap,cp=stock;muted=candidate.disable(ap,cp)['cpapp-b.bin']
+    ap,cp=stock;muted=candidate.patch(ap,cp,mechanical=False,electronic=False)['cpapp-b.bin']
     for capture_request in (0,1,2):
         for selector in range(5):
             assert execute(cp,selector,0,patched_cp=muted,capture_request=capture_request)['mode']==0
@@ -225,19 +229,87 @@ def test_combined_install_upgrades_legacy_in_its_existing_plan(stock,selected,pr
     assert bundle.plan(target,[{},{}],options,[])[0]==target
 
 
-def test_save_program_contains_selector_upgrade_before_the_audio_boot_hook(stock,tmp_path):
+@pytest.mark.parametrize('mechanical',[None,False,True])
+def test_save_program_contains_selector_upgrade_before_the_audio_boot_hook(stock,tmp_path,mechanical):
     import boot_trial
     from verify_worker import verify,AP,CP
     ap,cp=stock
     modified=bytearray(cp);modified[candidate.OFFSET:candidate.OFFSET+2]=candidate.AFTER;cp=bytes(modified)
+    if mechanical is not None:cp=candidate.patch(ap,cp,mechanical=mechanical,electronic=False)['cpapp-b.bin']
     target_ap=bytearray(ap);target_ap[0x100:0x104]=b'test';target_ap=bytes(target_ap)
     edits=[(0x100,ap[0x100:0x104],b'test')]
     with patch.object(boot_trial.boot_sound,'plan',return_value=(target_ap,b'CSV',edits,{})):
         target,parts=boot_trial.prepare(ap,cp,bytes(64),tmp_path/'save')
     assert candidate.is_current(target['cpapp-b.bin'])
-    assert len(parts['cp_windows'])==2
+    expected=({candidate.GATE,candidate.FRONT,candidate.MECHANICAL} if mechanical is None else
+              {candidate.SELECTOR_TABLE,candidate.GATE} if not mechanical else {candidate.GATE})
+    assert {w['offset'] for w in parts['cp_windows']}==expected
+    assert candidate.switches(target['cpapp-b.bin'])==dict(mechanical=mechanical is not False,electronic=True)
     spans=[(CP,w['offset'],bytes.fromhex(w['before_hex']),bytes.fromhex(w['after_hex'])) for w in parts['cp_windows']]
     spans += [(AP,*edit) for edit in edits]
     result=verify(parts['program']['path'],parts['program']['sizes'],spans)
     assert result['compiled_worker_cases']==18
     assert result['cases'][1]['pwrite_offsets']==[w[1] for w in spans]
+
+
+@pytest.mark.parametrize('mechanical,electronic',[(False,False),(False,True),(True,False),(True,True)])
+def test_independent_switches_route_real_capture_inputs_to_separate_native_sounds(stock,mechanical,electronic):
+    ap,cp=stock
+    fixed=candidate.patch(ap,cp,mechanical=mechanical,electronic=electronic)['cpapp-b.bin']
+    for request in (0,1):
+        for front,sub,special in ((0,0,0),(1,0,0),(1,1,0),(0,0,1)):
+            selector=cp_selector(cp,request,front_policy=front,front_subpolicy=sub,special=special)
+            for guard in ('none','policy','pending','defer'):
+                for limit,count in ((0,0),(3,0),(3,3)):
+                    args=dict(capture_request=request,counter_limit=limit,capture_count=count,
+                              skip_policy=guard=='policy',skip_pending=guard=='pending',defer_dispatch=guard=='defer')
+                    before=execute(cp,selector,0,**args)
+                    after=execute(cp,selector,0,patched_cp=fixed,**args)
+                    assert (before['returned'],before['at_dispatch'])==(after['returned'],after['at_dispatch'])
+                    if guard in ('policy','pending'):
+                        assert after==before
+                        continue
+                    enabled=electronic if request else mechanical
+                    wanted=0 if not enabled or selector==3 else (3 if request else 1)
+                    if wanted and limit and count<limit:wanted=1
+                    assert after['mode']==wanted,(request,selector,guard,limit,count,after)
+                    calls=sound_calls(fixed,wanted,0x4a09f4)+sound_calls(fixed,wanted,0x4a0a74)
+                    if request==0:assert 3 not in calls  # Custom registration owns only kind3.
+                    if not enabled or selector==3:assert calls==[]
+
+
+def test_all_direct_switch_orders_preserve_other_switch_ap_settings_and_recovery(stock):
+    from looktool.direct import plan
+    ap,cp=stock
+    for mechanical in (False,True):
+        for electronic in (False,True):
+            current=candidate.patch(ap,cp,mechanical=mechanical,electronic=electronic)
+            current['resources/unselected']=b'keep names'
+            for mode,wanted in (
+                    ('sound_enable',dict(mechanical=mechanical,electronic=True)),
+                    ('sound_disable',dict(mechanical=mechanical,electronic=False)),
+                    ('sound_mechanical_enable',dict(mechanical=True,electronic=electronic)),
+                    ('sound_mechanical_disable',dict(mechanical=False,electronic=electronic))):
+                target,fields,names=plan(current,[{},{}],mode)
+                assert candidate.switches(target['cpapp-b.bin'])==wanted
+                assert target['appFw.so']==ap and target['resources/unselected']==b'keep names'
+                assert fields==[{},{}] and names is None
+                assert plan(target,[{},{}],mode)[0]==target
+                assert candidate.patch(ap,target['cpapp-b.bin'],restore=True)['cpapp-b.bin']==cp
+
+
+def test_both_sound_paths_reject_unknown_native_policy_instructions(stock):
+    ap,cp=stock
+    for at in (candidate.FRONT,candidate.MECHANICAL,0x3935ac):
+        changed=bytearray(cp);changed[at]^=0xff
+        with pytest.raises(ValueError):candidate.mechanical(ap,bytes(changed),True)
+
+
+def test_native_mechanical_tail_only_policy_is_preserved(stock):
+    ap,cp=stock
+    fixed=candidate.patch(ap,cp)['cpapp-b.bin']
+    for tail,mode in ((False,1),(True,2)):
+        result=execute(cp,cp_selector(cp,0),0,patched_cp=fixed,capture_request=0,mechanical_tail_only=tail)
+        assert result['mode']==mode
+        assert sound_calls(fixed,mode,0x4a09f4)==([] if tail else [1])
+        assert sound_calls(fixed,mode,0x4a0a74)==[2]

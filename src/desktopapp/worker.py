@@ -56,17 +56,19 @@ def run(action, args, job):
         values=dict(version=args['firmware'],power_confirmed=args.get('power_confirmed',False))
         if args.get('combined'):values['combined']=True
         return PortraitJob(work).run_frames(action=='vertical_enable',**values)
-    if action in ('sound_on','sound_off','sound_restore_sound'):
-        mode={'sound_on':'sound_enable','sound_off':'sound_disable','sound_restore_sound':'sound_reset'}[action]
+    if action in ('sound_on','sound_off','sound_restore_sound','sound_mechanical_on','sound_mechanical_off'):
+        mode={'sound_on':'sound_enable','sound_off':'sound_disable','sound_restore_sound':'sound_reset',
+              'sound_mechanical_on':'sound_mechanical_enable','sound_mechanical_off':'sound_mechanical_disable'}[action]
         result=run('direct_'+mode,dict(args,workspace=str(Path(args['workspace'])/('switch-'+uuid.uuid4().hex[:8]))),job)
-        result['command']={'sound_on':'on','sound_off':'off','sound_restore_sound':'restore-sound'}[action]
+        result['command']={'sound_on':'on','sound_off':'off','sound_restore_sound':'restore-sound',
+                           'sound_mechanical_on':'mechanical-on','sound_mechanical_off':'mechanical-off'}[action]
         if action=='sound_restore_sound':
             # A RAM audition also clears on cold power-off when disk was
             # already stock; no previous installation record is needed.
             result.update(phase='restored_cold_test_pending',reload_required=True,verification_required=True,
                 restoration_complete=False)
         elif result['phase']=='AWAITING_RELOAD':
-            result.update(phase='written' if action=='sound_on' else 'restored',reload_required=True)
+            result.update(phase='written' if action in ('sound_on','sound_mechanical_on') else 'restored',reload_required=True)
         return result
     if action=='sound_verify':
         from .actions.sound_state import verify

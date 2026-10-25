@@ -65,6 +65,7 @@ Data root: `%LOCALAPPDATA%\A7C2Tools` on Windows, `~/Library/Application Support
 | `direct_looks_import` (→ `direct_resume_looks`) | `lookbatch` + `looktool.direct` (`install_all`) | `operations`: `slot`, `action=write/restore`, `path`, optional `name` |
 | `vertical_enable`, `vertical_disable` | `looktool.direct` (persistent) | Being rewritten |
 | `sound_on`, `sound_off` | `looktool.direct` (`sound_enable/disable`) | |
+| `sound_mechanical_on`, `sound_mechanical_off` | `looktool.direct` (`sound_mechanical_enable/disable`) | Native speaker segments; preserve the electronic switch and shutter settings |
 | `sound_import`, `sound_volume` | `actions.sound` → `shutter_sound.sound_cli` | Computer only, no camera access |
 | `sound_audition`, `sound_install`, `sound_verify`, `sound_restore_sound` | `actions.sound` | Camera actions |
 | `compile_look` | `actions.look_compiler` → `looktool.compilelook` | Offline |

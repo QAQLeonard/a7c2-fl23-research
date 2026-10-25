@@ -18,19 +18,34 @@ CONTEXT = bytes.fromhex('dbf33afc0321002845f61c4018bf002121502044')
 # The context is read from the actual stock instructions when authored below;
 # this explicit literal is checked independently, not a firmware SHA gate.
 
-# Keep only selector 1 and check the per-capture electronic flag written by
-# 8b8004..8b8014. Reuse the original mode-0/mode-3 blocks, without a code cave.
+# Classify the real per-capture electronic flag written by 8b8004..8b8014.
+# Reuse existing native mode blocks; no added executable storage.
 SELECTOR_TABLE = 0x393570
 TABLE_BEFORE = bytes.fromhex('1b26034403')
 TABLE_AFTER = bytes.fromhex('4426444444')
+# Preserve the original mechanical/front-policy selection and its guards.
+TABLE_SPLIT = TABLE_BEFORE
+TABLE_ELECTRONIC = bytes.fromhex('4426034403')
 GATE = START
 GATE_AFTER = bytes.fromhex('dcf3a1fa41f21901415c012916d1e0e700bf00bf')
 GATE_MUTED = GATE_AFTER[:14] + bytes.fromhex('15e0') + GATE_AFTER[16:]
+# Read the same native per-capture flag at +0x1019. Mechanical uses mode1
+# (native kind1 KA / kind2 SHA); electronic uses mode3 (kind3, customizable).
+GATE_BOTH = bytes.fromhex('dcf3a1fa41f21901415c4900013145f61c40f2e7')
+GATE_MECHANICAL = bytes.fromhex('dcf3a1fa41f21901415cb9b945f61c40204410e0')
+GATE_ELECTRONIC = bytes.fromhex('dcf3a1fa41f21901415cb9b145f61c400321f2e7')
+FRONT = 0x39358e
+FRONT_BEFORE, FRONT_AFTER = bytes.fromhex('45f6'), bytes.fromhex('15e0')
+MECHANICAL = 0x3935aa
+MECHANICAL_BEFORE, MECHANICAL_AFTER = bytes.fromhex('0321'), bytes.fromhex('0121')
 LEGACY_GATE = CONTEXT[:OFFSET - START] + AFTER + CONTEXT[OFFSET - START + 2:]
-WINDOWS = ((SELECTOR_TABLE, TABLE_BEFORE, TABLE_AFTER), (GATE, CONTEXT, GATE_AFTER))
+WINDOWS = ((SELECTOR_TABLE, TABLE_BEFORE, TABLE_AFTER), (GATE, CONTEXT, GATE_ELECTRONIC),
+           (FRONT, FRONT_BEFORE, FRONT_AFTER), (MECHANICAL, MECHANICAL_BEFORE, MECHANICAL_AFTER))
 CP_GUARDS = (
     (0x39356c, bytes.fromhex('dfe801f0')),
-    (0x39358e, bytes.fromhex('45f61c4003210fe0')),
+    (0x393590, bytes.fromhex('1c4003210fe0')),
+    (0x3935a6, bytes.fromhex('94f8d709')),
+    (0x3935ac, bytes.fromhex('002845f61c4018bf0221')),
     (0x3935b6, bytes.fromhex('215020440ae0')),
     (0x3935d0, bytes.fromhex('b1b1')),
     (0x3935f8, bytes.fromhex('45f61c4000212150')),
@@ -46,21 +61,33 @@ def sound_state(cp):
         return 'off'
     if table == TABLE_BEFORE and gate == LEGACY_GATE:
         return 'legacy'
-    if table == TABLE_AFTER and gate == GATE_AFTER:
+    if table == TABLE_AFTER and gate in (GATE_AFTER, GATE_ELECTRONIC):
+        return 'electronic_only'
+    if table == TABLE_ELECTRONIC and gate == GATE_ELECTRONIC:
         return 'electronic_only'
     if table == TABLE_AFTER and gate == GATE_MUTED:
         return 'muted'
+    if table == TABLE_SPLIT and gate == GATE_BOTH:
+        return 'both'
+    if table == TABLE_SPLIT and gate == GATE_MECHANICAL:
+        return 'mechanical_only'
     if table in (TABLE_BEFORE, TABLE_AFTER) and gate in (CONTEXT, LEGACY_GATE, GATE_AFTER, GATE_MUTED):
         return 'partial'
     raise ValueError('Sound-selector context differs from supported 2.01 instructions')
 
 
 def is_enabled(cp):
-    return sound_state(cp) not in ('off', 'muted')
+    return sound_state(cp) not in ('off', 'muted', 'mechanical_only')
 
 
 def is_current(cp):
-    return sound_state(cp) == 'electronic_only'
+    return sound_state(cp) in ('electronic_only', 'both')
+
+
+def switches(cp):
+    state = sound_state(cp)
+    return dict(mechanical=state in ('off', 'legacy', 'both', 'mechanical_only'),
+                electronic=is_enabled(cp))
 
 
 def is_legacy(cp):
@@ -71,12 +98,14 @@ def is_legacy(cp):
 def guard(ap, cp, *, installed=False):
     if ap[:4] != b'\x7fELF' or len(ap) < 0x288549c:
         raise ValueError('Expected the A7C II 2.01 AArch64 AP')
-    state = sound_state(cp)
-    if (state not in ('off', 'muted')) != installed:
+    if is_enabled(cp) != installed:
         raise ValueError('Sound trial instruction conflicts; no write planned')
     for at, code in CP_GUARDS:
         if cp[at:at + len(code)] != code:
             raise ValueError('CP per-capture electronic-flag source differs from 2.01')
+    for at, before, after in WINDOWS[2:]:
+        if cp[at:at+len(before)] not in (before,after):
+            raise ValueError('CP native mechanical sound context differs from 2.01')
     getters = ((0x286cde8, bytes.fromhex('20af029000601391008c409100800391c0035fd6')),
                (0x2885488, bytes.fromhex('40ae02f0006013910004429100002f91c0035fd6')))
     for at, code in getters:
@@ -84,23 +113,28 @@ def guard(ap, cp, *, installed=False):
             raise ValueError('AP sound getter conflicts; no native access planned')
 
 
-def patch(ap, cp, *, restore=False):
+def patch(ap, cp, *, restore=False, mechanical=None, electronic=True):
     guard(ap, cp, installed=is_enabled(cp))
+    if mechanical is None:mechanical=switches(cp)['mechanical']
+    if restore:
+        table, gate = TABLE_BEFORE, CONTEXT
+    elif mechanical:
+        table, gate = TABLE_SPLIT, GATE_BOTH if electronic else GATE_MECHANICAL
+    else:
+        table, gate = (TABLE_ELECTRONIC,GATE_ELECTRONIC) if electronic else (TABLE_AFTER,GATE_MUTED)
     out = bytearray(cp)
-    for at, before, after in WINDOWS:
-        out[at:at + len(before)] = before if restore else after
+    out[SELECTOR_TABLE:SELECTOR_TABLE+len(table)] = table
+    out[GATE:GATE+len(gate)] = gate
+    for at, before, after in WINDOWS[2:]:out[at:at+len(before)] = before if restore else after
     return {'appFw.so': ap, 'cpapp-b.bin': bytes(out)}
 
 
 def disable(ap, cp):
-    # Closing the electronic switch must not re-enable mechanical requests
-    # while an installed custom kind3 registration is still present. Factory
-    # recovery and the explicit legacy inverse continue to restore stock bytes.
-    target = patch(ap, cp)
-    out = bytearray(target['cpapp-b.bin'])
-    out[GATE:GATE + len(GATE_MUTED)] = GATE_MUTED
-    target['cpapp-b.bin'] = bytes(out)
-    return target
+    return patch(ap, cp, electronic=False)
+
+
+def mechanical(ap, cp, enabled):
+    return patch(ap, cp, mechanical=enabled, electronic=switches(cp)['electronic'])
 
 
 def build(ap, cp, out, zig=None, *, restore=False):
@@ -142,6 +176,7 @@ def build(ap, cp, out, zig=None, *, restore=False):
                         for at,old,_ in WINDOWS],
             'bytes': sum(len(before) for _, before, _ in WINDOWS),
             'electronic_only_gate': not restore,
+            'sound_switches': switches(target['cpapp-b.bin']),
             'native_program': program, 'restore': restore,
             'camera_io': False, 'physical_sound_verified': False,
             'native_registry_preflight_required': True}

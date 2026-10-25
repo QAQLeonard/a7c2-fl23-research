@@ -37,7 +37,7 @@ def verify(args,job):
                 if (descriptor['kind']!=3 or descriptor['length']!=size or
                         descriptor['filename_prefix']!='/usr' or not descriptor['native_handle']&0x8000):
                     raise ValueError('当前声音尚未按磁盘配置加载，请按写入后的提示断电重开。')
-            elif candidate.sound_state(cp)=='muted':
+            elif candidate.sound_state(cp) in ('muted','mechanical_only'):
                 # Finish a current-state sound reset after the original AP loader
                 # has reloaded. No old sound job or audition evidence is required.
                 from looktool.direct import DirectJob

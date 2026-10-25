@@ -65,6 +65,7 @@
 | `direct_looks_import`（→ `direct_resume_looks`） | `lookbatch` + `looktool.direct`（`install_all`） | `operations`：`slot`、`action=write/restore`、`path`、可选 `name` |
 | `vertical_enable`、`vertical_disable` | `looktool.direct`（持久） | 正在重写 |
 | `sound_on`、`sound_off` | `looktool.direct`（`sound_enable/disable`） | |
+| `sound_mechanical_on`、`sound_mechanical_off` | `looktool.direct`（`sound_mechanical_enable/disable`） | 原生扬声器分段音效；保留电子音效开关及快门设置 |
 | `sound_import`、`sound_volume` | `actions.sound` → `shutter_sound.sound_cli` | 只在电脑上处理，不连接相机 |
 | `sound_audition`、`sound_install`、`sound_verify`、`sound_restore_sound` | `actions.sound` | 相机操作 |
 | `compile_look` | `actions.look_compiler` → `looktool.compilelook` | 离线 |

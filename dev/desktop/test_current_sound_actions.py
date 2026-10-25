@@ -57,7 +57,8 @@ def test_current_state_probe_compiles_and_reads_stock_or_custom_without_a_job(st
     assert result['model_index']==16
 
 
-@pytest.mark.parametrize('action,mode',[('sound_on','sound_enable'),('sound_off','sound_disable'),('sound_restore_sound','sound_reset')])
+@pytest.mark.parametrize('action,mode',[('sound_on','sound_enable'),('sound_off','sound_disable'),('sound_restore_sound','sound_reset'),
+    ('sound_mechanical_on','sound_mechanical_enable'),('sound_mechanical_off','sound_mechanical_disable')])
 def test_desktop_switch_and_restore_ignore_missing_or_unreadable_old_job(tmp_path,action,mode):
     root=tmp_path/'sound';root.mkdir();(root/'sound.private.json').write_text('unreadable old state')
     job=tmp_path/'run';job.mkdir()

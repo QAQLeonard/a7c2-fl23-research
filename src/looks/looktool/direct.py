@@ -141,12 +141,14 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
         if mode=='sound_reset':
             import candidate
             target.update(candidate.disable(target['appFw.so'],cp))
-    elif mode in ('sound_enable','sound_disable'):
+    elif mode in ('sound_enable','sound_disable','sound_mechanical_enable','sound_mechanical_disable'):
         import sys
         sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
         import candidate
-        desired=mode=='sound_enable'
-        target.update(candidate.patch(ap,cp) if desired else candidate.disable(ap,cp))
+        if mode.startswith('sound_mechanical_'):
+            target.update(candidate.mechanical(ap,cp,mode=='sound_mechanical_enable'))
+        else:
+            target.update(candidate.patch(ap,cp) if mode=='sound_enable' else candidate.disable(ap,cp))
     elif mode == 'fl23_enable':
         import compat
         target.update(compat.plan(ap, cp, '2.01', transitions=False)[2])
@@ -453,7 +455,7 @@ class DirectJob(Rollback):
                 self.state['identity'] = camera.identity
                 if mode=='factory_reset' and factory_values and factory_values.get('source_identity'):
                     checkpoint.same_body(factory_values['source_identity'],camera.identity)
-                if mode in ('sound_enable','sound_disable','sound_restore','sound_reset'):
+                if mode in ('sound_enable','sound_disable','sound_restore','sound_reset','sound_mechanical_enable','sound_mechanical_disable'):
                     import sys
                     sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
                     from replacement import prepare_current

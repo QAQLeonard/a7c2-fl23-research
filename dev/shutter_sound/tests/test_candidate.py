@@ -28,6 +28,7 @@ class CandidateTests(unittest.TestCase):
         cp = bytearray(max(at+len(raw) for at,raw in candidate.CP_GUARDS)+100)
         cp[candidate.SELECTOR_TABLE:candidate.SELECTOR_TABLE+5] = candidate.TABLE_BEFORE
         for at, raw in candidate.CP_GUARDS:cp[at:at+len(raw)] = raw
+        for at, old, new in candidate.WINDOWS:cp[at:at+len(old)] = old
         cp[candidate.START:candidate.START + len(candidate.CONTEXT)] = candidate.CONTEXT
         cls.ap, cls.cp = bytes(ap), bytes(cp)
 

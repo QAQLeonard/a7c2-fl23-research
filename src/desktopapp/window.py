@@ -39,7 +39,7 @@ class Window(W.QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         self.nav = W.QListWidget()
         self.nav.setFixedWidth(205)
-        self.nav.addItems(['首页 · 一键安装', '连接与驱动', '恢复原厂功能', 'FL2 / FL3', '自定义创意外观', '竖屏显示', '电子快门声音'])
+        self.nav.addItems(['首页 · 一键安装', '连接与驱动', '恢复原厂功能', 'FL2 / FL3', '自定义创意外观', '竖屏显示', '快门声音'])
         layout.addWidget(self.nav)
         right = W.QVBoxLayout()
         right.setContentsMargins(22, 18, 22, 16)
@@ -67,6 +67,7 @@ class Window(W.QMainWindow):
         self.vertical_page()
         self.sound_page()
         self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
+        self.nav.itemClicked.connect(lambda item:self.show_shutter_notice() if self.nav.row(item)==6 else None)
         self.nav.setCurrentRow(0)
         self.progress = W.QProgressBar()
         self.progress.setRange(0, 100)
@@ -682,11 +683,26 @@ class Window(W.QMainWindow):
         layout.addStretch()
 
     def sound_page(self):
-        layout = self.page('电子快门专属音效', '本页的自定义音频只用于电子快门；机械快门不叠加自定义音效，保留机械结构自身的声音。转换后可直接保存，试听可选；写入后按提示断电加载。')
+        layout = self.page('快门声音', '分别控制机械快门和电子快门拍摄时，扬声器额外播放的音效；不切换快门类型。')
+        help_button=W.QPushButton('原厂声音与两个独立开关：查看说明')
+        help_button.clicked.connect(self.show_shutter_notice);layout.addWidget(help_button)
+        self.buttons.append(help_button)
         form = self.box(layout, '声音工作区')
         self.field(form, 'sound_work', '工作目录', kind='folder', value=str(data_root() / 'sound'))
         self.field(form, 'sound_backup', '第二份备份', kind='folder', value=str(data_root() / 'sound-backup'))
         args = lambda: dict(self.common(), workspace=self.text('sound_work'), backup=self.text('sound_backup'))
+        mechanical=W.QGroupBox('机械快门 · 扬声器音效')
+        mechanical_layout=W.QVBoxLayout(mechanical);layout.addWidget(mechanical)
+        note=W.QLabel('只控制扬声器播放的快门音效。关闭后机械结构本身仍有咔嗒声；快门类型、电子快门音效和对焦提示音设置均保持原样。')
+        note.setWordWrap(True);mechanical_layout.addWidget(note)
+        row=W.QHBoxLayout();mechanical_layout.addLayout(row)
+        self.button(row, '打开／恢复机械快门自带音效', 'sound_mechanical_on', args)
+        self.button(row, '关闭机械快门音效', 'sound_mechanical_off', args)
+        electronic=W.QGroupBox('电子快门 · 独立音效与自定义音频')
+        electronic_layout=W.QVBoxLayout(electronic);layout.addWidget(electronic)
+        note=W.QLabel('原厂电子快门没有快门音效。本区新增电子快门音效；开关、保存自定义音频均保留机械快门音效的当前开关。')
+        note.setWordWrap(True);electronic_layout.addWidget(note)
+        layout=electronic_layout
         row = W.QHBoxLayout()
         layout.addLayout(row)
         self.button(row, '开启电子快门专属音效', 'sound_on', args)
@@ -724,6 +740,10 @@ class Window(W.QMainWindow):
         self.button(layout, '重开后核对声音／完成音效恢复', 'sound_verify', lambda: dict(args(), accepted=self.sound_accept.isChecked()))
         self.button(layout, '移除自定义音效，关闭电子快门音效', 'sound_restore_sound', args)
         layout.addStretch()
+
+    def show_shutter_notice(self):
+        from . import shutterguide
+        W.QMessageBox.information(self,shutterguide.TITLE,shutterguide.TEXT)
 
     def show_zadig_guide(self):
         from .zadigguide import TITLE, TEXT, URL

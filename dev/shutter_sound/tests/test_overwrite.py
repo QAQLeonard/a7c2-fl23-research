@@ -96,4 +96,4 @@ def test_sound_switch_plan_is_repeatable_and_preserves_other_bytes(enabled):
     assert target['appFw.so']==off['appFw.so']==ap
     allowed={at+i for at,old,_ in candidate.WINDOWS for i in range(len(old))}
     assert all(a==b or i in allowed for i,(a,b) in enumerate(zip(target['cpapp-b.bin'],before['cpapp-b.bin'])))
-    assert candidate.sound_state(off['cpapp-b.bin'])=='muted'
+    assert candidate.sound_state(off['cpapp-b.bin'])=='mechanical_only'

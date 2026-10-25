@@ -62,7 +62,7 @@ class ReferencePlanningTests(unittest.TestCase):
                 before=copy.deepcopy(self.props)
                 target,wanted,names=direct.plan(current,self.props,'sound_reset')
                 self.assertEqual(target['appFw.so'],ap)
-                self.assertEqual(candidate.sound_state(target['cpapp-b.bin']),'muted')
+                self.assertEqual(candidate.sound_state(target['cpapp-b.bin']),'mechanical_only')
                 self.assertEqual(wanted,[{},{}])
                 self.assertEqual(self.props,before)
                 self.assertIsNone(names)

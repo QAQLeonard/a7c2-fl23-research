@@ -18,3 +18,8 @@ POWER_ACTIONS.add('setup_all')
 CAMERA_ACTIONS.add('setup_all')
 CAMERA_ACTIONS.add('review_failed_names')
 CAMERA_ACTIONS.add('usb_stability')
+CAMERA_ACTIONS |= {'sound_mechanical_on','sound_mechanical_off',
+                   'direct_sound_mechanical_enable','direct_sound_mechanical_disable'}
+POWER_ACTIONS |= {'sound_mechanical_on','sound_mechanical_off',
+                  'direct_sound_mechanical_enable','direct_sound_mechanical_disable'}
+DIRECT_ACTIONS |= {'direct_sound_mechanical_enable','direct_sound_mechanical_disable'}
