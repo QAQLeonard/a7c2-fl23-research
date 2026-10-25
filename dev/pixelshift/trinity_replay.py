@@ -25,7 +25,7 @@ def profile(directory):
     return image, info, entry, cp_entry, cp_parameter
 
 
-def configure(directory, *, mode, interval=0, test=0, capture_id=0x12345678):
+def configure(directory, *, mode, interval=0, test=0, capture_id=0x12345678, _arguments=None):
     from unicorn import Uc, UC_ARCH_ARM64, UC_MODE_ARM, UC_HOOK_CODE
     from unicorn.arm64_const import (UC_ARM64_REG_X0, UC_ARM64_REG_X1,
                                      UC_ARM64_REG_X2, UC_ARM64_REG_SP,
@@ -44,7 +44,9 @@ def configure(directory, *, mode, interval=0, test=0, capture_id=0x12345678):
         cpu.mem_write(page, image.data[at:at + 4096])
     cpu.mem_map(0x10000000, 0x10000)
     args, out = 0x10001000, 0x10002000
-    before = struct.pack('<5I', capture_id, mode, interval, interval, test)
+    before = struct.pack('<5I', capture_id, mode, interval, interval, test) if _arguments is None else bytes(_arguments)
+    if len(before) != 20:
+        raise ValueError('Original TRINITY arguments must be exactly twenty bytes')
     cpu.mem_write(args, before)
     cpu.mem_write(out, b'\xa5' * 4)
     cpu.reg_write(UC_ARM64_REG_X0, args)
@@ -73,6 +75,11 @@ def configure(directory, *, mode, interval=0, test=0, capture_id=0x12345678):
     if bytes(cpu.mem_read(args, len(before))) != before or bytes(cpu.mem_read(out, 4)) != b'\xa5' * 4:
         raise ValueError('Native mode setup changed input/output before send')
     return result
+
+
+def configure_arguments(directory, arguments):
+    """Consume an unchanged original sequence-produced argument record."""
+    return configure(directory, mode=0, _arguments=arguments)
 
 
 def cp_assign(directory, wire):

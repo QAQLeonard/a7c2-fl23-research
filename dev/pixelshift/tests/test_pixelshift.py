@@ -2096,6 +2096,34 @@ class NativeTests(unittest.TestCase):
                           'saved_off_setting_executed', 'camera_io', 'installable'):
                 self.assertFalse(result[field], field)
 
+    def test_original_ap_group_count_arguments_and_companion_override_follow_cached_inputs(self):
+        from ap_group_setup_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 44)
+        intervals = (500, 1000, 2000, 3000, 4000, 5000, 10000, 15000, 30000)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            mode, interval, flag = inputs['mode'], inputs['interval'], inputs['companion']
+            selected = mode in (1, 2) and interval < 9
+            self.assertEqual(result['native_group_selected'], selected)
+            self.assertEqual(result['native_first_ap_ordinal'], 1)
+            self.assertEqual(result['native_ap_group_count'], (4 if mode == 1 else 16) if selected else None)
+            self.assertEqual(result['native_interval_value'], intervals[interval] if selected else None)
+            self.assertEqual(result['companion_overrides_off'], mode == 0 and flag == 1)
+            packet = flag == 1 or mode in (0, 1, 2) and (mode == 0 or interval < 9)
+            self.assertEqual(result['native_cp_enable'], int(flag == 1 or mode != 0) if packet else None)
+            self.assertEqual(result['native_packet_count'], (1 if flag else 4 if mode == 1 else 16 if mode == 2 else 0) if packet else None)
+            self.assertTrue(result['native_argument_bytes_preserved'])
+            self.assertTrue(result['native_object_neighbors_preserved'])
+            self.assertTrue(result['cached_settings_source_identifier_and_stage_handoffs_are_fixtures'])
+            self.assertTrue(result['dispatcher_and_transport_bridge_is_explicit'])
+            for field in ('host_assigned_group_count_or_first_ordinal', 'api_results_replaced',
+                          'admission_mutex_and_full_start_proc_executed', 'cp_total_count_source_producer_executed',
+                          'four_frame_scheduler_executed', 'saved_off_setting_executed',
+                          'exposure_or_centering_executed', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)

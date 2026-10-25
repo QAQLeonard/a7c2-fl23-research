@@ -74,6 +74,10 @@
 
 等待事件工具的 `--deliver-event` 新增 16 组两机对照。原始回调／事件置位代码产生软件标志，实际限时等待及清位 API 消费它，并保留无关标志位。未调用回调时，停在原生等待任务状态变更之前，不补出等待完成结果。各序号是独立帧输入，不是同一请求自动调度四帧；仍略过两个不影响结果的诊断调用。定时器登记／到期／取消、真实位置应答和曝光尚未执行。OFF 路径的静态追踪还发现原始 AP 模式设置器会更新 `0x5DB`、清零 `0xF76`，并进入提交／通知流程；这还不等于已验证保存 OFF 事务或重启恢复。
 
+[原生 AP 组参数生成](../../dev/pixelshift/ap_group_setup_replay.py)新增 44 组两机对照。原始缓存设置快照片段、AP 首序号初始化及准入后的选择代码，生成 4／16 张组数及九种间隔值之一。原始设置 TRINITY 序列的快照／运行前段生成 20 字节参数，再经明确标注的分派输入桥接，将原字节交给原始编码器和 CP 分派器。无效模式／间隔停在诊断之前，不伪造有效张数。准入、互斥锁、完整 AP 启动流程、CP 总张数来源和四帧调度仍未执行。
+
+同一路径确认一项恢复区别：缓存 `0x5DB=0`、伴随字段 `0xF76=1` 时，仍编码为启用值 1／单张值 1，CP 处理后也保存启用值 1；两者均为 0 才编码为关闭。原始 OFF 设置器静态代码会同时清零这两个字段。因此，仅备份值／主模式为 0 不能证明运行状态已关闭。这是两机原始代码在测试输入上的结果，不证明它就是之前实机故障的原因，当时没有记录该伴随字段的运行值。保存 OFF、观察器处理完成、归位及重启恢复仍需分别验证。
+
 10 月 20 日，两次经机主授权的三字节 RAM 测试均出现菜单，但功能仍被禁止。第二次已装 SD 卡并使用静态 P/M，因此不能把失败归因于缺卡。两次修改都已还原并独立核对，没有拍摄。
 
 继续反汇编后，找到 C2 另一张参数能力表中的未定义项；原生初始化会为此加入四个禁止计数，与实机唯读结果吻合。已解析十条正常排他规则，在当时静态 M、空闲状态下均未触发。第三次私人测试补入 C2 原生参数定义，并只撤掉这四个“参数未定义”禁止计数，同时开启菜单：六处 AP 数据窗口，共 47 字节。独立读回通过，但机主在关机之前进入了空的子菜单。之后唯读检查确认六处均回到原值，无须再写入还原；没有拍摄。
@@ -213,7 +217,7 @@ python dev/pixelshift/displacement.py 1.ARW 2.ARW 3.ARW 4.ARW --output private/d
 python -m unittest discover -s dev/pixelshift/tests -v
 ```
 
-macOS 改用 `python3`，尚未在 Mac 执行验证。未提供私人固件时，八十二项原始固件测试跳过。要运行这些测试，将环境变量 `A7C2_PIXELSHIFT_FIRMWARE_ROOT` 指向含 `a7c2-2.01/components` 和 `a7cr-support/components` 的私人目录。默认参数／替代分支／向量／完整控制／封包／反馈／CAIF 重放还需要将各机型官方的 `CX*00_ALLLANG.bin`、`CX*01_ALLLANG.bin` 放在对应 components 目录；Darwin 测试需要将私人提取的 `0640_darwin/darwin_core.bin` 放在那里。九十四项测试方法涵盖 2869 组配对原生指令案例、26 组参数资格案例、合成元数据异常及位移量测。已有一张真实 C2 普通 RAW 被正确识别为没有像素位移分组。位移量测使用 `rawpy` 保留原 Bayer 采样，四张源 RAW 必须先通过元数据检查。
+macOS 改用 `python3`，尚未在 Mac 执行验证。未提供私人固件时，八十三项原始固件测试跳过。要运行这些测试，将环境变量 `A7C2_PIXELSHIFT_FIRMWARE_ROOT` 指向含 `a7c2-2.01/components` 和 `a7cr-support/components` 的私人目录。默认参数／替代分支／向量／完整控制／封包／反馈／CAIF 重放还需要将各机型官方的 `CX*00_ALLLANG.bin`、`CX*01_ALLLANG.bin` 放在对应 components 目录；Darwin 测试需要将私人提取的 `0640_darwin/darwin_core.bin` 放在那里。九十五项测试方法涵盖 2913 组配对原生指令案例、26 组参数资格案例、合成元数据异常及位移量测。已有一张真实 C2 普通 RAW 被正确识别为没有像素位移分组。位移量测使用 `rawpy` 保留原 Bayer 采样，四张源 RAW 必须先通过元数据检查。
 
 可选控制器实验需要 Ghidra 11.4.2 和 [H8/300H 语言模块](https://github.com/carllom/sleigh-h8/tree/6eb7c6f8f523ab23ff1aa8076ed5f9d0ac1576cc)。将其 `data`、`Module.manifest` 安装为本地 Ghidra 处理器模块，把[已测试的指令扩展](../../dev/pixelshift/bonobo_h8_extensions.sinc)复制到语言目录，在 `h8300h.slaspec` 末尾加入 `@include "bonobo_h8_extensions.sinc"`，并用 Ghidra 的 SLEIGH 编译器编译。这是有限范围的研究解码器，不是完整 H8/SX 支持。
 
@@ -260,6 +264,7 @@ python dev/pixelshift/cp_frame_header_replay.py --c2 private/c2/components --ref
 python dev/pixelshift/cp_population_init_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/population-init.private.json
 python dev/pixelshift/cp_frame_header_replay.py --c2 private/c2/components --reference private/a7cr/components --initialize-population --output private/initialized-frame-header.private.json
 python dev/pixelshift/cp_steady_event_replay.py --c2 private/c2/components --reference private/a7cr/components --deliver-event --output private/steady-event-delivery.private.json
+python dev/pixelshift/ap_group_setup_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/ap-group-setup.private.json
 python dev/pixelshift/cp_startup_config_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/startup-config.private.json
 python dev/pixelshift/cp_startup_binding_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/startup-binding.private.json
 python dev/pixelshift/cp_startup_binding_replay.py --c2 private/c2/components --reference private/a7cr/components --continue-dma --output private/startup-dma.private.json
