@@ -144,7 +144,7 @@ int a7_pair_take(struct a7_pair_session *s, uint64_t epoch, const char *staging,
                  struct a7_pair_job *job)
 {
     if (!epoch_matches(s, epoch)) return A7_PAIR_IGNORED;
-    if (!job || !path_length(staging) || staging[0] != '/') return A7_PAIR_INVALID;
+    if (!job || !path_length(staging)) return A7_PAIR_INVALID;
     if (s->phase != A7_PAIR_READY) return A7_PAIR_BUSY;
     if (source_path(s, staging)) return A7_PAIR_INVALID;
     clear(job, sizeof(*job)); job->epoch = s->epoch; job->media_id = s->media_id;

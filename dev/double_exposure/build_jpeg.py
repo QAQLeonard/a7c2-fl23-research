@@ -91,14 +91,17 @@ def build(source, output, *, target='camera', zig=None, cmake=None, ninja=None, 
     native = ROOT / 'src/double_exposure/native'
     sources = [native / 'average.c', native / 'jpeg_stream.c']
     sources.append(native / ('mpr_stream.c' if component == 'stream' else 'jpeg_average.c'))
+    if component == 'stream':
+        sources.extend([native / 'ap_runtime.c', native / 'output_reservation.c'])
     flags = (['-shared', '-fPIC', '-Wl,--no-undefined'] if component == 'stream' else ['-static'])
     if component == 'stream' and 'windows' not in triple:
         # Keep the statically linked codec local to this module. Existing AP
         # libraries may export the same libjpeg function names.
         exports = output / 'core.exports.map'
-        exports.write_text('{ global: a7_jpeg_mean; a7_mpr_*; local: *; };\n', encoding='ascii')
+        exports.write_text('{ global: a7_jpeg_mean; a7_mpr_*; a7_ap_*; a7_output_*; local: *; };\n', encoding='ascii')
         flags.extend(['-Wl,-Bsymbolic', '-Xlinker', '--version-script',
                       '-Xlinker', exports.as_posix()])
+        flags.append('-ldl')
     if component == 'stream' and target == 'camera':
         flags.append('-Wl,-soname,a7c2-average-core.so')
     run([zig, 'cc', '-target', triple, *flags, '-O2', '-g0', '-s', '-std=c11',
@@ -119,11 +122,14 @@ def build(source, output, *, target='camera', zig=None, cmake=None, ninja=None, 
                            if s['st_info']['type'] == 'STT_FUNC' and s['st_shndx'] != 'SHN_UNDEF'}
                 required = {'a7_jpeg_mean', 'a7_mpr_open_reader', 'a7_mpr_attach_writer',
                             'a7_mpr_get_input', 'a7_mpr_get_output', 'a7_mpr_flush_writer',
-                            'a7_mpr_close'}
+                            'a7_mpr_close', 'a7_ap_runtime_abi', 'a7_ap_start', 'a7_ap_query',
+                            'a7_ap_acquire', 'a7_ap_release', 'a7_ap_retire'}
+                required |= {'a7_output_plan', 'a7_output_prepare_mkdir', 'a7_output_create_dir',
+                             'a7_output_prepare_open', 'a7_output_open_temp', 'a7_output_note_closed'}
                 if not required.issubset(symbols) or any(not s.startswith('a7_') for s in symbols):
                     raise ValueError('Invalid stream-library exports: ' + str(sorted(symbols)))
                 needed = [t.needed for t in elf.get_section_by_name('.dynamic').iter_tags('DT_NEEDED')]
-                if any(name not in ('libc.so.6', 'libm.so.6', 'libpthread.so.0',
+                if any(name not in ('libc.so.6', 'libm.so.6', 'libpthread.so.0', 'libdl.so.2',
                                      'ld-linux-aarch64.so.1') for name in needed):
                     raise ValueError('Unexpected stream-library dependency: ' + str(needed))
                 versions = elf.get_section_by_name('.gnu.version_r')
@@ -140,6 +146,18 @@ def build(source, output, *, target='camera', zig=None, cmake=None, ninja=None, 
              ROOT / 'dev/double_exposure/stream_harness.c', executable,
              '-Wl,-rpath,$ORIGIN', '-Wl,--export-dynamic',
              '-o', output / 'a7c2-stream-harness'], log)
+        fixtures = output / 'test-sdk'
+        fixtures.mkdir(exist_ok=True)
+        for name in ('libmpr.so', 'libInfraFsys.so'):
+            define = ['-DA7_FIXTURE_FSYS'] if name == 'libInfraFsys.so' else []
+            run([zig, 'cc', '-target', triple, '-shared', '-fPIC', '-O2', '-g0', '-s',
+                 '-Wall', '-Wextra', '-Werror', *define,
+                 ROOT / 'dev/double_exposure/sdk_fixture.c', '-Wl,-soname,' + name,
+                 '-o', fixtures / name], log)
+        run([zig, 'cc', '-target', triple, '-O2', '-g0', '-s', '-std=c11',
+             '-Wall', '-Wextra', '-Werror', '-I', native,
+             ROOT / 'dev/double_exposure/binding_harness.c', '-ldl',
+             '-o', output / 'a7c2-binding-harness'], log)
     for original, name in [('README.ijg', 'libjpeg-turbo-README.ijg.txt'),
                            ('LICENSE.md', 'libjpeg-turbo-LICENSE.txt')]:
         shutil.copyfile(source / original, output / name)

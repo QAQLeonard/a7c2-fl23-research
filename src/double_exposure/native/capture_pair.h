@@ -47,8 +47,9 @@ int a7_pair_decode_capture_result(const uint8_t *, size_t, uint32_t media,
  * Epochs increase at each explicit arm. The firmware adapter must correlate
  * capture-start with a resolved, completed JPEG and supply media generations;
  * a file appearing or a successful submit is not a completed capture/save.
- * Source/catalog paths may be native Fsys drive paths or POSIX paths. The
- * job's staging destination is POSIX. Fsys sources require an I/O adapter;
+ * Source/catalog/staging paths may be native Fsys drive paths or POSIX paths.
+ * The executing adapter must establish output ownership; the proposed path
+ * alone is not a reservation. Fsys paths require the MPR stream adapter;
  * the standalone Linux JPEG executable cannot directly open them.
  * Call registered() only after the media writer has finished, and verified()
  * only after independently querying the resulting catalog entry. Output jobs

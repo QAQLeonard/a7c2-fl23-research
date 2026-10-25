@@ -23,7 +23,7 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), shared Sony-PMCA-RE under `src/fl23/vendor` |
 | `src/shutter_sound/` | Sound conversion/volume, audition, persistent install; `native/` holds the AArch64 camera workers |
 | `src/vertical/` | Vertical Display workers and portrait resources (**being rewritten**) |
-| `src/double_exposure/native/` | Experimental mean kernel, capture coordinator, stream JPEG core and MPR I/O adapters; live binding, capture hooks and media registration are not connected |
+| `src/double_exposure/native/` | Experimental mean/stream core, capture coordinator, AP binding/lifetime and output reservation; device bootstrap, capture hooks and catalog publication are not connected |
 | `src/fl23/` | Standalone legacy FL23 installer; its `native/` workers are reused by the engines |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic auto-profile plugin |
 | `calibration/` | Virtual 2.01 response model used by the compiler |
@@ -143,9 +143,10 @@ Its capture-result decoder reads reservation identity only. Set the optional
 `A7C2_CAPTURE_AP` to an original 2.01 `appFw.so` to compare directory/file
 decoding against the native auto-review reader under emulation; that check
 intercepts model/string helpers and does not execute camera hardware.
-The coordinator accepts native Fsys drive paths for sources/catalog entries;
-these cannot be passed directly to the standalone Linux processor's POSIX
-file interface. Staging destinations in its file jobs remain POSIX paths.
+The coordinator accepts native Fsys or POSIX paths for sources, staging and
+catalog entries. The executing adapter must establish output ownership;
+a proposed staging path is not a reservation. Native Fsys paths cannot be
+passed directly to the standalone Linux processor's POSIX file interface.
 
 `jpeg_stream.c` performs the same mean through caller-owned I/O callbacks.
 `mpr_stream.c` adapts the existing AP's synchronous MPR file functions and
@@ -154,7 +155,7 @@ initialized AP process. Read-open uses native flag 1 and retains its native
 path/handle lifetime through close. Writer attachment requires an already-owned
 temporary handle; it never opens/truncates a destination. The core does not
 flush, close, publish or register output. These remain the caller's transaction.
-The adapters are not bound to a live SDK yet.
+The runtime binder is implemented, but has not been invoked against a live SDK.
 
 Build `--component stream` into a separate output directory for a host library
 or the ARM64 shared library targeting glibc 2.25. The camera build checks ELF
@@ -164,6 +165,24 @@ test-only synthetic MPR runner; `A7C2_STREAM_COMMAND` is its JSON runner argv.
 That runner validates the shared-library ABI under QEMU, not actual camera I/O.
 Embedded codec symbols are local to the shared module; the native harness
 exports an incompatible host codec symbol to verify that it is never called.
+
+`ap_runtime.c` binds only already-loaded SDK modules (`RTLD_NOLOAD`), qualifies
+symbol ownership and pins its own module. `BOUND` means exports resolved, not
+camera/SDK readiness. Keep job leases through I/O and handle reconciliation;
+keep callback leases through unregistration and native rundown. Retirement
+refuses active leases and returns a module reference for the caller to close
+outside the core. No SDK init/file I/O or callback installation occurs on bind.
+`--harness` also builds a loader runner and synthetic SDK libraries under
+`test-sdk/`. They are test fixtures, never device assets. Set
+`A7C2_BINDING_COMMAND` to that runner's JSON argv for ARM64 loader tests.
+
+`output_reservation.c` separates pure planning/intents from directory creation
+and temporary-file opening. Persist each intent before its SDK step. It uses
+a newly-created private directory under the selected DCF photo folder;
+write|create flag 6 alone does not establish exclusive ownership. Existing or
+uncertain state is retained, with no automatic retry/delete. Final filename
+allocation, move/publication, media registration and device loading remain
+unfinished; all current SDK tests use local synthetic backends.
 
 **Packaging:**
 1. Prepare the ignored distribution assets: `python dev/desktop/prepare_assets.py`. Use `--preset-archive <zip>` to import the six defaults and the paired library from an exported pack or a Windows build; use `--export-presets <zip>` to create such a pack.

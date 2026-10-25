@@ -8,12 +8,14 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include "mpr_stream.h"
+#include "output_reservation.h"
 
 #define BASE_HANDLE 0x100000000ull
 #define NATIVE_ERROR ((int32_t)0x80000010u)
 static FILE *files[3];
 static const char *paths[2], *mode;
 static unsigned reads, writes, closes, flushes, cancel_checks;
+static unsigned mkdirs, private_directory;
 static unsigned foreign_codec_calls;
 /* A deliberately incompatible pre-existing host codec symbol. The real
  * shared core must bind its own codec and never call this function. */
@@ -28,6 +30,11 @@ static unsigned slot(uint64_t handle)
 }
 static int32_t open_input(char *path, uint32_t flags, uint64_t *handle)
 {
+    if (flags == 6) {
+        if (!private_directory) return NATIVE_ERROR;
+        *handle = BASE_HANDLE + 3;
+        return is("reserved-open-error") ? NATIVE_ERROR : 0;
+    }
     if (flags != 1) return NATIVE_ERROR;
     unsigned index = !strcmp(path, "A:/first.jpg") ? 0 : !strcmp(path, "A:/second.jpg") ? 1 : 2;
     if (index == 2) return NATIVE_ERROR;
@@ -35,6 +42,12 @@ static int32_t open_input(char *path, uint32_t flags, uint64_t *handle)
     files[index] = fopen(paths[index], "rb");
     if (!files[index]) return NATIVE_ERROR;
     *handle = BASE_HANDLE + index + 1; return 0;
+}
+static int32_t mkdir_output(char *path)
+{
+    (void)path; ++mkdirs;
+    if (is("reserved-existing")) return (int32_t)0x80000022u;
+    private_directory = 1; return 0;
 }
 static int32_t read_input(char drive, uint64_t handle, void *buffer, uint32_t bytes)
 {
@@ -94,31 +107,45 @@ int main(int argc, char **argv)
     if (!files[2]) { close(fd); unlink(argv[3]); return 2; }
     struct a7_mpr_api api = {open_input, read_input, write_output, close_file, stat_input, flush_output};
     struct a7_mpr_stream streams[3] = {0};
+    struct a7_output_reservation reservation = {0};
+    struct a7_mpr_stream *writer = &streams[2];
     struct a7_jpeg_input a = {0}, b = {0};
     struct a7_jpeg_output output = {0};
     struct a7_jpeg_control control = {NULL, cancel};
     struct a7_jpeg_result result = {0};
     int status = a7_mpr_open_reader(&streams[0], &api, "A:/first.jpg");
     if (!status) status = a7_mpr_open_reader(&streams[1], &api, "A:/second.jpg");
-    if (!status) status = a7_mpr_attach_writer(&streams[2], &api, "A:/owned.tmp", BASE_HANDLE + 3);
+    int reserved = !strncmp(mode, "reserved", 8);
+    if (!status && reserved) {
+        writer = &reservation.writer;
+        status = a7_output_plan(&reservation, 10, "A:/DCIM/100MSDCF", 123);
+        if (!status) status = a7_output_prepare_mkdir(&reservation, 10);
+        if (!status) status = a7_output_create_dir(&reservation, 10, mkdir_output);
+        if (!status) status = a7_output_prepare_open(&reservation, 10);
+        if (!status) status = a7_output_open_temp(&reservation, 10, &api);
+    } else if (!status) status = a7_mpr_attach_writer(writer, &api, "A:/owned.tmp", BASE_HANDLE + 3);
     if (!status) status = a7_mpr_get_input(&streams[0], &a);
     if (!status) status = a7_mpr_get_input(&streams[1], &b);
-    if (!status) status = a7_mpr_get_output(&streams[2], &output);
+    if (!status) status = a7_mpr_get_output(writer, &output);
     if (!status) status = a7_jpeg_mean(&a, &b, &output, &control, &result);
-    if (!status) status = a7_mpr_flush_writer(&streams[2]);
+    if (!status) status = a7_mpr_flush_writer(writer);
     for (unsigned i = 0; i < 3; ++i) {
-        if (streams[i].owned && !streams[i].close_attempted) {
-            int closed = a7_mpr_close(&streams[i]);
+        struct a7_mpr_stream *stream = i == 2 ? writer : &streams[i];
+        if (stream->owned && !stream->close_attempted) {
+            int closed = a7_mpr_close(stream);
             if (!status && closed) status = closed;
         }
     }
+    if (!status && reserved) status = a7_output_note_closed(&reservation, 10, result.output_bytes);
     /* Only test-owned host FILEs are cleaned here. Never a live SDK retry. */
     for (unsigned i = 0; i < 3; ++i) if (files[i]) fclose(files[i]);
     if (status) unlink(argv[3]);
     printf("{\"backend\":\"synthetic-mpr\",\"status\":%d,\"codec\":%d,"
            "\"io_error\":%lld,\"reads\":%u,\"writes\":%u,\"closes\":%u,"
-           "\"flushes\":%u,\"bytes\":%llu,\"input0_phase\":%u,\"foreign_codec_calls\":%u}\n",
+           "\"flushes\":%u,\"bytes\":%llu,\"input0_phase\":%u,\"foreign_codec_calls\":%u,"
+           "\"mkdirs\":%u,\"reservation_phase\":%u,\"reservation_error\":%d,\"pending_handle\":%llu}\n",
            status, result.status, (long long)result.io_error, reads, writes, closes,
-           flushes, (unsigned long long)result.output_bytes, streams[0].phase, foreign_codec_calls);
+           flushes, (unsigned long long)result.output_bytes, streams[0].phase, foreign_codec_calls,
+           mkdirs, reservation.phase, reservation.native_error, (unsigned long long)reservation.pending_handle);
     return status ? 1 : 0;
 }

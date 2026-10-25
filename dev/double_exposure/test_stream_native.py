@@ -80,6 +80,23 @@ class NativeStream(unittest.TestCase):
         self.assertEqual((report['status'], report['input0_phase'], report['closes']),
                          (NATIVE_ERROR, 5, 3))
 
+    def test_native_reserved_directory_can_encode_and_close_owned_temp(self):
+        report, output = self.invoke('reserved')
+        self.assertEqual((report['status'], report['mkdirs'], report['reservation_phase']), (0, 1, 8))
+        with self.Image.open(output) as image: image.load()
+
+    def test_native_existing_reservation_directory_never_opens_output(self):
+        report, _ = self.invoke('reserved-existing')
+        self.assertEqual((report['status'], report['mkdirs'], report['writes']), (-12003, 1, 0))
+        self.assertEqual((report['reservation_phase'], report['pending_handle']), (9, 0))
+
+    def test_native_partial_reserved_open_preserves_handle_without_retry(self):
+        report, _ = self.invoke('reserved-open-error')
+        self.assertEqual(report['status'], -12003)
+        self.assertEqual(report['reservation_error'], NATIVE_ERROR)
+        self.assertEqual((report['reservation_phase'], report['pending_handle'], report['closes']),
+                         (9, 0x100000003, 2))
+
 
 if __name__ == '__main__':
     unittest.main()

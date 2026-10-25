@@ -183,16 +183,19 @@ class CapturePair(unittest.TestCase):
                 self.assertEqual(self.call('take', self.state, 10, self.text(path), self.job), INVALID)
                 self.assertEqual(self.snapshot(), before)
 
-    def test_native_drive_sources_are_retained_and_staging_stays_posix(self):
+    def test_native_drive_sources_and_staging_are_retained_without_source_alias(self):
         self.arm()
         for capture in (101, 102): self.call('begin', self.state, 10, capture)
         self.assertEqual(self.saved(101, 10, 'A:/DCIM/100MSDCF/DSC00001.JPG'), OK)
         self.assertEqual(self.saved(102, 20, 'A:/DCIM/100MSDCF/DSC00002.JPG'), OK)
-        self.assertEqual(self.call('take', self.state, 10, self.text('A:/mean.jpg'), self.job), INVALID)
-        self.assertEqual(self.call('take', self.state, 10, self.text('/tmp/mean.jpg'), self.job), OK)
+        self.assertEqual(self.call('take', self.state, 10,
+                                   self.text('a:/dcim/100msdcf/dsc00001.jpg'), self.job), INVALID)
+        self.assertEqual(self.call('take', self.state, 10,
+                                   self.text('A:/DCIM/100MSDCF/A700007B/MEAN.TMP'), self.job), OK)
         job = Job.from_buffer_copy(bytes(self.cpu.mem_read(self.job, C.sizeof(Job))))
         self.assertEqual(job.shots[0].path, b'A:/DCIM/100MSDCF/DSC00001.JPG')
         self.assertEqual(job.shots[1].path, b'A:/DCIM/100MSDCF/DSC00002.JPG')
+        self.assertEqual(job.staging, b'A:/DCIM/100MSDCF/A700007B/MEAN.TMP')
 
     def test_native_drive_case_alias_is_one_source(self):
         self.arm()
