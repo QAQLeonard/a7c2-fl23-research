@@ -59,7 +59,7 @@ repair. This is existing-file evidence, not live CP pool or exposure evidence.
 | Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | Native state feedback | Original feedback stores, masked completion, deferred task/notification dispatch and CAP handle checks;60 input combinations plus negative controls | Hardware feedback provenance, actual exposure/RAW ownership and a generation-bound terminal fence; two commands share event308 |
 | RAW resource path | Staged slots → RAW client → MEMMGR_CP dispatch; native reply-ID, descriptor transfer, handle generation and reference checks | Actual backing pixel allocation and matched terminal release; native handle generation wraps, local invalidation precedes backing free |
-| Existing free-block allocator | Original configuration-row → node creation → allocation → pinned descriptor, cached-block return and worker/client replies, on synthetic RAM | Current configured address/extent ownership, real pixels, queue/accounting/notification completion and growing/parent-backed paths |
+| Existing free-block allocator | Original configuration-row → node creation → allocation → pinned descriptor; original policy-reader address conversion, page checks and sequential copies on synthetic RAM | Current selected configuration stream and its full extent/ownership, real pixels, terminal completion and growing/parent-backed paths; DmmCfg extents are not proven to be this stream |
 | Metadata capacity and shared bookkeeping | Original1023-record initialization,2048 pops/2048 returns and shared bookkeeping layout on synthetic RAM | These counts and bookkeeping addresses do not establish RAW buffer capacity or ownership |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
 | Manual in-camera switch | Required independent Off/On control, initially Off | Implementation and safe enable/disable binding |
@@ -215,6 +215,7 @@ python dev/precapture/audit_mtg_select.py --cp PRIVATE_STOCK_CP --donor PRIVATE_
 python dev/precapture/audit_source_spans.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_ap_capture_order.py --ap PRIVATE_STOCK_AP --donor-ap PRIVATE_DONOR_AP --current-ap PRIVATE_CAPTURED_AP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
+python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --factory PRIVATE_ORIGINAL_FACTORY --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/audit_metadata_capacity.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER

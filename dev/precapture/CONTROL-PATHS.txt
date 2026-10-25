@@ -4160,3 +4160,24 @@ parent-backed matrix is retained. One offline entry supplied the pointer-cell
 value instead of the original global pointer-cell address in R5;unmapped-read
 failure identified it,the independent post-config entry now uses1a8c0d0. No
 native success was stubbed,no unbounded hardware call or camera operation ran.
+
+Phase169: original backing-policy reader,offline only.
+Reviewed main7827856;the feature branch retains main as an ancestor. The new
+audit_backing_config.py reuses support.capture_native and support.backup rather
+than adding another emulator or BK4 parser. Existing capture-transition report
+is identical to the phase168 final report,including its backing matrix.
+Original496044 selects fa0182 via ae133a;the audit stops before that getter and
+its native locks. Separate post-query inputs execute the four-row64-bit address
+classifier,original4f6b54/509ddc/5130c8 page-attribute check and51660c copy.
+Twenty-four boundary cases,four page cases,two sequential-copy cases and one
+explicit synthetic extent-crossing case pass. Every reached original instruction
+is covered by the selected retained-FILE spans;no loaded-RAM identity is claimed.
+The two historical factory-segment scalars take different branches:one stops
+before the original error logger,the other reaches a translated32-bit address.
+Neither segment is identified as the current body's selected runtime property.
+DmmCfg.bin extent/unit tables are a separate source;their equivalence to this
+fa0182 policy stream is unproven. Start-address classification and page access
+do not bound the whole copy or qualify an image-buffer lease. Next native work
+is to bind the selected current policy stream and its extent to original node
+construction and matched terminal release. No camera operation,CP send,patch,
+exposure or installable pre-capture artifact was produced in this phase.

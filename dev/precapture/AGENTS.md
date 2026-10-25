@@ -72,6 +72,16 @@ Explicit synthetic high-word4/5/ffff and offsets pass through as supplied;
 source acceptance is not address/extent validation. No runtime configuration,
 pixel read or native lifetime is supplied. Preserve the existing85-case matrix.
 
+Phase169 executes the original fa0182 post-query address classifier,page-attribute
+helper and stream copies on synthetic RAM. The real configuration query/lock and
+error logger remain unexecuted boundaries. Historical factory segments do not
+identify the currently selected property;their values reach different branches.
+DmmCfg.bin and the RAW policy stream are not proven equivalent. The original
+reader checks a starting address,not the entire requested extent;an explicit
+synthetic crossing case copies beyond the classification range. This evidence
+applies to the synthetic fixture. Neither a successful page check
+nor copied policy bytes establish RAW pixels,ownership or a terminal lease.
+
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
 inject fake AP pending records to defeat the earlier empty-deque assertion.
