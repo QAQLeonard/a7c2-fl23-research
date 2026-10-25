@@ -36,11 +36,11 @@ Licenses:
 - The Lightroom plugin uses [ExifTool](https://exiftool.org/), shipped with its original license.
 - The interface uses Qt for Python (PySide6, LGPL v3). Other Python dependencies are listed in `desktop-requirements.txt` and keep their own licenses.
 
-The experimental standalone double-exposure processor uses unmodified
+The experimental native double-exposure components use unmodified
 [libjpeg-turbo 3.1.2](https://github.com/libjpeg-turbo/libjpeg-turbo/tree/3.1.2).
 This software is based in part on the work of the Independent JPEG Group.
 Its build output includes the original IJG and libjpeg-turbo license notices;
-these components retain their own licenses. This helper is not currently part
+these components retain their own licenses. These helpers are not currently part
 of the desktop package.
 
 ## Firmware and data

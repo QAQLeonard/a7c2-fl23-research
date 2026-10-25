@@ -23,7 +23,7 @@
 | `src/camera_runtime/` | USB 服务会话（`transport.py`）、FL23 规划与资源、macOS 主机辅助（`macos_host.py`）、内置 Sony-PMCA-RE |
 | `src/shutter_sound/` | 声音转换／音量、试听、持久安装；`native/` 是 AArch64 相机 worker |
 | `src/vertical/` | 竖屏显示 worker 与竖屏资源（**正在重写**） |
-| `src/double_exposure/native/` | 实验性的两图平均内核与相机 Linux JPEG 处理器；尚未接通拍摄钩子与媒体库登记 |
+| `src/double_exposure/native/` | 实验性的平均内核、拍摄配对器、串流 JPEG 核心与 MPR 读写适配；尚未接通真实绑定、拍摄钩子与媒体库登记 |
 | `src/fl23/` | 旧版独立 FL23 安装器；其 `native/` worker 被各引擎复用 |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic 自动识别插件 |
 | `calibration/` | 编译器使用的 2.01 虚拟响应模型 |
@@ -127,7 +127,13 @@ python desktop.py
 
 `capture_pair.c` 是独立的无外部依赖配对器，实际适配层需要提供已关联的拍摄开始／完成事件、解析后的 JPEG 路径和介质代次，并持久保存会话状态；它本身不执行 I/O 或固件调用。拍摄结果解析只读取预留身份。可选将 `A7C2_CAPTURE_AP` 指向原始 2.01 `appFw.so`，在模拟器中与原生自动回放读数函数对照目录／文件编号；此检查拦截模型／字符串辅助调用，不执行相机硬件操作。
 
-配对器允许源图／媒体库条目使用原生 Fsys 盘符路径；这些路径需要读写适配层，不能直接交给 Linux 处理器的 POSIX 文件接口。暂存输出仍使用 POSIX 路径。
+配对器允许源图／媒体库条目使用原生 Fsys 盘符路径，这些路径不能直接交给独立 Linux 文件处理器的 POSIX 接口；其文件任务中的暂存输出仍使用 POSIX 路径。
+
+`jpeg_stream.c` 通过调用者持有的读写回调执行相同的平均处理。`mpr_stream.c` 适配已初始化 AP 进程中的同步 MPR 文件函数和 Fsys 刷新函数，由调用者提供函数指针。只读打开使用原生标志 1，路径／句柄存活期持续到关闭。写入端只能附接到调用者已持有的暂存句柄，不自行创建或截断目标。核心不刷新、关闭文件、发布或登记输出，这些仍属于调用者的事务。适配层目前尚未绑定真实 SDK。
+
+使用独立输出目录构建 `--component stream`，可得到本机库或面向 glibc 2.25 的 ARM64 共享库；相机构建会检查 ELF 依赖及所需 libc 符号版本。`A7C2_STREAM_LIBRARY` 指向本机 DLL／SO，供读写回调及适配测试使用。相机目标加 `--harness` 可额外构建仅供测试的模拟 MPR 程序，`A7C2_STREAM_COMMAND` 是其运行器命令的 JSON 参数数组。该程序在 QEMU 中验证共享库 ABI，不代表真实相机读写。
+
+共享模块内的编解码符号保持局部绑定；原生测试程序故意导出不兼容的宿主编解码符号，确认核心不会调用它。
 
 **打包：**
 1. 准备被 Git 忽略的发行资源：`python dev/desktop/prepare_assets.py`。用 `--preset-archive <zip>` 从导出的资源包或 Windows 安装包中导入默认六款和配对库；用 `--export-presets <zip>` 导出资源包。

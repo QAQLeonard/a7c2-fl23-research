@@ -36,7 +36,7 @@
 - Lightroom 插件使用 [ExifTool](https://exiftool.org/)，随附其原始许可。
 - 界面使用 Qt for Python（PySide6，LGPL v3）。其他 Python 依赖见 `desktop-requirements.txt`，各自保留原始许可。
 
-实验性的独立双重曝光处理器使用未修改的 [libjpeg-turbo 3.1.2](https://github.com/libjpeg-turbo/libjpeg-turbo/tree/3.1.2)。This software is based in part on the work of the Independent JPEG Group. 构建输出随附 IJG 与 libjpeg-turbo 原始许可声明，这些组件保留各自的许可。该处理器目前尚未包含在桌面安装包中。
+实验性的原生双重曝光组件使用未修改的 [libjpeg-turbo 3.1.2](https://github.com/libjpeg-turbo/libjpeg-turbo/tree/3.1.2)。This software is based in part on the work of the Independent JPEG Group. 构建输出随附 IJG 与 libjpeg-turbo 原始许可声明，这些组件保留各自的许可。目前尚未包含在桌面安装包中。
 
 ## 固件与数据
 

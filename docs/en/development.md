@@ -23,7 +23,7 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), shared Sony-PMCA-RE under `src/fl23/vendor` |
 | `src/shutter_sound/` | Sound conversion/volume, audition, persistent install; `native/` holds the AArch64 camera workers |
 | `src/vertical/` | Vertical Display workers and portrait resources (**being rewritten**) |
-| `src/double_exposure/native/` | Experimental two-image mean kernel and standalone camera-Linux JPEG processor; capture hooks and media registration are not connected |
+| `src/double_exposure/native/` | Experimental mean kernel, capture coordinator, stream JPEG core and MPR I/O adapters; live binding, capture hooks and media registration are not connected |
 | `src/fl23/` | Standalone legacy FL23 installer; its `native/` workers are reused by the engines |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic auto-profile plugin |
 | `calibration/` | Virtual 2.01 response model used by the compiler |
@@ -144,8 +144,26 @@ Its capture-result decoder reads reservation identity only. Set the optional
 decoding against the native auto-review reader under emulation; that check
 intercepts model/string helpers and does not execute camera hardware.
 The coordinator accepts native Fsys drive paths for sources/catalog entries;
-these require an I/O adapter and cannot be passed directly to the Linux
-processor's POSIX file interface. Staging destinations remain POSIX paths.
+these cannot be passed directly to the standalone Linux processor's POSIX
+file interface. Staging destinations in its file jobs remain POSIX paths.
+
+`jpeg_stream.c` performs the same mean through caller-owned I/O callbacks.
+`mpr_stream.c` adapts the existing AP's synchronous MPR file functions and
+Fsys flush function; the caller supplies function pointers and stays in the
+initialized AP process. Read-open uses native flag 1 and retains its native
+path/handle lifetime through close. Writer attachment requires an already-owned
+temporary handle; it never opens/truncates a destination. The core does not
+flush, close, publish or register output. These remain the caller's transaction.
+The adapters are not bound to a live SDK yet.
+
+Build `--component stream` into a separate output directory for a host library
+or the ARM64 shared library targeting glibc 2.25. The camera build checks ELF
+dependencies and required libc symbol versions. Set `A7C2_STREAM_LIBRARY` to a
+host DLL/SO for callback/adapter tests. Camera `--harness` additionally builds a
+test-only synthetic MPR runner; `A7C2_STREAM_COMMAND` is its JSON runner argv.
+That runner validates the shared-library ABI under QEMU, not actual camera I/O.
+Embedded codec symbols are local to the shared module; the native harness
+exports an incompatible host codec symbol to verify that it is never called.
 
 **Packaging:**
 1. Prepare the ignored distribution assets: `python dev/desktop/prepare_assets.py`. Use `--preset-archive <zip>` to import the six defaults and the paired library from an exported pack or a Windows build; use `--export-presets <zip>` to create such a pack.
