@@ -2124,6 +2124,28 @@ class NativeTests(unittest.TestCase):
                           'exposure_or_centering_executed', 'camera_io', 'installable'):
                 self.assertFalse(result[field], field)
 
+    def test_original_yc_context_constructs_objects_and_retains_heap_failure(self):
+        from cp_yc_context_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 4)
+        for case in report['cases']:
+            result = case['target']
+            self.assertEqual(result, case['reference'])
+            self.assertEqual(result['native_bank_index'], case['input']['bank'])
+            self.assertEqual(result['native_bank_stride'], 0x818)
+            self.assertEqual(result['native_bank_member_offset'], 0x750)
+            self.assertEqual(result['native_malloc_results'], [0] * 4)
+            self.assertEqual(result['native_destructor_registration_results'], [-1] * 4)
+            self.assertTrue(result['native_reader_binding_and_backend_virtuals_executed'])
+            self.assertTrue(result['native_published_bank_matches_original_getter'])
+            self.assertTrue(result['native_context_and_caller_state_preserved'])
+            self.assertTrue(result['heap_unavailable_fixture'])
+            for field in ('destructor_registration_completed', 'host_assigned_consumed_object_pointers',
+                          'api_results_replaced', 'full_startup_or_frame_population_executed',
+                          'four_frame_scheduler_executed', 'positioning_or_exposure_executed',
+                          'saved_off_setting_executed', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)
