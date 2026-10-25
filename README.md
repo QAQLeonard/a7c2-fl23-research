@@ -22,7 +22,7 @@
 >
 > **Only operate a device you lawfully own or for which the owner has given explicit permission. Back up important data. Do not proceed if you cannot accept device damage and repair costs.**
 >
-> **The use restriction above states the author's requirements. See [LICENSE](LICENSE) for the code license and [Sources and licenses](docs/en/notices.md) for third-party rights. This statement does not exclude liability that cannot lawfully be excluded.**
+> **Original project code in this distribution uses MIT with Commons Clause 1.0, restricting paid flashing, resale and paid unlocking of the tool. See [LICENSE](LICENSE) for its scope and [Sources and licenses](docs/en/notices.md) for third-party rights. This statement does not exclude liability that cannot lawfully be excluded.**
 >
 > **[Read the full risk notice and use statement](docs/en/notices.md#risk-notice-and-use-statement)**
 
@@ -404,7 +404,7 @@ If your camera used an older version, do [Step 2](#step-2-installed-an-earlier-v
 
 ## Credits and licenses
 
-Code is licensed under [MIT](LICENSE). DCPs, reference looks and bundled third-party components keep their own licenses and attribution; see [notices](docs/en/notices.md). Fujifilm DCP references are credited to **门萨特里顿** and Ricoh references to **爸总林先森** on Xiaohongshu.
+Original project code in this distribution uses [MIT with Commons Clause 1.0](LICENSE), a source-available license restricting paid flashing, resale and paid unlocking of the tool. It is not plain MIT or an OSI-approved open-source license. Earlier versions and third-party material retain their original terms; see the [legacy MIT text](docs/licenses/project-legacy-MIT.txt). DCPs, reference looks and bundled third-party components keep their own licenses and attribution; see [notices](docs/en/notices.md). Fujifilm DCP references are credited to **门萨特里顿** and Ricoh references to **爸总林先森** on Xiaohongshu.
 
 This is independent research, not affiliated with Sony, Fujifilm, Ricoh or Adobe. Look names imply neither endorsement nor exact color equivalence, and this tool is not a Sony-signed update.
 

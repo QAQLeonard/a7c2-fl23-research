@@ -2,7 +2,7 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/notices.md)
 
-Newly authored code is [MIT licensed](../../LICENSE). This is independent research, not affiliated with Sony, Fujifilm, Ricoh or Adobe; look names imply neither endorsement nor exact color equivalence.
+Original project code owned or licensable by QAQLeonard in this distribution uses [MIT with Commons Clause 1.0](../../LICENSE), a source-available license restricting paid flashing, resale and paid unlocking of the tool. It is not plain MIT or an OSI-approved open-source license. This is independent research, not affiliated with Sony, Fujifilm, Ricoh or Adobe; look names imply neither endorsement nor exact color equivalence.
 
 ## DCPs and paired looks
 
@@ -15,10 +15,10 @@ Newly authored code is [MIT licensed](../../LICENSE). This is independent resear
 - These DCPs are **RAW-development profiles for the Sony ILCE-7CM2**, not firmware. To use one manually in Lightroom on Windows, copy it into `%APPDATA%\Adobe\CameraRaw\CameraProfiles` and restart Lightroom/Camera Raw.
 
 Licenses:
-- **Fuji-style:** used with the author's permission and licensed under [MIT](../../LICENSE).
-- **Ricoh-style:** used with the author's permission and licensed under [MIT](../../LICENSE).
-- **FL2/FL3 DCPs:** the two Lightroom profiles matching the in-camera FL2 and FL3, used with the author's permission and licensed under [MIT](../../LICENSE); included with the 3.0 Release.
-- Every DCP and the look data derived from it is used with the authors' permission and licensed under MIT, like the code. Original metadata is recorded in the [manifest](../profiles/manifest.json).
+- **Fuji-style:** used with the author's permission and licensed under [MIT](../licenses/project-legacy-MIT.txt).
+- **Ricoh-style:** used with the author's permission and licensed under [MIT](../licenses/project-legacy-MIT.txt).
+- **FL2/FL3 DCPs:** the two Lightroom profiles matching the in-camera FL2 and FL3, used with the author's permission and licensed under [MIT](../licenses/project-legacy-MIT.txt); included with the 3.0 Release.
+- Every DCP and the look data derived from it is used with the authors' permission and retains its original MIT license without the new Commons Clause condition. Original metadata is recorded in the [manifest](../profiles/manifest.json).
 
 ## Code and research sources
 
@@ -66,7 +66,7 @@ The software is provided as is to the extent permitted by law, without promises 
 
 ### License files and liability
 
-The use restriction above states the author's requirements. See [LICENSE](../../LICENSE) for the code license. Third-party components, firmware material and trademarks retain their separate rights and licenses; the code license grants no additional rights to them. This statement does not exclude liability that cannot lawfully be excluded.
+From 2026-10-25, original project code in this distribution uses [MIT with Commons Clause 1.0](../../LICENSE); its definition of Sell governs paid flashing, resale and paid unlocking restrictions. Earlier MIT permissions are not retroactively revoked; see the [legacy MIT text](../licenses/project-legacy-MIT.txt). Other contributors' separately MIT-licensed contributions, third-party components and DCP/profile assets retain their original terms; this change claims no exclusive ownership of them. Third-party components, firmware material and trademarks retain their separate rights and licenses; the code license grants no additional rights to them. This statement does not exclude liability that cannot lawfully be excluded.
 
 ### Firmware sources, copyright and DMCA considerations
 

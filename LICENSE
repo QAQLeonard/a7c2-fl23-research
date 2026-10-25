@@ -1,4 +1,50 @@
+A7C II Tools - MIT License with Commons Clause License Condition v1.0
+
+Effective for this distribution from 2026-10-25.
+
+Scope
+-----
+The Commons Clause condition below applies to QAQLeonard's original
+project-authored software in this distribution, only to the extent of rights
+QAQLeonard owns or is authorized to license. It does not relicense third-party
+components, other contributors' separately MIT-licensed contributions, DCPs,
+profile assets, firmware-derived material or trademarks. Their existing
+licenses, copyright notices and rights remain applicable.
+
+Earlier versions distributed under MIT remain available under their original
+terms. This change does not revoke permissions already granted for those
+versions or apply the Commons Clause retroactively. The previous project
+license is retained at docs/licenses/project-legacy-MIT.txt.
+
+The combined license below is a source-available license, not an unmodified
+MIT license or an OSI-approved open-source license. The project's notices
+summarize the paid flashing, resale and paid unlocking restrictions; the
+English Commons Clause definition of Sell below governs its scope.
+
+"Commons Clause" License Condition v1.0
+--------------------------------------
+
+The Software is provided to you by the Licensor under the License, as defined
+below, subject to the following condition.
+
+Without limiting other conditions in the License, the grant of rights under
+the License will not include, and the License does not grant to you, the right
+to Sell the Software.
+
+For purposes of the foregoing, "Sell" means practicing any or all of the
+rights granted to you under the License to provide to third parties, for a
+fee or other consideration (including without limitation fees for hosting or
+consulting/support services related to the Software), a product or service
+whose value derives, entirely or substantially, from the functionality of
+the Software. Any license notice or attribution required by the License must
+also include this Commons Clause License Condition notice.
+
+Software: A7C II Tools, within the scope identified above
+License: MIT License, reproduced below
+Licensor: QAQLeonard, within the scope identified above
+
 MIT License
+-----------
 
 Copyright (c) 2026 A7C II FL2/FL3 preview contributors
 
@@ -20,6 +66,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-This license covers newly authored software. Upstream software and Sony
-firmware-derived data retain their respective rights; see docs/en/notices.md
-and docs/zh-CN/notices.md.
+Upstream software, other contributors' separately licensed contributions,
+DCP/profile assets and Sony firmware-derived data retain their respective
+licenses and rights; see docs/en/notices.md and docs/zh-CN/notices.md.

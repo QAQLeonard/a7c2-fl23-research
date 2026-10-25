@@ -79,11 +79,27 @@ def load_restore(path):
     return regions(load(path))
 
 
+def local_recovery_source():
+    """An explicitly configured host-only source; never bundled or auto-found."""
+    config=data_root()/'local-recovery-source.private.json'
+    if not config.is_file():return None
+    value=json.loads(config.read_text(encoding='utf-8'))
+    source=value.get('sony_firmware') if isinstance(value,dict) else None
+    if not isinstance(source,str) or not source or not Path(source).is_absolute():
+        raise ValueError('本机恢复来源配置无效，请重新选择官方固件。')
+    path=Path(source).expanduser()
+    if not path.is_file():raise ValueError('本机恢复来源不可用，请接回原厂固件所在磁盘或手动选择文件。')
+    return str(path)
+
+
 def prepare_restore(arguments):
     """Prepare all recovery inputs before opening USB; never bundle originals."""
     from . import screenreader
     source=arguments.get('sony_firmware')
     backup=arguments.get('backup')
+    if not (source or backup or arguments.get('factory')):
+        source=local_recovery_source()
+        if source:print('使用本机预设的官方恢复来源；仍按正常流程提取、恢复并读回。',flush=True)
     if source:
         cache=prepare(source)['cache'];value=regions(load(cache))
         voice=screenreader.prepare(source)['source'] if arguments.get('restore_voice',True) else None

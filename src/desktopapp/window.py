@@ -427,6 +427,10 @@ class Window(W.QMainWindow):
         source_notice=W.QLabel('应用不内置原厂恢复文件。为尊重版权、降低包括 DMCA 在内的法律风险，一键恢复需使用你自行取得的官方 2.01 固件，或可用的同机原始备份。'
             '普通安装不要求预先下载；这项说明适用于所有原厂恢复，不仅是语音包。')
         source_notice.setWordWrap(True);layout.addWidget(source_notice)
+        local_config=data_root()/'local-recovery-source.private.json'
+        if local_config.is_file():
+            local_note=W.QLabel('本机测试：已配置本地原厂来源，以上留空也可恢复；手动选择文件优先，不跳过恢复与读回。')
+            local_note.setWordWrap(True);layout.addWidget(local_note)
         download=W.QPushButton('打开索尼官方 2.01 固件下载页')
         from .screenreader import DOWNLOAD_URL
         download.clicked.connect(lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(DOWNLOAD_URL)))
@@ -485,7 +489,8 @@ class Window(W.QMainWindow):
                 backup=self.text('factory_original_backup') or None)
             self.launch('direct_verify',args)
         else:
-            if not (self.text('factory_voice_firmware') or self.text('factory_original_backup')):
+            from .official import local_recovery_source
+            if not (self.text('factory_voice_firmware') or self.text('factory_original_backup') or local_recovery_source()):
                 W.QMessageBox.information(self,'请选择恢复来源','请先选择官方 ILCE-7CM2 2.01 BODYDATA.DAT，或可用的同机原始备份；程序、设置及所选语音均从该来源取得。')
                 return
             self.launch('direct_factory_reset',self.direct_args('factory',

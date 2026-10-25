@@ -2,7 +2,7 @@
 
 [返回首页](../../README.zh-CN.md) · [English](../en/notices.md)
 
-新编写的代码使用 [MIT 许可](../../LICENSE)。本项目是独立研究，与 Sony、Fujifilm、Ricoh、Adobe 无隶属关系；风格名称不代表官方认可或颜色完全一致。
+本发行版由 QAQLeonard 持有或有权许可的项目原创代码使用 [MIT＋Commons Clause 1.0](../../LICENSE)。这是源码可用许可，不是纯 MIT 或 OSI 意义的开源许可；限制收费代刷、售卖或付费解锁本工具。本项目是独立研究，与 Sony、Fujifilm、Ricoh、Adobe 无隶属关系；风格名称不代表官方认可或颜色完全一致。
 
 ## DCP 与配对外观
 
@@ -15,10 +15,10 @@
 - 这些 DCP 是 **Sony ILCE-7CM2 的 RAW 显影配置文件**，不是固件。想在 Lightroom 里手动使用时，Windows 可把 DCP 放到 `%APPDATA%\Adobe\CameraRaw\CameraProfiles`，然后重启 Lightroom／Camera Raw。
 
 许可：
-- **富士风格**：作者授权本项目使用，适用 [MIT 许可](../../LICENSE)。
-- **理光风格**：作者授权本项目使用，适用 [MIT 许可](../../LICENSE)。
-- **FL2／FL3 DCP**：Lightroom 中与机内 FL2、FL3 对应的两个 DCP，作者授权本项目使用，适用 [MIT 许可](../../LICENSE)，随 3.0 Release 一起提供。
-- 全部 DCP 及由其生成的外观数据都已获得作者授权，与代码一样适用 MIT 许可。原始元数据记录在[清单](../profiles/manifest.json)中。
+- **富士风格**：作者授权本项目使用，适用 [MIT 许可](../licenses/project-legacy-MIT.txt)。
+- **理光风格**：作者授权本项目使用，适用 [MIT 许可](../licenses/project-legacy-MIT.txt)。
+- **FL2／FL3 DCP**：Lightroom 中与机内 FL2、FL3 对应的两个 DCP，作者授权本项目使用，适用 [MIT 许可](../licenses/project-legacy-MIT.txt)，随 3.0 Release 一起提供。
+- 全部 DCP 及由其生成的外观数据都已获得作者授权，继续适用原 MIT 许可，不附加本次 Commons Clause 条件。原始元数据记录在[清单](../profiles/manifest.json)中。
 
 ## 代码与研究来源
 
@@ -66,7 +66,7 @@ Sony A7C II 2.01、Alpha 1 II 4.00 和 A7 IV 6.02 固件被用作分析来源，
 
 ### 许可文件与责任范围
 
-上述用途限制为作者使用要求。代码的具体许可见 [LICENSE](../../LICENSE)。第三方组件、固件资料及商标分别适用各自的权利和许可，代码许可证不授予其额外权利。本声明不排除法律禁止免除的责任。
+自 2026-10-25 起，本发行版的项目原创代码采用 [MIT＋Commons Clause 1.0](../../LICENSE)，以其中 Sell 的定义限制收费代刷、售卖或付费解锁本工具。旧版 MIT 授权不追溯撤销，旧文本见[旧版 MIT](../licenses/project-legacy-MIT.txt)。其他贡献者的独立 MIT 贡献、第三方组件及 DCP／外观素材保留原许可，不能据此声称作者独占其版权或一并改证。第三方组件、固件资料及商标分别适用各自的权利和许可，代码许可证不授予其额外权利。本声明不排除法律禁止免除的责任。
 
 ### 固件来源、版权与 DMCA 风险
 

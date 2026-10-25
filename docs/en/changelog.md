@@ -4,6 +4,10 @@
 
 ## Unreleased — restore native LUT upload conditions
 
+- Allow a host-only, explicitly configured original firmware source when the recovery picker is blank. Manual firmware/backup selections take precedence; the normal source preparation, voice restoration and readback remain mandatory. The private path configuration and original bytes are not packaged. Historical recovery records are retained for continuation.
+
+- Switch original project code in subsequent distributions to MIT with Commons Clause 1.0, using its Sell definition for paid flashing/resale/unlocking restrictions. Retain legacy MIT and other contributor/third-party licenses without retroactive revocation. Update README, notices, startup text and packaged licenses.
+
 - Give paid flashing/resale/unlocking restrictions and false-authorization restrictions separate prominent headings in the startup notice, both README introductions and full terms. The restriction states the author's use requirements; this change does not alter the code license.
 
 - Remove the old non-revocation sentence from the startup notice and full terms. Emphasize free distribution, opposition to commercial profit, and no author authorization for third parties to charge, resell or promise warranty coverage in the author's or Sony's official name; bold all summary paragraphs. Align recovery fixtures with user-provided sources and preset fixtures with complete voice-cleanup results, including post-reload verification. Production checks and write/readback behavior remain unchanged.

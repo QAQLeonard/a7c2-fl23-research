@@ -44,6 +44,7 @@ for relative,source in profile_files().items():
 for name in ('desktop.py', 'LICENSE', 'README.md', 'README.zh-CN.md', 'desktop-requirements.txt',
              'dev/desktop/offline_smoke.py', 'docs/en/lut-formats.md', 'docs/zh-CN/lut-formats.md',
              'docs/en/notices.md', 'docs/zh-CN/notices.md', 'docs/licenses/a7c2-fl23-macos-MIT.txt',
+             'docs/licenses/project-legacy-MIT.txt',
              'calibration/a7c2-2.01.virtual.npz'):
     datas.append((str(root / name), str(Path(name).parent)))
 
