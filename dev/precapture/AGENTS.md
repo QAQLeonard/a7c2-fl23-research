@@ -37,6 +37,20 @@ without waiting. Original worker/direct wrappers select lock6c, but universal
 pool-writer coverage,actual callback/task/CPU context and hardware interrupt-off
 cost remain unqualified. Never deploy a blocking lock or infer that unit tests
 authorize live synchronization changes. The four-query permission is exhausted.
+Phase157 composes original task try-lock,three fixed reads and unlock in an
+UNINSTALLED existing-callback prototype. Tests execute original lock code on
+synthetic CPU/context/objects; no native success stubs. An adversarial owner
+change causes unlock failure with IRQ/lock retained,so no safe deployment or
+recovery is claimed. The prototype shortens an original diagnostic format and
+still lacks full format-reference,writer-lock and callback-context admission.
+It must NOT be combined with the next passive count-sample experiment.
+Phase158's sole proposed live path remains the58-byte passive three-count
+sampler: no lock/IRQ operations,one separately approved query maximum,inverse.
+Fresh source acquisition and actual mode0 preflight passed with no writes;
+new installation/query approval is still pending. Its V6 private result adds
+typed raw_words[3]; inconsistent ring data must not prevent completed message
+release. Phase159 client/launcher models use historical inputs as SYNTHETIC
+fixtures only;fresh post-install boot/worker/loaded-source binding is required.
 
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never

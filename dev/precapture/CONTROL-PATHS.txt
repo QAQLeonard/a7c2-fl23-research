@@ -4023,3 +4023,71 @@ Never put the blocking native acquire in a diagnostic,loop on failed try-lock,
 free unknown resources or treat the consumed four queries as new authorization.
 Full pre-trigger exposure/owned RAW/S2save/cancel release/default-Off menu remain
 unfinished;keep next candidate uninstalled until its concrete review is ready.
+
+## Phases157–159: locked composition rejected for live scope; passive sampler prepared
+
+Owner requested faster continued progress. Main782785641ca9 refreshed and still
+ancestor;main/releases/product files untouched. The completed pointer jobs are
+not replayed. No new CP send or firmware/parameter/IRQ write occurred here.
+
+support/cp_locked_pool_probe.py composes ORIGINAL task try4e66f0,three fixed
+head/tail/count LDRs and original unlock4e68a8. It reuses106 existing bytes:
+callback default branch/alignment window plus the48-byte original error format.
+The format becomes E%x:%x newline/NUL plus code;that string/layout change is
+explicit and still needs full reference review. No image/page/state allocator,
+loader or camera operator is produced. Failed try branches to original81 reply
+WITHOUT reading pool or calling unlock. Failed unlock returns distinct82,
+preserving the unresolved hardware condition rather than claiming success.
+
+verify_locked_pool_probe.py runs actual native lock instructions on synthetic
+Cortex-A9 CPU0/context/table/lock objects. Eight IRQ/interrupt/contention cases,
+256 original/new callback modes and4,096 full-register/APSR cache-prefix pairs
+pass. Normal path takes/releases original lock6c once,restores IRQ and leaves
+pool untouched. An explicitly adversarial owner mutation BEFORE native unlock
+causes82 while retaining lock/IRQ;this is not an observed physical fault or
+a safe recovery. No blocking WFE/native service stub runs. Earlier offline
+fixtures exposed stale scratch-register inputs and a missing modeled mode1
+log root;those were fixed explicitly,not by supplying a native success. The
+integer extent check also refused an overlength tail before any deployment.
+
+Conservative source scans found additional writer/reinitialization references,
+including49536c,495582,b16ecc/b1777a,b1702e/b139e4/b1414c. Direct candidates
+and raw code/data ambiguity remain in private evidence. They do not exhaust
+indirect callers or prove every write occurs under6c. Consequently this locked
+prototype remains uninstalled and is EXCLUDED from the next hardware proposal.
+Do not infer universal writer exclusion,ABA safety or pixel ownership.
+
+The sole active hardware proposal is the narrower passive58-byte sampler from
+phase155:one callback reads fixed22b4720/28/30,no locks/IRQ/MMIO,pointers followed,
+allocation or exposure. Fresh phase158 existing-file acquisition read five
+sources twice identically with three archive mirrors,normal USB exit;all match
+the fully restored pre-diagnostic current version. Exact sampler/inverse built,
+18 installer fault models and24 host transaction controls pass. Actual physical
+mode0 reports phase9,writes0,status0,followed by exact temporary cleanup,five
+unchanged sources and normal USB exit. The new write/query scope is presented
+for explicit owner approval;no approval or installation is inferred from mode0.
+
+Private V6 client retains the public guard and adds typed raw_words[3],expanding
+its result112->128,context360->376 and standalone journal1128->1144 bytes.
+Do not overload the enum/status/nonce fields to squeeze a third raw count into
+the old ABI. Original message completion/release qualification checks exact
+mode,status5c,padding and tail nonce. Ring consistency is HOST analysis after
+known terminal message ownership,not a reason to park or replay a completed
+request. A malformed reply retains UNKNOWN as before. Thirty direct protocol
+cases pass,including nonsensical raw words that are retained without following.
+
+The separately named159 lifetime TEMPLATE uses historical boot/evidence inputs
+as explicit synthetic fixtures,not live admission.209 generated-worker failure
+models pass. Native parent/observer models pass25+50 cases,plus16 malformed
+observation controls/two reused-BSS cases. Fixture identity rewrite offsets were
+updated for the expanded typed ABI;old wrong-reply corruption atword12 is now
+valid raw data,so negative control moves to reserved byte2. No validation was
+relaxed to infer native success. Fresh post-install boot/worker/source binding
+and exact same-worker VM refusal checks remain required before any physical
+query. Public original-default sender/gate and immutable old jobs unchanged.
+
+The exact new159 standalone worker then completed an original Sony-kernel VM
+run:108-record epoch refusal,zero CP sends,own group/affinity/signal/context
+inverse and two absent-process observations. This is the unchanged typed V6
+worker,not a substituted stub;the VM used its own disposable CPU0 conditions.
+It does not admit current physical boot/source inputs or prove a CP response.

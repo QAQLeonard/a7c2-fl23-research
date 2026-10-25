@@ -131,6 +131,7 @@ do not add up to physical pre-capture.
 | `support/cp_metadata_probe.py`, `verify_cp_metadata_probe.py` | Offline existing-callback prototype and original-instruction equivalence checks; private authorized four-word experiment completed, no public installer |
 | `support/cp_pool_probe.py`, `verify_cp_pool_probe.py` | Next uninstalled three-word sample prototype and strict local packet/range checks; no atomicity, pixel ownership or physical admission |
 | `audit_pool_serialization.py` | Original task try-lock/release on synthetic Cortex-A9 state, plus original wrapper pre-service boundaries; no physical lock/IRQ admission |
+| `support/cp_locked_pool_probe.py`, `verify_locked_pool_probe.py` | Uninstalled lock/sample/unlock experiment; failed-release/IRQ retention controls remain explicit; excluded from the passive sampler's proposed hardware scope |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
 | `vm/cp_boot/config_rmw/qemu_source_word.h`, `vm/cp_boot/mtg_select/` | Shared restricted single-word storage and the optional MTG selector fixture; no timing edges, frame IRQ or sensor |
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
@@ -244,6 +245,9 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 即使三个数满足环形表关系，也不能据此认定原子快照、无并发变化或像素归属。
 原厂尝试加锁／解锁已在显式虚拟CPU及锁对象上执行：竞争时不等待，成功时须由匹配释放恢复IRQ。
 两条包装路径都使用锁 `0x6c`；尚未证明全部写入者覆盖或实际回调环境，未在机身调用这些锁。
+加锁／采样／解锁组合原型已离线执行，故意改变所有者的控制案例仍会留下锁和IRQ屏蔽，不能据此宣称上机安全。
+下一次拟实测的是不加锁、不改IRQ的58字节计数采样：新来源读取和机身只校验已通过，实际写入／查询等待具体授权。
+其三个原始值使用独立类型字段保存；计数不一致时先完成查询资源释放，保存原始数据后报告，不自动重发。
 
 此前一次原厂不支持模式查询仍作为独立完成的检查点保留。
 
