@@ -36,6 +36,13 @@ Licenses:
 - The Lightroom plugin uses [ExifTool](https://exiftool.org/), shipped with its original license.
 - The interface uses Qt for Python (PySide6, LGPL v3). Other Python dependencies are listed in `desktop-requirements.txt` and keep their own licenses.
 
+The experimental standalone double-exposure processor uses unmodified
+[libjpeg-turbo 3.1.2](https://github.com/libjpeg-turbo/libjpeg-turbo/tree/3.1.2).
+This software is based in part on the work of the Independent JPEG Group.
+Its build output includes the original IJG and libjpeg-turbo license notices;
+these components retain their own licenses. This helper is not currently part
+of the desktop package.
+
 ## Firmware and data
 
 Sony A7C II 2.01, Alpha 1 II 4.00 and A7 IV 6.02 firmware were analysis sources; Sony firmware, trademarks and data remain their owners' material. This project distributes no complete firmware, signed update container, body backup/calibration, photos, credentials or private derived data. Original recovery bytes are obtained locally from user-provided sources; the distributed recovery layout contains only locations, lengths and digests.

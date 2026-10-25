@@ -23,6 +23,7 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), shared Sony-PMCA-RE under `src/fl23/vendor` |
 | `src/shutter_sound/` | Sound conversion/volume, audition, persistent install; `native/` holds the AArch64 camera workers |
 | `src/vertical/` | Vertical Display workers and portrait resources (**being rewritten**) |
+| `src/double_exposure/native/` | Experimental two-image mean kernel and standalone camera-Linux JPEG processor; capture hooks and media registration are not connected |
 | `src/fl23/` | Standalone legacy FL23 installer; its `native/` workers are reused by the engines |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic auto-profile plugin |
 | `calibration/` | Virtual 2.01 response model used by the compiler |
@@ -120,6 +121,20 @@ python desktop.py
 ```
 
 The root `conftest.py` blocks physical USB enumeration in every test. Other suites: `python -m unittest discover -s src/looks/tests`, `src/fl23/tests`, `src/camera_runtime/tests`, `dev/usb/tests`. Private fixtures (`A7C2_RESEARCH_FIXTURES`) are optional; without them those tests skip.
+
+**Double-exposure development:** `dev/double_exposure/build_jpeg.py` builds a static
+ARM64 Linux processor from a local, unmodified libjpeg-turbo 3.1.2 source tree,
+using Zig, CMake and Ninja. Pass `--source`, `--output`, `--zig`, `--cmake` and
+`--ninja`; `--target host` builds the same C pipeline for local tests. Build
+tools are listed in `dev/double_exposure/requirements.txt`. The output directory
+includes codec notices and licenses. This helper takes two completed baseline
+8-bit sRGB/untagged JPEGs with matching dimensions/orientation and saves a new
+quality-95 JPEG using scanline RGB means. Run `python -m unittest discover -s
+dev/double_exposure -v`; set `A7C2_ZIG` for the kernel tests and
+`A7C2_JPEG_COMMAND` to a JSON argv list for the built processor or its runner.
+The helper is not included in the desktop installer or connected to a camera
+menu/capture hook yet; file processing does not register the result in the
+camera's media database.
 
 **Packaging:**
 1. Prepare the ignored distribution assets: `python dev/desktop/prepare_assets.py`. Use `--preset-archive <zip>` to import the six defaults and the paired library from an exported pack or a Windows build; use `--export-presets <zip>` to create such a pack.

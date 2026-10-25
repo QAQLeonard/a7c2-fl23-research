@@ -23,6 +23,7 @@
 | `src/camera_runtime/` | USB 服务会话（`transport.py`）、FL23 规划与资源、macOS 主机辅助（`macos_host.py`）、内置 Sony-PMCA-RE |
 | `src/shutter_sound/` | 声音转换／音量、试听、持久安装；`native/` 是 AArch64 相机 worker |
 | `src/vertical/` | 竖屏显示 worker 与竖屏资源（**正在重写**） |
+| `src/double_exposure/native/` | 实验性的两图平均内核与相机 Linux JPEG 处理器；尚未接通拍摄钩子与媒体库登记 |
 | `src/fl23/` | 旧版独立 FL23 安装器；其 `native/` worker 被各引擎复用 |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic 自动识别插件 |
 | `calibration/` | 编译器使用的 2.01 虚拟响应模型 |
@@ -121,6 +122,8 @@ python desktop.py
 ```
 
 根目录的 `conftest.py` 在所有测试中禁止枚举实体 USB。其他测试：`python -m unittest discover -s src/looks/tests`，以及 `src/fl23/tests`、`src/camera_runtime/tests`、`dev/usb/tests`。私有样本（`A7C2_RESEARCH_FIXTURES`）是可选的，没有时相关测试会跳过。
+
+**双重曝光开发**：`dev/double_exposure/build_jpeg.py` 使用本地未修改的 libjpeg-turbo 3.1.2 源码、Zig、CMake 与 Ninja，构建静态 ARM64 Linux 处理器。传入 `--source`、`--output`、`--zig`、`--cmake`、`--ninja`；`--target host` 可将同一份 C 流程构建为本机测试程序。构建工具列在 `dev/double_exposure/requirements.txt`，输出目录包含编解码库的声明与许可。处理器读取两张已完成写入、尺寸／方向一致的基线 8 位 sRGB／无标记 JPEG，逐行对 RGB 采样取平均，另存质量 95 的 JPEG。运行 `python -m unittest discover -s dev/double_exposure -v`；内核测试需要 `A7C2_ZIG`，JPEG 测试需要将 `A7C2_JPEG_COMMAND` 设为程序或运行器命令的 JSON 参数数组。处理器尚未加入桌面安装包、相机菜单或拍摄钩子；处理文件本身不会将结果登记到相机媒体库。
 
 **打包：**
 1. 准备被 Git 忽略的发行资源：`python dev/desktop/prepare_assets.py`。用 `--preset-archive <zip>` 从导出的资源包或 Windows 安装包中导入默认六款和配对库；用 `--export-presets <zip>` 导出资源包。

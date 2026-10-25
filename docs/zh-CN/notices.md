@@ -36,6 +36,8 @@
 - Lightroom 插件使用 [ExifTool](https://exiftool.org/)，随附其原始许可。
 - 界面使用 Qt for Python（PySide6，LGPL v3）。其他 Python 依赖见 `desktop-requirements.txt`，各自保留原始许可。
 
+实验性的独立双重曝光处理器使用未修改的 [libjpeg-turbo 3.1.2](https://github.com/libjpeg-turbo/libjpeg-turbo/tree/3.1.2)。This software is based in part on the work of the Independent JPEG Group. 构建输出随附 IJG 与 libjpeg-turbo 原始许可声明，这些组件保留各自的许可。该处理器目前尚未包含在桌面安装包中。
+
 ## 固件与数据
 
 Sony A7C II 2.01、Alpha 1 II 4.00 和 A7 IV 6.02 固件被用作分析来源，固件、商标和数据的权利仍归原权利人。本项目不发布完整固件、官方更新容器、机身备份／校准、照片、凭据或私人衍生数据。原厂恢复字节从用户自己的来源在本地提取，分发的恢复清单只含位置、长度及摘要。

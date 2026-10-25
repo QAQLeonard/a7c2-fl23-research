@@ -1,0 +1,5 @@
+cmake>=3.16,<5
+ninja>=1.11,<2
+Pillow>=10,<14
+pyelftools>=0.31,<1
+unicorn>=2.1,<3

@@ -2,9 +2,10 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
-## Unreleased — two-frame mean kernel (offline)
+## Unreleased — two-frame JPEG mean processor (offline)
 
-- Add an independent AArch64 C kernel for the equal-weight mean of two matching decoded 8-bit sample planes, with rounded integer arithmetic, independent row strides, capacity/overflow checks and input preservation. It can process individual rows. Compiled instruction replay covers every 8-bit input pair, vector tails, padding and invalid/overlapping buffers. This is sample-domain blending, not a claim of linear-light exposure averaging or RAW synthesis. Camera capture hooks, pixel-format adaptation, JPEG read/save and live preview are not connected; there is no installable double-exposure feature yet.
+- Add an independent AArch64 C kernel for the equal-weight mean of two matching decoded 8-bit sample planes, with rounded integer arithmetic, independent row strides, capacity/overflow checks and input preservation. It can process individual rows. Compiled instruction replay covers every 8-bit input pair, vector tails, padding and invalid/overlapping buffers. This is sample-domain blending, not a claim of linear-light exposure averaging or RAW synthesis.
+- Add a standalone static ARM64 Linux JPEG processor using unmodified libjpeg-turbo 3.1.2. It decodes two matching interleaved baseline 8-bit sRGB/untagged JPEGs scanline by scanline, computes RGB means and saves a new quality-95 JPEG with the shared orientation. Preserve input files; reject unsupported profiles/formats and mismatched dimensions/orientation; clean owned staging files on failure and publish without replacing existing files. Thirteen file-pipeline tests pass on the Windows host and the actual ARM64 executable under QEMU on Linux, including a 7008×4672 pair, rejection of multi-scan headers before frame allocation and concurrent publication. These are offline results: camera capture hooks, media-database registration, live preview and installation remain incomplete. The existing desktop package does not include this processor.
 
 ## Standard license update — 2026-10-25
 
