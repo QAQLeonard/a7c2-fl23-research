@@ -2,6 +2,10 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Standard license update — 2026-10-25
+
+- Use the unmodified public PolyForm Noncommercial License 1.0.0, replacing the previous MIT/Commons Clause combination and custom preamble. README and startup notice prominently state the commercial-use/profit prohibition, separately from the false-authorization heading. Third-party and previous licenses are retained.
+
 ## Unreleased — restore native LUT upload conditions
 
 - Allow a host-only, explicitly configured original firmware source when the recovery picker is blank. Manual firmware/backup selections take precedence; the normal source preparation, voice restoration and readback remain mandatory. The private path configuration and original bytes are not packaged. Historical recovery records are retained for continuation.

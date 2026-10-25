@@ -34,8 +34,8 @@ def test_reading_link_does_not_accept_or_check_the_parent(app):
     assert not dialog.agreement.isChecked() and dialog.result()==W.QDialog.Rejected
     reader=disclaimer.TermsDialog(dialog)
     text=reader.body.toPlainText()
-    assert all(phrase in text for phrase in ('风险告知','Commons Clause','DMCA','同机备份','重大过失','收费代刷','从未授权任何人',
-        '严禁收费代刷、售卖或付费解锁本工具','严禁冒充官方或作者授权'))
+    assert all(phrase in text for phrase in ('风险告知','PolyForm Noncommercial','DMCA','同机备份','重大过失','从未授权任何人',
+        '禁止一切商用牟利行为','严禁冒充官方或作者授权'))
     assert '不撤回' not in text
 
 

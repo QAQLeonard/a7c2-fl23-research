@@ -2,7 +2,7 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/notices.md)
 
-Original project code owned or licensable by QAQLeonard in this distribution uses [MIT with Commons Clause 1.0](../../LICENSE), a source-available license restricting paid flashing, resale and paid unlocking of the tool. It is not plain MIT or an OSI-approved open-source license. This is independent research, not affiliated with Sony, Fujifilm, Ricoh or Adobe; look names imply neither endorsement nor exact color equivalence.
+Original project code owned or licensable by QAQLeonard in this distribution uses the unmodified standard [PolyForm Noncommercial License 1.0.0](../../LICENSE). All commercial use and profit-making are prohibited. This is independent research, not affiliated with Sony, Fujifilm, Ricoh or Adobe; look names imply neither endorsement nor exact color equivalence.
 
 ## DCPs and paired looks
 
@@ -18,7 +18,7 @@ Licenses:
 - **Fuji-style:** used with the author's permission and licensed under [MIT](../licenses/project-legacy-MIT.txt).
 - **Ricoh-style:** used with the author's permission and licensed under [MIT](../licenses/project-legacy-MIT.txt).
 - **FL2/FL3 DCPs:** the two Lightroom profiles matching the in-camera FL2 and FL3, used with the author's permission and licensed under [MIT](../licenses/project-legacy-MIT.txt); included with the 3.0 Release.
-- Every DCP and the look data derived from it is used with the authors' permission and retains its original MIT license without the new Commons Clause condition. Original metadata is recorded in the [manifest](../profiles/manifest.json).
+- Every DCP and the look data derived from it is used with the authors' permission and retains its original MIT license without applying the new PolyForm noncommercial license. Original metadata is recorded in the [manifest](../profiles/manifest.json).
 
 ## Code and research sources
 
@@ -56,9 +56,9 @@ Only operate a device you lawfully own or for which the lawful owner has given e
 
 The software is provided as is to the extent permitted by law, without promises of correctness, fitness, safety or successful recovery. Users decide whether to proceed and bear risks that lawfully fall to them. **This statement does not exclude or limit liability that cannot lawfully be excluded**, including applicable non-excludable liability for intentional misconduct or gross negligence.
 
-### No paid flashing, resale or paid unlocking of this tool
+### No commercial use or profit-making
 
-**Author's use requirement: do not charge for flashing, resell this tool or require payment to unlock it. This includes paid remote installation, resale or paid bundles of the tool, activation keys/dongles for paid unlocking, and charging for the tool as part of a hardware bundle. The author provides the project free of charge and offers no paid flashing service.**
+**All commercial use and profit-making are prohibited.**
 
 ### Do not impersonate Sony or claim author authorization
 
@@ -66,7 +66,9 @@ The software is provided as is to the extent permitted by law, without promises 
 
 ### License files and liability
 
-From 2026-10-25, original project code in this distribution uses [MIT with Commons Clause 1.0](../../LICENSE); its definition of Sell governs paid flashing, resale and paid unlocking restrictions. Earlier MIT permissions are not retroactively revoked; see the [legacy MIT text](../licenses/project-legacy-MIT.txt). Other contributors' separately MIT-licensed contributions, third-party components and DCP/profile assets retain their original terms; this change claims no exclusive ownership of them. Third-party components, firmware material and trademarks retain their separate rights and licenses; the code license grants no additional rights to them. This statement does not exclude liability that cannot lawfully be excluded.
+Original project code in this distribution uses the unmodified standard [PolyForm Noncommercial License 1.0.0](../../LICENSE), available from the [PolyForm project](https://polyformproject.org/licenses/noncommercial/1.0.0). This license is granted only for original code owned or licensable by QAQLeonard. Other contributors' separately licensed contributions, third-party components, DCP/profile assets and firmware material retain their existing licenses and rights. Earlier permissions are not retroactively revoked; see the [legacy MIT text](../licenses/project-legacy-MIT.txt). This statement does not exclude liability that cannot lawfully be excluded.
+
+Required Notice: Copyright (c) 2026 QAQLeonard, for original project-authored code.
 
 ### Firmware sources, copyright and DMCA considerations
 
