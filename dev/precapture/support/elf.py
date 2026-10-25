@@ -107,10 +107,15 @@ def check_integer_isa(elf, arch):
     return instructions
 
 
-def image_loader(path, arch, wanted=("encode_setting", "encode_shooting")):
+def image_loader(path, arch, wanted=("encode_setting", "encode_shooting"), *, cpu_model=None, emulator=None):
     from unicorn import Uc, UC_ARCH_ARM64, UC_ARCH_ARM, UC_MODE_ARM, UC_MODE_THUMB
 
-    u = Uc(UC_ARCH_ARM64, UC_MODE_ARM) if arch == "aarch64" else Uc(UC_ARCH_ARM, UC_MODE_THUMB)
+    if emulator is not None and cpu_model is not None:
+        raise ValueError('Configure a composed CPU model before loading either image')
+    u = emulator if emulator is not None else (
+        Uc(UC_ARCH_ARM64, UC_MODE_ARM) if arch == "aarch64" else Uc(UC_ARCH_ARM, UC_MODE_THUMB))
+    if cpu_model is not None:
+        u.ctl_set_cpu_model(cpu_model)
     symbols = {}
     with path.open("rb") as stream:
         elf = ELFFile(stream)
@@ -130,6 +135,8 @@ def image_loader(path, arch, wanted=("encode_setting", "encode_shooting")):
             end = (seg["p_vaddr"] + seg["p_memsz"] + 4095) & ~4095
             for page in range(start, end, 4096):
                 if page not in pages:
+                    if any(a<=page<=b for a,b,_ in u.mem_regions()):
+                        raise ValueError('Generated component overlaps existing image storage')
                     u.mem_map(page, 4096)
                     pages.add(page)
             u.mem_write(seg["p_vaddr"], seg.data())
@@ -142,5 +149,10 @@ def image_loader(path, arch, wanted=("encode_setting", "encode_shooting")):
                 symbols[sym.name] = sym["st_value"]
     assert set(symbols) == set(wanted)
     for address, size in [(MEM, 0x1000), (STOP, 0x1000), (STACK, 0x4000)]:
-        u.mem_map(address, size)
+        regions=list(u.mem_regions())
+        if any(a<=address and address+size-1<=b for a,b,_ in regions):
+            if emulator is None:
+                raise ValueError('Generated image overlaps reserved component state')
+        else:
+            u.mem_map(address, size)
     return u, symbols

@@ -84,6 +84,7 @@ together;runtime policy bytes,RAW ownership,timing and saved photos stay unverif
 | Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | Native state feedback | Original feedback stores, masked completion, deferred task/notification dispatch and CAP handle checks;60 input combinations plus negative controls | Hardware feedback provenance, actual exposure/RAW ownership and a generation-bound terminal fence; two commands share event308 |
 | RAW resource path | Staged slots → RAW client → MEMMGR_CP dispatch; native reply-ID, descriptor transfer, handle generation and reference checks | Actual backing pixel allocation and matched terminal release; native handle generation wraps, local invalidation precedes backing free |
+| Native RAW hold/drop adapter | New ARM32 C code calls original task/try-lock/owner-reference/pin/unpin/drop functions;24 synthetic scenarios and a handle from the original allocator pass | Uninstalled;actual ingress hook,owned code/state storage,loaded policy and physical pixel lifetime remain unverified |
 | Backing allocator and configuration | Retained original DmmCfg parsed through original CP instructions; root-node/1023-record initialization, parent-backed allocation, pin/unpin and local return execute on synthetic RAM | Current selected configuration/extent ownership, actual pixels, task locks and terminal notification; offline parsing does not bind the file to the current body |
 | Metadata capacity and shared bookkeeping | Original1023-record initialization,2048 pops/2048 returns and shared bookkeeping layout on synthetic RAM | These counts and bookkeeping addresses do not establish RAW buffer capacity or ownership |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
@@ -164,6 +165,7 @@ do not add up to physical pre-capture.
 | `support/dmm_config.py`, `support/backing_config.py`, `audit_backing_config.py` | Shared bounded config decoder and original CP parser/root/parent-allocation/pin/local-return audit; explicit post-query fixture inputs and unexecuted terminal notification |
 | `support/pool_notification.py` | Same local return continued through original CPU-context/lock instructions on synthetic CPU0; message, wait, clock, error and contended-WFE boundaries remain unexecuted |
 | `support/backup_binding.py` | Original BK4 primary binding and scalar-getter body on retained snapshot bytes; explicit bank choice and unexecuted semaphore boundaries |
+| `cp_raw_lease.c/h`, `verify_raw_lease.py`, `support/raw_lease.py` | Native hold/drop implementation plus compiled/original-CP linkage and composition with the original allocator;no installer or physical lifetime claim |
 | `support/capture_acquisition.py` | Bind completed file/configuration and single vendor-read reports to private archives; does not admit loaded RAM or physical capture |
 | `support/readonly_session.py`, `verify_readonly_scope.py` | Existing-file/settings constraints plus an explicit optional one-use vendor policy read; defaults reject CP packets, all writes/other keys/replays refuse |
 | `support/capture_validation.py`, `audit_capture_validation.py` | Combined pool/completion/exposure source checks bound to a completed read-only snapshot; physical verdicts stay unverified |
@@ -233,6 +235,7 @@ Use a fresh private output location for every run.
 ```text
 python dev/precapture/verify_support.py
 python dev/precapture/verify_readonly_session.py
+python dev/precapture/verify_raw_lease.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
 python dev/precapture/verify_ipc_journal.py --journal PRIVATE_SUCCESS_JOURNAL --nonce JOB_NONCE --output NEW_PRIVATE_JSON
 python dev/precapture/audit_cp_rpc_default.py --cp PRIVATE_STOCK_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_cp_rpc_registration.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
@@ -248,6 +251,7 @@ python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --curren
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --output NEW_PRIVATE_JSON
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --notification default_category --output NEW_PRIVATE_JSON
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --backup-segment PRIVATE_COMPLETE_BK4_SEGMENT --output NEW_PRIVATE_JSON
+python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --backup-segment PRIVATE_COMPLETE_BK4_SEGMENT --lease-adapter PRIVATE_VERIFIED_RAW_LEASE_ELF --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_CURRENT_CONFIG_ARCHIVE --acquisition-report PRIVATE_CONFIG_ACQUISITION_JSON --policy-snapshot PRIVATE_VENDOR_READ_ARCHIVE --policy-report PRIVATE_VENDOR_READ_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/audit_metadata_capacity.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --output NEW_PRIVATE_JSON

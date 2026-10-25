@@ -4295,3 +4295,34 @@ evidence. Prior pool/completion/exposure behavior fields remain identical;
 expected source hashes and acquisition archive hashes differ for the newer run.
 No viewfinder,pixel,actual exposure-end/S2 trace,durable save/cancel,in-camera
 switch or physical terminal-release evidence is created by this combined audit.
+
+Phase175: implement native RAW hold/drop,uninstalled ARM32 C.
+Reviewed main7827856. New cp_raw_lease.c/h performs original get-task4e9f24,
+nonblocking try-lock4e66f0(lock6c),owner-addb16778,pinb16a52,unpinb16b4c,
+owner-dropb16bd6 and unlock4e68a8. It checks task136,pool22a4760,node-arena
+22b4f40/stride80/extent1b800,12-pointer record bounds,node owner/full sequence,
+native generation/type/state/reference saturation,and source-configuration
+CP-DDR domain/bounds. None of those checks alone admits real pixel contents.
+The adapter adds one ownership reference AND one pin. An ordinary owner release
+leaves that extra owner/pin intact. Dropping the adapter reference restores the
+original record when another owner remains. If it becomes final owner,the
+original backing-free boundary is reached with adapter UNKNOWN;the C function
+has not returned and a repeated call is refused. Wrong epoch/sequence,node
+ownership/domain/bounds and saturated records are covered. No original service
+returns are stubbed. The original routines execute on explicit CPU/context/
+lock/metadata fixtures,not a camera.24 scenarios pass with memory observation
+enabled and disabled;146 existing workflow cases remain identical.
+An initial wrong-node counterexample differed solely when a Unicorn memory hook
+was installed around a compiled multi-instruction IT block. Private ELF/probe
+artifacts retain both results. The reviewed build adds explicit-mrestrict-it,
+checks emitted code,and requires observer/no-observer trace equivalence.
+Shared build/ELF loading keep previous defaults;explicit composed loading rejects
+overlapping firmware/code ranges. New support/raw_lease.py maps only a verified
+component into the original configuration/allocator fixture. Its actual handle
+8400 passes1/0 owners/pins->2/1->1/0,and the64-byte original record is restored
+exactly before the prior pin/unpin/local-return sequence continues unchanged.
+Retained current FILE comparison covers all reached original code/data bytes.
+The reviewed generated text is1142 bytes;lease state is224 bytes. Actual code/
+state allocation,hook/task/source/boot/policy admission,physical RAW ownership,
+exposure,S2,durable save and native terminal completion remain unimplemented or
+unverified. No USB,camera patch,device request or physical capture occurred here.

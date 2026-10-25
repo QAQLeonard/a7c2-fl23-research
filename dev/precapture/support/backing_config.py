@@ -14,6 +14,7 @@ from .capture_native import NativeCapture, BASE, OWNER, STACK, STOP, words
 from .dmm_config import config_tables, CP_CONFIG_SHA256
 from . import pool_notification
 from . import backup_binding
+from . import raw_lease
 
 ARENA, STREAM, PAGE_ROOT = 0x22a4760, 0x09a08e00, 0x32000000
 REGIONS = ((0x1a8b000, 8192), (0x1a93000, 4096), (0x174e000, 4096),
@@ -33,7 +34,7 @@ def merged_spans(spans):
     return result
 
 
-def audit(cp, raw, *, notification=None, primary_backup=None):
+def audit(cp, raw, *, notification=None, primary_backup=None, lease_adapter=None):
     if hashlib.sha256(raw).hexdigest() != CP_CONFIG_SHA256:
         raise ValueError('Exact retained original CP DMM configuration required')
     expected = config_tables(raw)
@@ -42,14 +43,15 @@ def audit(cp, raw, *, notification=None, primary_backup=None):
     if notification is not None:
         if notification not in pool_notification.SCENARIOS:
             raise ValueError('Unsupported synthetic notification scenario')
-    n = NativeCapture(cp, cpu_model=R.UC_CPU_ARM_CORTEX_A9 if notification else None)
+    n = NativeCapture(cp, cpu_model=R.UC_CPU_ARM_CORTEX_A9 if notification or lease_adapter else None)
     u = n.u
     backup_regions = ((backup_binding.BACKUP, (len(primary_backup)+4095) & ~4095),
         (backup_binding.GLOBALS & ~4095, 4096)) if primary_backup is not None else ()
     regions = (*REGIONS, *backup_regions,
-        *(pool_notification.REGIONS if notification is not None else ()))
+        *(pool_notification.REGIONS if notification is not None else ()),
+        *(raw_lease.REGIONS if lease_adapter is not None else ()))
     for at, size in regions:
-        u.mem_map(at, size)
+        if not any(a<=at and at+size-1<=b for a,b,_ in u.mem_regions()):u.mem_map(at, size)
     put = lambda at, value: u.mem_write(at, words(value))
     get = lambda at: struct.unpack('<I', u.mem_read(at, 4))[0]
     u.mem_write(STREAM, raw)
@@ -60,8 +62,11 @@ def audit(cp, raw, *, notification=None, primary_backup=None):
     notification_state_writes = []
     source_end = BASE+len(cp)
     mutable = (*regions, (OWNER, 0x10000), (STACK, 0x10000))
+    component_regions=()
 
     def code(cpu, at, size, user):
+        if any(flags&1 and start<=at<at+size<=start+length for start,length,flags in component_regions):
+            return
         if at in {STOP, *(BASE+b for b in (*BOUNDARIES, 0xb1474c))}:
             return
         if at == BASE+0xae133a and primary_backup is None:
@@ -89,12 +94,16 @@ def audit(cp, raw, *, notification=None, primary_backup=None):
             assert kind != UC_MEM_WRITE or not STREAM <= at < STREAM+len(raw), 'Config modified'
             if primary_backup is not None and backup_binding.BACKUP <= at < backup_binding.BACKUP+len(primary_backup):
                 assert kind != UC_MEM_WRITE, 'Bound BK4 bytes modified'
+        elif any(start<=at<at+size<=start+length for start,length,_ in component_regions):
+            assert kind!=UC_MEM_WRITE,'Generated component writes outside its explicit state'
         else:
             raise AssertionError('Outside explicit synthetic storage: '+hex(at))
 
     u.hook_add(UC_HOOK_CODE, code)
     u.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, access)
     binding = backup_binding.bind(n, primary_backup) if primary_backup is not None else None
+    if lease_adapter is not None:
+        lease_symbols,component_regions=raw_lease.load(n,lease_adapter)
     got = n.run(0xb16314, BOUNDARIES, [(R.UC_ARM_REG_R0, 0),
         (R.UC_ARM_REG_R1, ARENA), (R.UC_ARM_REG_SP, STACK+0x8000),
         (R.UC_ARM_REG_LR, STOP | 1)], instruction_budget=500000)
@@ -185,6 +194,7 @@ def audit(cp, raw, *, notification=None, primary_backup=None):
     assert handle == 0x8400 and get(0x22b4730) == 1022
     parent_result = dict(boundary=hex(parent['address']), args=parent['args'],
         handle_raw=hex(get(out)), metadata_remaining=get(0x22b4730))
+    lease_roundtrip = raw_lease.roundtrip(n,lease_adapter,lease_symbols,handle) if lease_adapter is not None else None
     descriptor, number = OWNER+0x400, OWNER+0x500
     n.call(0xb16a52, [handle, 1, descriptor, number])
     assert u.reg_read(R.UC_ARM_REG_R0) == 0
@@ -243,4 +253,7 @@ def audit(cp, raw, *, notification=None, primary_backup=None):
         report['stream_storage_is_synthetic'] = True
         report['omitted_property_semaphore_calls'] = 2*len(reads)
         report['limits'][1] = 'Primary-bank selection and policy-stream storage are explicit model inputs; current loaded binding remains unobserved'
+    if lease_roundtrip is not None:
+        report['compiled_native_lease']=lease_roundtrip
+        report['source_spans']=[dict(offset=at,bytes=size) for at,size in merged_spans(source_spans)]
     return report

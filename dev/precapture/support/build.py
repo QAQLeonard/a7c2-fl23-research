@@ -13,9 +13,9 @@ TARGETS = {"aarch64": "aarch64-linux-gnu", "thumb": "thumb-linux-gnueabi"}
 
 
 def compile_shared(zig, arch, output, sources, *, optimization="-Oz", debug=True,
-                   symbolic=True):
+                   symbolic=True, extra_flags=()):
     command = [
-        str(zig), "cc", "-target", TARGETS[arch], *codegen_flags(arch), optimization,
+        str(zig), "cc", "-target", TARGETS[arch], *codegen_flags(arch), optimization, *extra_flags,
         *(["-g"] if debug else []), "-shared", "-fPIC", "-ffreestanding",
         "-fno-builtin", "-fno-stack-protector", "-fno-unwind-tables",
         "-fno-asynchronous-unwind-tables", "-nostdlib",

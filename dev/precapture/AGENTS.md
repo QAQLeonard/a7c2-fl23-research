@@ -158,6 +158,28 @@ exposure,RAW lease,photo save or terminal notification. Acquisition schema,
 archive/source receipts,unique read intent/reply/order and final USB status are
 checked before any model runs;private raw files/results remain excluded.
 
+Phase175 adds actual uninstalled ARM32 C hold/drop functions for an existing
+type50504 RAW handle. They query original task136,try lock6c without waiting,
+check pool/node ownership/full sequence,bound node count to12,add an original
+owner reference,then pin descriptors. Drop unpins and drops only that ownership
+reference;any interrupted native call remains UNKNOWN and refuses replay.
+An original allocator-produced handle also passes through this compiled adapter
+and returns its full metadata record exactly. Original CPU/task/locks/getter/
+ownership/pin/unpin/drop instructions execute without successful service stubs,
+on synthetic state only. No actual pixel,exposure,save or physical lifetime is
+claimed. Code is1142 bytes and each lease224 bytes in the reviewed build;neither
+is admitted camera storage. Do not place it in runtime96,padding or a retired
+trial's region,or treat task-ID/descriptor checks as physical source admission.
+The memory-observer counterexample for the initial compiled multi-instruction
+IT block is preserved privately:the same wrong-node case differs with/without
+a Unicorn memory hook. The new build explicitly uses-mrestrict-it,checks that
+only single-instruction IT blocks occur,and requires all24 adapter scenarios
+to match with/without the memory observer. This is an emulator-control finding,
+not a reproduced camera fault. Existing build/loader defaults remain unchanged;
+composed loading refuses image overlap. Prior native reports and146 workflow
+cases remain identical. Hook/task/loaded-code/storage/policy admission and an
+actual retained frame are still required before physical pre-capture testing.
+
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
 inject fake AP pending records to defeat the earlier empty-deque assertion.
