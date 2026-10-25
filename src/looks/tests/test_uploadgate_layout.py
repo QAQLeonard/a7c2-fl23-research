@@ -197,16 +197,16 @@ class UploadGateLayoutTests(unittest.TestCase):
                              uploadgate.NATIVE)
 
     def test_factory_reference_and_public_noop_window_retain_entry_ownership(self):
-        factory = json.loads((ASSETS / 'factory-regions-2.01.json').read_text(encoding='utf-8'))
+        factory = json.loads((ASSETS / 'factory-layout-2.01.json').read_text(encoding='utf-8'))
         covering = [row for row in factory['programs']['cpapp-b.bin']['regions']
                     if row['offset'] <= uploadgate.OFFSET and
                     uploadgate.OFFSET + 4 <= row['offset'] + row['bytes']]
         self.assertEqual(len(covering), 1)
         row = covering[0]
-        raw = zlib.decompress(base64.b64decode(row['zlib_base64']))
-        self.assertEqual(len(raw), row['bytes'])
-        start = uploadgate.OFFSET - row['offset']
-        self.assertEqual(raw[start:start + 4], uploadgate.NATIVE)
+        self.assertNotIn('zlib_base64',row)
+        self.assertEqual(row['offset'],uploadgate.OFFSET)
+        self.assertEqual(row['bytes'],4)
+        self.assertEqual(row['sha256'],__import__('hashlib').sha256(uploadgate.NATIVE).hexdigest())
         for spec in self.asset['cp_sources']:
             # build_factory_reference collects these window offsets and their
             # before lengths. A no-op must remain listed for old A recovery.

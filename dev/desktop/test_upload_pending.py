@@ -118,7 +118,7 @@ def test_direct_apply_native_and_legacy_reverts_preserve_other_data():
 
 
 def test_factory_reference_covers_every_trial_window_with_sony_originals():
-    ref = json.loads((ROOT / 'src/looks/assets/factory-regions-2.01.json').read_text(encoding='utf-8'))
+    ref = json.loads((ROOT / 'src/looks/assets/factory-layout-2.01.json').read_text(encoding='utf-8'))
     rows = ref['programs']['cpapp-b.bin']['regions']
     for _, at, before, after in uploadpending.WINDOWS:
         size = len(bytes.fromhex(after))
@@ -126,12 +126,10 @@ def test_factory_reference_covers_every_trial_window_with_sony_originals():
         for row in rows:
             start, end = max(at, row['offset']), min(at + size, row['offset'] + row['bytes'])
             if start < end:
-                raw = zlib.decompress(base64.b64decode(row['zlib_base64']))
-                actual[start-at:end-at] = raw[start-row['offset']:end-row['offset']]
+                assert 'zlib_base64' not in row
                 covered.update(range(start-at, end-at))
         assert len(covered) == size
-        if any(pos == at for pos, _ in uploadpending.factory_windows()):
-            assert bytes(actual) == bytes.fromhex(before)
+        assert all(len(row['sha256'])==64 for row in rows)
 
 
 def test_direct_trial_writes_one_batch_and_can_revert_from_a_fresh_request(tmp_path):

@@ -156,6 +156,7 @@ class Window(W.QMainWindow):
             vertical=self.setup_vertical.isChecked(), plugin=self.setup_plugin.isChecked(),
             exiftool=str(tool), looks=[] if self.setup_presets.isChecked() else looks,
             preset_pack=presets.PACK if self.setup_presets.isChecked() else None)
+        options['voice_cleanup_policy']=1
         return dict(self.common(), workspace=root, options=options)
 
     def home_page(self):
@@ -165,6 +166,9 @@ class Window(W.QMainWindow):
         self.setup_fl23 = W.QCheckBox('启用 FL2／FL3'); self.setup_fl23.setChecked(True)
         self.setup_sound = W.QCheckBox('启用索尼原生电子快门声音'); self.setup_sound.setChecked(True)
         self.setup_vertical = W.QCheckBox('保存开启竖屏拍摄信息显示（重开后自动生效）'); self.setup_vertical.setChecked(True)
+        self.setup_voice=W.QCheckBox('清理无障碍语音包，并将语音指南置灰（安装必选）')
+        self.setup_voice.setChecked(True);self.setup_voice.setEnabled(False)
+        self.setup_voice.setToolTip('删除十种语言的菜单朗读音频，约释放 283 MiB；不删除对焦提示音或快门声音。只能通过一键恢复补回。')
         self.setup_plugin = W.QCheckBox('安装 Lightroom 自动识别插件（需要 Lightroom）')
         prior_path=Path(self.settings.get('setup_work',''),'setup.private.json')
         prior=json.loads(prior_path.read_text(encoding='utf-8')) if prior_path.is_file() else {}
@@ -190,9 +194,19 @@ class Window(W.QMainWindow):
             self.setup_presets.toggled.connect(self.setup_preset_summary.setEnabled)
         layout.addWidget(self.setup_preset_summary)
         for check in (self.setup_fl23, self.setup_sound, self.setup_vertical, self.setup_plugin):layout.addWidget(check)
-        source_notice=W.QLabel('备份与恢复来源：建议在“恢复原厂功能”页可选备份当前项目；清理语音前可另外备份语音。'
+        voice_row=W.QHBoxLayout();voice_row.addWidget(self.setup_voice)
+        voice_help=W.QToolButton();voice_help.setText('？');voice_help.setObjectName('voiceCleanupHelp')
+        voice_help.setToolTip(self.setup_voice.toolTip())
+        voice_help.clicked.connect(lambda:W.QMessageBox.information(self,'无障碍语音包是什么',
+            '这是相机为视障使用者提供的菜单朗读／语音指南，包含十种语言的音频，约占 283 MiB。\n\n'
+            '一键安装会关闭语音指南、将相关机内选项置灰，重开核对后删除音频，为竖屏等资源腾出空间。'
+            '不会删除语言索引、对焦提示音、原生快门声或自定义电子快门音效。\n\n'
+            '该项属于新安装方案，不能取消。仅“一键恢复原厂功能”会从用户的官方固件或可用同机备份补回；机内初始化不能恢复。'
+            '需要语音指南辅助操作的用户请勿使用本安装方案。'))
+        voice_row.addWidget(voice_help);voice_row.addStretch();layout.addLayout(voice_row)
+        source_notice=W.QLabel('备份与恢复来源：可在“恢复原厂功能”页备份当前项目与语音。'
             '为尊重原厂版权、降低包括 DMCA 在内的法律风险，安装包不附带完整官方固件或原厂语音包。'
-            '清理语音后要补回文件，需使用同机语音备份，或自行从索尼官方下载 ILCE-7CM2 2.01 BODYDATA.DAT。'
+            '一键恢复的程序、设置及语音来源由你提供：使用可用同机原始备份，或自行从索尼官方下载 ILCE-7CM2 2.01 BODYDATA.DAT。'
             '普通安装不强制先备份或下载；恢复也不保证能救回无法开机的相机。')
         source_notice.setObjectName('setupRecoverySourceNotice');source_notice.setWordWrap(True)
         layout.addWidget(source_notice)
@@ -405,47 +419,36 @@ class Window(W.QMainWindow):
         layout.addStretch()
 
     def recovery_page(self):
-        layout = self.page('恢复原厂功能', '恢复本项目修改，六个自订栏位设为 ST，快门设回机械、静音模式关闭，并关闭新增电子快门音效。保留机身校准和未涉及的个人设置；旧配方不找回。清理过语音包时，需用官方 2.01 文件先补回资源。')
-        original=self.box(layout,'语音包恢复来源（清理过语音时选择）')
-        self.field(original,'factory_voice_firmware','Sony BODYDATA.DAT',kind='file',filter='Sony firmware (*.DAT *.bin);;All files (*)')
-        source_notice=W.QLabel('为尊重原厂版权并降低包括 DMCA 在内的法律风险，工具不附带完整固件及原厂语音包。'
-            '此处使用你自行从索尼取得的 ILCE-7CM2 2.01 文件，在本地提取恢复资源；也可使用同机语音备份。'
-            '这不是普通安装的前置要求。')
+        layout = self.page('恢复原厂功能', '一键恢复本项目功能：六槽回 ST、快门回机械、关闭静音模式和新增电子音效。保留机身校准；语音包可选择是否同时恢复。')
+        original=self.box(layout,'恢复来源（程序、设置及所选语音均从你的本地文件取得）')
+        self.field(original,'factory_voice_firmware','官方 2.01 BODYDATA.DAT',kind='file',filter='Sony firmware (*.DAT *.bin);;All files (*)')
+        self.field(original,'factory_original_backup','或：同机原始备份',kind='file',filter='Backup (*.zip);;All files (*)')
+        source_notice=W.QLabel('应用不内置原厂恢复文件。为尊重版权、降低包括 DMCA 在内的法律风险，一键恢复需使用你自行取得的官方 2.01 固件，或可用的同机原始备份。'
+            '普通安装不要求预先下载；这项说明适用于所有原厂恢复，不仅是语音包。')
         source_notice.setWordWrap(True);layout.addWidget(source_notice)
         download=W.QPushButton('打开索尼官方 2.01 固件下载页')
         from .screenreader import DOWNLOAD_URL
         download.clicked.connect(lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(DOWNLOAD_URL)))
         layout.addWidget(download);self.buttons.append(download)
-        self.factory_button=self.button(layout, '按当前相机恢复原厂 2.01 功能（无需旧备份）', 'direct_factory_reset',
-                    lambda: self.direct_args('factory', mode='factory_reset', factory='builtin',
-                        sony_firmware=self.text('factory_voice_firmware') or None), primary=True)
-        self.factory_status=W.QLabel('恢复写入后必须按弹窗重启，再接回核对；核对通过前不会标记恢复完成。')
+        self.factory_voice=W.QCheckBox('同时恢复无障碍语音包，并解除语音指南置灰')
+        self.factory_voice.setChecked(True);layout.addWidget(self.factory_voice)
+        voice_note=W.QLabel('勾选时补回语音文件并解除置灰；不勾选则不补回已删除的语音，已禁用的语音指南保持关闭、置灰。')
+        voice_note.setWordWrap(True);layout.addWidget(voice_note)
+        self.factory_button=W.QPushButton('开始一键恢复')
+        self.factory_button.setObjectName('factoryPrimaryAction');self.factory_button.setProperty('primary',True)
+        self.factory_button.clicked.connect(self.factory_action)
+        layout.addWidget(self.factory_button);self.buttons.append(self.factory_button)
+        self.factory_status=W.QLabel('点击开始；写入后按提示重启，再点同一个按钮继续完成恢复。')
         self.factory_status.setWordWrap(True);layout.addWidget(self.factory_status)
-        resume_section = self.advanced(layout, '上次恢复的核对记录（可选）')
+        resume_section = self.advanced(layout, '上次恢复记录（可选）')
         resume_form = W.QFormLayout()
-        self.field(resume_form, 'factory_failed_work', '核对事务目录', kind='folder',
-                   value=self.settings.get('factory_direct_work', ''))
+        self.field(resume_form, 'factory_failed_work', '恢复任务目录', kind='folder',value=self.settings.get('factory_direct_work', ''))
         resume_section.addLayout(resume_form)
-        self.factory_accept = self.reload_controls(layout, '取景、拍照和回放正常')
-        self.button(layout, '重启后核对并完成恢复（恢复写入后必做）', 'direct_verify',
-                    lambda: self.direct_verify_args('factory', self.factory_accept.isChecked()))
+        self.factory_wait_controls=W.QWidget()
+        wait_layout=W.QVBoxLayout(self.factory_wait_controls);wait_layout.setContentsMargins(0,0,0,0)
+        self.factory_accept = self.reload_controls(wait_layout, '取景、拍照和回放正常')
+        layout.addWidget(self.factory_wait_controls)
         layout.addWidget(W.QLabel('相机仍需能够进入 USB 服务通信；此操作不是索尼更新器的降级重刷。'))
-        expert = self.advanced(layout, '导入完整原厂 2.01 参考文件（高级、可选）')
-        reference = self.box(expert, '原厂文件')
-        self.field(reference, 'factory_file', 'Sony BODYDATA.DAT', kind='file', filter='Sony firmware (*.DAT *.bin);;All files (*)')
-        self.button(expert, '准备所选原厂文件（不连接相机）', 'factory_prepare',
-                    lambda: {'source': self.text('factory_file') or str(data_root() / 'factory-2.01')})
-        self.button(expert, '使用导入的完整原厂文件恢复', 'direct_factory_reset',
-                    lambda: self.direct_args('factory', mode='factory_reset', factory=str(data_root() / 'factory-2.01'),
-                        sony_firmware=self.text('factory_voice_firmware') or None))
-        voice=self.advanced(layout,'语音指南空间（可选）')
-        guide=W.QLabel('清理会先关闭语音指南，将机内语音相关选项置灰、禁止选择。第一次写入关闭限制后，按提示断电重开，再点同一按钮删除十种语言的音频；'
-            '索引、对焦提示音和快门声音保留。相机初始化不能补回文件。恢复语音或一键恢复前，请在上方选择官方 2.01 固件。')
-        guide.setWordWrap(True);voice.addWidget(guide)
-        voice_args=lambda:dict(self.common(),workspace=str(data_root()/'voice-space'),
-            sony_firmware=self.text('factory_voice_firmware') or None,backup=self.text('restore_backup') or None)
-        self.button(voice,'关闭语音指南并释放音频空间','voice_cleanup',voice_args)
-        self.button(voice,'补回语音文件并解除限制','voice_restore',voice_args)
         backup = self.advanced(layout, '备份当前项目状态（可选）')
         backup_form=W.QFormLayout()
         self.field(backup_form,'backup_folder','保存位置',kind='folder',value=str(data_root()/'backups'))
@@ -464,24 +467,46 @@ class Window(W.QMainWindow):
         layout.addStretch()
         self.refresh_factory_controls()
 
-    def refresh_factory_controls(self):
-        # The main button always starts fresh; only the separate verification
-        # button uses the explicitly selected completed-write record.
-        self.factory_button.setText('按当前相机恢复原厂 2.01 功能（无需旧备份）')
-        work=self.settings.get('factory_direct_work') or self.text('factory_failed_work')
+    def factory_state(self):
+        work=self.text('factory_failed_work') or self.settings.get('factory_direct_work','')
         path=Path(work,'direct.private.json') if work else None
         try:state=json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {}
         except (OSError,ValueError):state={}
-        if not isinstance(state,dict):state={}
-        phase=state.get('phase')
-        if phase=='AWAITING_RELOAD':
-            self.factory_status.setText('上次恢复写入与读回已结束，但核对尚未完成。请按提示重启后使用下方核对按钮；上方恢复按钮始终按当前相机重新规划。')
-        elif phase in ('LOADED','COMPLETE') and state.get('readonly_after_reload_verified'):
-            self.factory_status.setText('上次恢复核对已通过；再次点击恢复会按当前相机重新规划，旧任务不影响本次操作。'
-                if state.get('private_sound_files_removed') else
-                '上次程序设置核对已通过，音效资源清理尚未确认；请使用下方核对按钮完成当前恢复。')
+        return state if isinstance(state,dict) else {}
+
+    def factory_action(self):
+        state=self.factory_state()
+        waiting=state.get('phase') in ('AWAITING_RELOAD','LOADED','COMPLETE') and not (
+            state.get('readonly_after_reload_verified') and state.get('private_sound_files_removed'))
+        if waiting:
+            args=self.direct_verify_args('factory',self.factory_accept.isChecked())
+            args.update(sony_firmware=self.text('factory_voice_firmware') or None,
+                backup=self.text('factory_original_backup') or None)
+            self.launch('direct_verify',args)
+        else:
+            if not (self.text('factory_voice_firmware') or self.text('factory_original_backup')):
+                W.QMessageBox.information(self,'请选择恢复来源','请先选择官方 ILCE-7CM2 2.01 BODYDATA.DAT，或可用的同机原始备份；程序、设置及所选语音均从该来源取得。')
+                return
+            self.launch('direct_factory_reset',self.direct_args('factory',
+                sony_firmware=self.text('factory_voice_firmware') or None,
+                backup=self.text('factory_original_backup') or None,restore_voice=self.factory_voice.isChecked()))
+
+    def refresh_factory_controls(self):
+        state=self.factory_state();phase=state.get('phase')
+        waiting=phase in ('AWAITING_RELOAD','LOADED','COMPLETE') and not (
+            state.get('readonly_after_reload_verified') and state.get('private_sound_files_removed'))
+        self.factory_button.setText('继续完成一键恢复' if waiting else '开始一键恢复')
+        self.factory_wait_controls.setVisible(waiting)
+        self.factory_voice.setEnabled(not waiting)
+        if waiting:
+            self.factory_voice.setChecked(state.get('restore_voice',True))
+            self.factory_status.setText('恢复尚未完成：写入已结束。请按提示重启、接回 USB，然后点击上面的“继续完成一键恢复”；不会重复刷写程序。')
+        elif phase in ('LOADED','COMPLETE'):
+            self.factory_status.setText('上次恢复已完成'+('，按本次选择保留语音禁用及置灰。' if state.get('restore_voice') is False else '。')+
+                '机身取景、拍照与回放仍请实际检查。')
         elif phase=='NEEDS_REVIEW':
-            self.factory_status.setText('上次操作未完成或尚未开始，旧记录保留用于诊断。再次恢复会读取当前相机，不要求旧任务成功。')
+            self.factory_status.setText('上次操作未完成或尚未开始，日志已保留。选择恢复来源后，点击“开始一键恢复”。')
+        else:self.factory_status.setText('点击开始；写入后按提示重启，再点同一个按钮继续完成恢复。')
 
     def backup_recovery_controls(self, layout):
         form = self.box(layout, '恢复来源')
@@ -785,7 +810,7 @@ class Window(W.QMainWindow):
             # file restore is checked by the factory verification button.
             answer = W.QMessageBox.question(self, '这里没有旧备份恢复记录',
                 '“核对旧备份恢复后的加载状态”只用于“使用旧备份回到过去的状态”。\n'
-                '用内置原厂基准或固件文件恢复后，应点“重启后核对并完成恢复”。\n现在改为核对原厂恢复？',
+                '用原厂来源恢复后，应点“继续完成一键恢复”。\n现在改为核对原厂恢复？',
                 W.QMessageBox.Yes | W.QMessageBox.Cancel, W.QMessageBox.Yes)
             if answer != W.QMessageBox.Yes:
                 return
@@ -822,8 +847,9 @@ class Window(W.QMainWindow):
                      '一次应用清单内的写入和恢复，未添加的槽位保持原样；保留 FL23、声音和竖屏。写入读回完成后统一提示断电重开。\n' if action=='direct_looks_import' else
                      '自动准备驱动并安装首页勾选的功能。断电重开必须由你按提示完成；结果不明时停止，不自动重复刷写。\n' if action == 'setup_all' else
                      '从当前相机字节重新生成原厂恢复计划；旧记录不影响本次操作，已符合目标的内容不重复写入。\n' if action == 'direct_resume_factory' else
-                     '将移除项目程序修改、将六个自订栏位设为 ST，快门设回机械并关闭新增电子快门音效；旧配方不找回。'
-                     '清理过语音时先补回资源；重开后核对再清除私有音效文件。\n' if action == 'direct_factory_reset' else
+                     '将移除项目程序修改、将六个自订栏位设为 ST，快门设回机械并关闭新增电子快门音效；旧配方不找回。'+
+                     ('本次同时补回语音包并解除置灰；' if arguments.get('restore_voice',True) else '本次保留语音已删除与置灰状态；')+
+                     '重开后继续完成恢复，再清除私有音效文件。\n' if action == 'direct_factory_reset' else
                      '先关闭语音指南并将机内语音选项置灰；写入后须按提示重开，再点同一按钮核对并删除十份语音音频。不会删除索引、对焦提示音或快门音频。\n' if action=='voice_cleanup' else
                      '从所选官方 2.01 文件或语音备份完整补回资源，核对全部文件后再解除限制。\n' if action=='voice_restore' else
                      '只关闭 FL2／FL3 列表入口，保留 LUT 与共用代码。请先在相机选择 ST。\n' if action == 'direct_fl23_disable' else
@@ -954,7 +980,7 @@ class Window(W.QMainWindow):
         if not success and sys.platform == 'win32' and self.driver_step_failed(status.get('action')):
             self.status.setText(self.status.text() + DRIVER_HINT)
         if sound_notice:self.status.setText(sound_notice['status'])
-        if factory_wait:self.status.setText('恢复尚未完成：写入和读回已结束，必须断电重启、接回 USB，再点“重启后核对并完成恢复”。')
+        if factory_wait:self.status.setText('恢复尚未完成：写入和读回已结束，必须断电重启、接回 USB，再点“继续完成一键恢复”。')
         elif factory_done:self.status.setText('原厂恢复核对通过，旧安装状态已清除。请继续检查机身拍摄和回放；重新安装请点首页“一键安装”。')
         self.progress.setRange(0, 100)
         self.progress.setValue(40 if waiting and status.get('result',{}).get('mode')=='voice_disable' else

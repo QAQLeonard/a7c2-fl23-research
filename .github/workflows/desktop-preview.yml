@@ -60,7 +60,7 @@ jobs:
       - name: Startup consent and native portrait contracts (no USB)
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -m pytest -p no:faulthandler dev/desktop/test_disclaimer.py dev/desktop/test_vertical_native.py dev/desktop/test_vertical_voice_restore.py dev/desktop/test_resource_files_native.py dev/vertical/test_nativeportrait.py -q
+        run: python -m pytest -p no:faulthandler dev/desktop/test_disclaimer.py dev/desktop/test_install_recovery_policy.py dev/desktop/test_vertical_native.py dev/desktop/test_vertical_voice_restore.py dev/desktop/test_resource_files_native.py dev/vertical/test_nativeportrait.py -q
       - name: Build native package
         run: python dev/desktop/build.py
       - name: Windows packaged offline checks

@@ -30,7 +30,7 @@ For other models, these independent projects may help. They are not part of this
 
 Each normal desktop launch shows a risk summary and requires manually accepting it before the interface opens. The linked [risk notice and use statement](docs/en/notices.md#risk-notice-and-use-statement) provides the full text. The tool is free and unofficial. The author opposes paid flashing and prohibits false claims of Sony/author authorization; code remains MIT-licensed.
 
-**Backups and recovery sources:** ordinary installation does not require a backup or a full firmware download. The recovery page offers an optional current-project backup, with voice data saved separately. To respect firmware copyright and reduce legal risks, including DMCA considerations, packages omit complete official firmware and original voice packs. Restoring deleted voice files requires a same-body voice backup or **ILCE-7CM2 2.01 `BODYDATA.DAT`** obtained from Sony for local extraction. This policy does not establish authorization for every modification, guarantee recovery, or prevent litigation.
+**Backups and recovery sources:** ordinary installation does not require a backup or a full firmware download. The recovery page offers an optional current-project backup, with voice data saved separately. To respect firmware copyright and reduce legal risks, including DMCA considerations, packages omit complete official firmware and original voice packs. All factory recovery requires a usable original same-body backup or **ILCE-7CM2 2.01 `BODYDATA.DAT`** obtained from Sony for local extraction. This policy does not establish authorization for every modification, guarantee recovery, or prevent litigation.
 
 The interface is in Simplified Chinese. Button names below are given in Chinese with an English translation, so you can match them on screen.
 
@@ -61,7 +61,7 @@ The interface is in Simplified Chinese. Button names below are given in Chinese 
 
 | Feature | Description |
 | --- | --- |
-| **One-click install** | Installs the six built-in looks, FL2/FL3, electronic shutter sound and Vertical Display in one pass. The Lightroom plugin is optional. |
+| **One-click install** | Always removes accessibility speech audio and locks Voice Guide off, then installs selected looks, sound and Vertical Display. The Lightroom plugin is optional. |
 | **FL2 / FL3** | Adds FL2 and FL3 to the Creative Look list. You can remove them again at any time. |
 | **Custom Creative Looks** | Writes `.a7look` files into custom slots 1–6 with your own names, or resets slots to ST. Slots you don't list stay unchanged. |
 | **Look conversion** | Converts DCP or CUBE files to `.a7look` offline, without Lightroom. Ships with 15 paired DCP/A7Look profiles. |
@@ -228,16 +228,16 @@ On the app's **连接与驱动 (Connection & drivers)** page, the **用 Zadig �
 A camera that was never modified can skip this step.
 
 1. On the camera, switch Creative Look to **ST**.
-2. Open **恢复原厂功能 (Restore factory functions)** and click **恢复／继续恢复原厂 2.01 功能（无需旧备份）(Restore / continue restoring factory 2.01 functions, no old backup needed)**. Confirm power to start.
-   - The app has built-in stock 2.01 data for the regions it changes, so no old backup or firmware download is needed.
+2. Open **恢复原厂功能 (Restore factory functions)**, select an original recovery source, optionally tick **同时恢复无障碍语音包 (Also restore Voice Guide audio)**, and click **开始一键恢复 (Start one-click recovery)**.
+   - Select official 2.01 firmware or a usable original same-body backup. The app ships a recovery layout, not original recovery bytes. Voice restoration is optional within this full recovery flow.
    - Body calibration, counters and unrelated settings are kept.
 3. After the write and full readback, a dialog says **the restore is not finished yet**. Do a [cold reload](#before-you-start) and check that the camera shows a live view.
-4. Reconnect USB (Mass Storage) and click **重启后核对并完成恢复 (Verify after restart and finish restore)**. The restore is complete only when this check passes; the app then clears the old installation state.
+4. Reconnect USB (Mass Storage) and click the same primary button, now labeled **继续完成一键恢复 (Continue and finish recovery)**. The restore is complete only when this check passes; the app then clears the old installation state.
 
 > [!WARNING]
 > Restoring sets all six custom slots to ST. Recipes you had in them **cannot be recovered**. Write down any settings you want to keep first.
 
-If the restore is interrupted, click the same button again: the app reads the camera's current state and finishes only what's left. If the button changes to **断电后重试恢复（本次尚未写入）(Retry after power cycle; nothing written yet)**, nothing was written this time. Do a cold reload as the dialog says, then click it.
+If recovery reports an error, preserve its diagnostic bundle. When the primary button says **继续完成一键恢复**, it verifies completed writes without flashing the programs again. Recovery from interruption or damage is not guaranteed.
 
 ### Step 3: One-click install
 

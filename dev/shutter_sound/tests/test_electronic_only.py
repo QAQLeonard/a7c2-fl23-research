@@ -119,12 +119,11 @@ def test_disabled_switch_keeps_mechanical_and_electronic_silent_with_custom_regi
 
 def test_factory_reference_contains_inverse_for_both_sound_windows(stock):
     import base64,zlib
-    reference=json.loads((ROOT/'src/looks/assets/factory-regions-2.01.json').read_text())
+    reference=json.loads((ROOT/'src/looks/assets/factory-layout-2.01.json').read_text())
     rows=reference['programs']['cpapp-b.bin']['regions']
     for at,before,after in candidate.WINDOWS:
         row=next(r for r in rows if r['offset']<=at and at+len(before)<=r['offset']+r['bytes'])
-        raw=zlib.decompress(base64.b64decode(row['zlib_base64']))
-        assert raw[at-row['offset']:at-row['offset']+len(before)]==before
+        assert 'zlib_base64' not in row and len(row['sha256'])==64
 
 
 @pytest.mark.parametrize('legacy',[False,True])

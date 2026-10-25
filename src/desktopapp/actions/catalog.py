@@ -1,11 +1,11 @@
 """Shared desktop action categories; no host-specific feature variants."""
-CAMERA_ACTIONS = {'connect', 'usb_prepare', 'driver_uninstall', 'backup_current','voice_cleanup','voice_restore',
+CAMERA_ACTIONS = {'connect', 'usb_prepare', 'driver_uninstall', 'backup_current','voice_cleanup',
                   'restore', 'restore_auto', 'restore_verify',
                   'vertical_enable', 'vertical_disable',
                   'vertical_status', 'vertical_remove', 'sound_on', 'sound_off',
                   'sound_audition', 'sound_install', 'sound_verify', 'sound_restore_sound'}
 
-POWER_ACTIONS = {'restore', 'restore_auto', 'voice_cleanup','voice_restore',
+POWER_ACTIONS = {'restore', 'restore_auto', 'voice_cleanup',
                  'vertical_enable', 'vertical_disable', 'vertical_remove',
                  'sound_on', 'sound_off', 'sound_audition', 'sound_install', 'sound_restore_sound'}
 DIRECT_ACTIONS = {'direct_fl23_enable', 'direct_fl23_disable', 'direct_vertical_enable', 'direct_vertical_disable', 'direct_slot_default',

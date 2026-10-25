@@ -188,6 +188,7 @@ def run():
         calls=[]
         def simulated(action,args,folder):
             calls.append(action)
+            if action=='voice_cleanup':return dict(voice_audio_removed=True,voice_setting_locked_off=True,voice_menu_flags_verified=True)
             if action == 'direct_install_all':
                 assert args['options']['vertical_persistent'] is True
                 _, rows = bundle.documents(args['options'])
@@ -198,7 +199,7 @@ def run():
         result=allinone.run(dict(workspace=temporary,firmware='2.01',power_confirmed=True,
             options=dict(fl23=False,sound=False,vertical=True,plugin=False,preset_pack=presets.PACK)),dispatch=simulated)
         assert result['phase']=='COMPLETE' and not result['physical_checks_accepted']
-        assert calls==['usb_prepare','vertical_enable','direct_install_all']
+        assert calls==['usb_prepare','voice_cleanup','vertical_enable','direct_install_all']
         assert '电子快门声：本次未选择' in completion.text(result)
         assert completion.console_summary(result)['phase']=='COMPLETE'
         assert '无需每次连接电脑' in completion.text(result)
@@ -223,8 +224,8 @@ def run():
     sys.path.insert(0, str(ROOT / 'src/desktopapp/vendor'))
     from fwtool.sony import dat, fdat
     from fwtool.archive import ext2, fat
-    from desktopapp.official import builtin
-    assert builtin()['version'] == '2.01'
+    from desktopapp.official import layout
+    assert layout()['version'] == '2.01'
     sys.path[:0] = [str(ROOT / 'src/vertical'), str(ROOT / 'src/shutter_sound')]
     importlib.import_module('verticaltool.device')
     importlib.import_module('looktool.portraitjob')

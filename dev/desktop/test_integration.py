@@ -167,10 +167,10 @@ class IntegrationTests(unittest.TestCase):
     def test_factory_verification_uses_only_explicitly_selected_record(self):
         from unittest.mock import Mock
         obj=Mock();obj.root=self.root/'actual-completed'
-        obj.state_path=self.root/'state';obj.state_path.write_text('{"mode":"factory_reset","factory_path":"builtin"}')
+        obj.state_path=self.root/'state';obj.state_path.write_text('{"mode":"factory_reset","factory_path":"builtin","phase":"AWAITING_RELOAD"}')
         obj.verify_direct.return_value={'phase':'LOADED','mode':'factory_reset'}
         args={'workspace':str(obj.root),'factory_verify':True,'accepted':False}
-        with patch('looktool.direct.DirectJob',return_value=obj),patch('desktopapp.official.load',return_value={}):
+        with patch('looktool.direct.DirectJob',return_value=obj),patch('desktopapp.official.prepare_restore',return_value=({},'local-reference',None)):
             result=worker.run('direct_verify',args,self.root)
         self.assertEqual(result['workspace'],str(obj.root))
         obj.verify_direct.assert_called_once()
@@ -184,7 +184,7 @@ class IntegrationTests(unittest.TestCase):
             readonly_after_reload_verified=True,physical_checks_accepted=False))
         obj=Mock();obj.root=self.root/'fresh-recovery'
         obj.run_direct.return_value=dict(mode='factory_reset',phase='AWAITING_RELOAD')
-        with patch('looktool.direct.DirectJob',return_value=obj),patch('desktopapp.official.load',return_value={}):
+        with patch('looktool.direct.DirectJob',return_value=obj),patch('desktopapp.official.prepare_restore',return_value=({},'local-reference',None)):
             result=worker.run('direct_factory_reset',dict(workspace=str(obj.root),firmware='2.01',
                 power_confirmed=True,failed_workspace=str(prior)),self.root)
         obj.verify_direct.assert_not_called();obj.continue_factory.assert_not_called()

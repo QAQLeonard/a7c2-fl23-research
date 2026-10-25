@@ -1,10 +1,9 @@
 """Build generic original bytes for project-owned regions, never body backups."""
 import argparse
-import base64
+from hashlib import sha256
 import json
 from pathlib import Path
 import sys
-import zlib
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'src/looks'), str(ROOT / 'src/shutter_sound')]
@@ -29,7 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--components', type=Path, required=True)
     parser.add_argument('--legacy-fixtures', type=Path)
-    parser.add_argument('--output', type=Path, default=ROOT / 'src/looks/assets/factory-regions-2.01.json')
+    parser.add_argument('--output', type=Path, default=ROOT / 'src/looks/assets/factory-layout-2.01.json')
     args = parser.parse_args()
     programs = {name: (args.components / name).read_bytes() for name in ('appFw.so', 'cpapp-b.bin')}
     regions = {name: [] for name in programs}
@@ -69,24 +68,23 @@ def main():
                           ('three_cp', 'cpapp-b.bin'), ('v4_cp', 'cpapp-b.bin')):
             candidate = Path(index[key]).read_bytes()
             regions[name].extend((at, len(old)) for at, old, new in checkpointworker.differences(programs[name], candidate))
-    output = {'schema': 'a7c2-factory-regions/1', 'model': 'ILCE-7CM2', 'version': '2.01',
+    output = {'schema': 'a7c2-factory-layout/1', 'model': 'ILCE-7CM2', 'version': '2.01',
               'source': 'Sony ILCE-7CM2 2.01 official FDAT, model 0x20030014',
               'scope': 'Only supported project program regions and FL23 color-unit subranges; not full firmware or body calibration',
               'programs': {}, 'color_units': {}}
-    encode = lambda raw: base64.b64encode(zlib.compress(raw, 9)).decode('ascii')
     for name, spans in regions.items():
         rows = []
         for at, size in merged(spans):
             raw = programs[name][at:at + size]
             if len(raw) != size:
                 raise ValueError('Reference region outside original file')
-            rows.append({'offset': at, 'bytes': size, 'zlib_base64': encode(raw)})
+            rows.append({'offset': at, 'bytes': size, 'sha256': sha256(raw).hexdigest()})
         output['programs'][name] = {'bytes': len(programs[name]), 'regions': rows}
     from looktool.direct import color_regions
     records = modules()[1].backup_records((args.components / 'CX89700_ALLLANG.bin').read_bytes())
     for key, spans in color_regions().items():
         output['color_units'][str(key)] = [{'offset': at, 'bytes': size,
-            'zlib_base64': encode(records[1][key].data[at:at + size])} for at, size in spans]
+            'sha256': sha256(records[1][key].data[at:at + size]).hexdigest()} for at, size in spans]
     args.output.write_text(json.dumps(output, indent=2) + '\n', encoding='utf-8')
     print({'file': str(args.output), 'bytes': args.output.stat().st_size,
            'regions': {n: len(v['regions']) for n, v in output['programs'].items()}, 'camera_io': False})

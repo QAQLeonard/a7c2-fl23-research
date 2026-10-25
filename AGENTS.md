@@ -25,8 +25,10 @@ No Claude or additional agents without explicit user authorization.
   requirements into these GUI actions; ST reset does not recover former recipes.
 - Historical backup restoration and the existing CLI behavior remain separate,
   optional paths with their own contracts.
-- The built-in factory reference holds generic original Sony bytes only for
-  supported project regions, with no body calibration or full firmware.
+- Factory recovery sources come from the user's official 2.01 firmware or a
+  usable same-body original backup. Ship only the region layout/digests, not
+  original recovery bytes. New one-click installs always include voice cleanup;
+  only the full recovery flow offers optional voice restoration.
 - Preserve current calibration, unselected slots and their titles, and unrelated
   settings. Every imported slot uses ST in saved and runtime bindings; the base
   picker stays editable, so never claim a hard lock.

@@ -43,7 +43,7 @@ def test_written_recovery_is_70_percent_and_requires_reboot_verification(pending
         finish(window,work,'AWAITING_RELOAD')
     assert window.progress.value()==70
     assert '恢复尚未完成' in window.status.text()
-    assert '按当前相机恢复' in window.factory_button.text()
+    assert window.factory_button.text()=='继续完成一键恢复'
     assert '尚未完成' in window.factory_status.text()
     popup.assert_called_once_with(setup=False,mode='factory_reset')
     assert not window.factory_accept.isChecked()
@@ -51,13 +51,13 @@ def test_written_recovery_is_70_percent_and_requires_reboot_verification(pending
 
 def test_only_verified_recovery_reaches_100_percent(pending_window):
     window,work,state=pending_window
-    state.update(phase='LOADED',readonly_after_reload_verified=True)
+    state.update(phase='LOADED',readonly_after_reload_verified=True,private_sound_files_removed=True)
     (work/'direct.private.json').write_text(json.dumps(state))
     with patch.object(window,'show_reload_guide') as popup:
         finish(window,work,'LOADED','direct_verify')
     assert window.progress.value()==100
     assert '核对通过' in window.status.text()
-    assert '核对已通过' in window.factory_status.text()
+    assert '已完成' in window.factory_status.text()
     assert not window.factory_accept.isChecked()
     popup.assert_not_called()
 
@@ -67,12 +67,12 @@ def test_failed_verify_keeps_pending_state(pending_window):
     finish(window,work,'AWAITING_RELOAD','direct_verify',False)
     assert window.progress.value()==0
     assert '尚未完成' in window.factory_status.text()
-    assert '按当前相机恢复' in window.factory_button.text()
+    assert window.factory_button.text()=='继续完成一键恢复'
 
 
 def test_restart_dialog_explicitly_requires_followup_check():
     text=reloadguide.text(mode='factory_reset')
-    for phrase in ('恢复尚未完成','必须重启后核对','至少等待 1 分钟','接回 USB','重启后核对并完成恢复','只有核对通过'):
+    for phrase in ('恢复尚未完成','必须重启后核对','至少等待 1 分钟','接回 USB','继续完成一键恢复','只有核对通过'):
         assert phrase in text
 
 

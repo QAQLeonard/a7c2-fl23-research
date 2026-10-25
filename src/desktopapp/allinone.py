@@ -33,6 +33,7 @@ def run(arguments, *, dispatch):
         # Version the behavior so already-written older jobs keep their plan.
         options['vertical_persistent'] = bool(options.get('vertical', True))
         options['portrait_frames'] = bool(options.get('vertical', True))
+        options['voice_cleanup_policy'] = 1
         if options.get('plugin'):
             from .exiftool import ensure
             options['exiftool']=ensure(options.get('exiftool'))
@@ -66,6 +67,9 @@ def run(arguments, *, dispatch):
     options = state['options']
     common = dict(firmware='2.01', power_confirmed=True)
     install = Path(state.get('install_workspace') or root / 'install')
+    if state['phase'] in ('WAIT_VOICE_RELOAD','PREPARING_VOICE') or (
+            state['phase']=='NEEDS_REVIEW' and state.get('failed_step')=='voice_cleanup'):
+        save('PREPARED')
     if state['phase']=='NEEDS_REVIEW' and state.get('verify_result',{}).get('phase') in ('LOADED','COMPLETE'):
         # Older packages called a computer-only plugin failure NEEDS_REVIEW.
         # Once camera work was verified, resume only the remaining host steps.
@@ -187,6 +191,23 @@ def run(arguments, *, dispatch):
             state['completed_steps'].append('drivers')
             save('PREPARED')
         if state['phase'] == 'PREPARED':
+            if options.get('voice_cleanup_policy')==1 and not state.get('voice_cleanup_complete'):
+                save('PREPARING_VOICE',failed_step='voice_cleanup')
+                result=call('voice_cleanup',dict(common,workspace=str(root/'voice')),
+                            'voice-cleanup-'+uuid.uuid4().hex[:6])
+                state['voice_cleanup_result']=result
+                if result.get('phase')=='AWAITING_RELOAD':
+                    save('WAIT_VOICE_RELOAD')
+                    from .reloadguide import text
+                    print('所有读写已结束。\n'+text(setup=True,mode='voice_disable'),flush=True)
+                    return dict(state,reload_required=True,mode='voice_disable')
+                if not all(result.get(key) is True for key in (
+                        'voice_audio_removed','voice_setting_locked_off','voice_menu_flags_verified')):
+                    raise ValueError('语音清理未完整核对，不继续安装其他功能')
+                state['voice_cleanup_complete']=True
+                state['completed_steps'].append('voice_cleanup')
+                state.pop('failed_step',None)
+                save('PREPARED')
             if options.get('portrait_frames') and not state.get('portrait_frames_preinstalled'):
                 save('PREPARING_VERTICAL',failed_step='portrait_frames')
                 result=call('vertical_enable',dict(common,workspace=str(root/'vertical'),drivers_prepared=True,combined=True),

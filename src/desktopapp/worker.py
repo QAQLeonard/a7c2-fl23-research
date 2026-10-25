@@ -20,6 +20,7 @@ def setup_runtime():
 
 def run(action, args, job):
     setup_runtime()
+    if action=='voice_restore':raise ValueError('请在“一键恢复原厂功能”中勾选恢复语音包；不再提供独立语音恢复入口。')
     from .jobs import POWER_ACTIONS
     if action in POWER_ACTIONS:
         from looktool.power import require_power
@@ -34,7 +35,7 @@ def run(action, args, job):
     if action == 'setup_all':
         from . import allinone
         return allinone.run(args, dispatch=run)
-    if action in ('voice_cleanup','voice_restore'):
+    if action=='voice_cleanup':
         from .voicespace import run as voice_space
         work=Path(args['workspace'])/('request-'+uuid.uuid4().hex[:8])
         write_json(Path(job)/'backend-workspace.private.json',dict(action=action,workspace=str(work/'disable')))
@@ -80,11 +81,11 @@ def run(action, args, job):
         if not args.get('workspace'):
             raise ValueError('先完成一次本页操作，再核对重新加载状态。')
         obj = DirectJob(Path(args['workspace']))
-        reference, reference_path = None, args.get('factory') or 'builtin'
+        reference, reference_path = None, args.get('factory')
         voice_source=None
-        if mode in ('factory_reset','resume_factory') and args.get('sony_firmware'):
-            from .screenreader import restore_source
-            voice_source=restore_source(args)
+        if mode in ('factory_reset','resume_factory'):
+            from .official import prepare_restore
+            reference,reference_path,voice_source=prepare_restore(args)
         if mode=='resume_settings':
             result=obj.resume_install_settings(args['failed_workspace'],power_confirmed=args.get('power_confirmed',False))
         elif mode=='resume_looks':
@@ -107,8 +108,12 @@ def run(action, args, job):
         elif mode == 'verify':
             prior = json.loads(obj.state_path.read_text(encoding='utf-8'))
             if prior['mode'] == 'factory_reset':
-                from .official import load
-                reference = load(prior['factory_path'])
+                from .official import load_restore
+                if prior.get('factory_path') in (None,'builtin'):
+                    from .official import prepare_restore
+                    reference,reference_path,_=prepare_restore(args)
+                    obj.state=prior;obj.save(prior['phase'],factory_path=reference_path)
+                else:reference = load_restore(prior['factory_path'])
             if prior.get('phase') in ('AWAITING_RESOURCE_RELOAD','RESOURCE_RELOAD_VERIFIED'):
                 result=obj.verify_names_reload()
             else:
@@ -116,25 +121,22 @@ def run(action, args, job):
         elif mode == 'resume_factory':
             # This button starts a fresh built-in reset. Historical jobs are
             # optional provenance, never a prerequisite or a source of targets.
-            from .official import load
-            reference = load(reference_path)
             result = obj.run_direct('factory_reset', version=args['firmware'],
                 power_confirmed=args.get('power_confirmed', False), factory_values=reference,
-                factory_path=reference_path, recovery_source=args.get('failed_workspace'),voice_source=voice_source)
+                factory_path=reference_path, recovery_source=args.get('failed_workspace'),voice_source=voice_source,
+                restore_voice=args.get('restore_voice',True))
         else:
-            if mode == 'factory_reset':
-                from .official import load
-                reference = load(reference_path)
             result = obj.run_direct(mode, version=args['firmware'], power_confirmed=args.get('power_confirmed', False),
                 factory_values=reference, factory_path=reference_path if mode == 'factory_reset' else None,
                 slot=args.get('slot'), look_path=args.get('look'), name=args.get('name') or None,
-                bundle_options=args.get('options'),voice_source=voice_source)
+                bundle_options=args.get('options'),voice_source=voice_source,restore_voice=args.get('restore_voice',True))
         response = {'workspace': str(obj.root), 'phase': result['phase'], 'mode': result['mode'],
                     'backup_created': False}
         if result['mode']=='factory_reset':
             complete=result['phase'] in ('LOADED','COMPLETE') and result.get('private_sound_files_removed') is True
             response.update(recovery_complete=complete,verification_required=not complete,
-                            private_sound_files_removed=result.get('private_sound_files_removed',False))
+                            private_sound_files_removed=result.get('private_sound_files_removed',False),
+                            restore_voice=result.get('restore_voice',True))
         if result.get('vertical_result'):response['vertical_result']=result['vertical_result']
         if mode in ('fl23_enable', 'fl23_disable') and result['phase'] == 'AWAITING_RELOAD':
             # The device write is finished. Keep reload evidence internally,

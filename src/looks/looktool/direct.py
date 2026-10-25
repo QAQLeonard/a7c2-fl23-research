@@ -52,7 +52,7 @@ def color_regions():
     return result
 
 
-def plan(current, records, mode, *, factory=None, slot=None, look=None, name=None):
+def plan(current, records, mode, *, factory=None, slot=None, look=None, name=None,restore_voice=True):
     """Pure planning: preserve every field outside the declared project scope."""
     _, core = modules()
     ap, cp = current['appFw.so'], current['cpapp-b.bin']
@@ -67,6 +67,8 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
     if mode == 'factory_reset':
         if factory is None:
             raise ValueError('Prepare the original Sony 2.01 reference first')
+        if factory.get('schema')=='a7c2-factory-layout/1':
+            raise ValueError('恢复布局清单不包含原厂字节，请先提供官方固件或可用同机原始备份')
         regional = factory.get('schema') == 'a7c2-factory-regions/1'
         for program in checkpoint.PROGRAM_PATHS:
             if regional:
@@ -89,7 +91,7 @@ def plan(current, records, mode, *, factory=None, slot=None, look=None, name=Non
         from . import capturedefaults,voicelock
         wanted[0].update(capturedefaults.mechanical(target['appFw.so'],records))
         wanted[0].update(voicelock.settings(target['appFw.so'],records))
-        if voicelock.active(ap):target['appFw.so']=voicelock.patch(target['appFw.so'],False)
+        if voicelock.active(ap):target['appFw.so']=voicelock.patch(target['appFw.so'],not restore_voice)
         wanted[0].update({key: b'\0' for key in checkpoint.AP_KEYS})
         # The current selection must not keep pointing at a removed FL23 entry.
         row=struct.unpack_from('<8I',target['appFw.so'],0x57c6710-32)
@@ -421,7 +423,7 @@ class DirectJob(Rollback):
 
     def run_direct(self, mode, *, version, power_confirmed, factory_values=None,
                    factory_path=None, slot=None, look_path=None, name=None, bundle_options=None,
-                   recovery_source=None,voice_source=None):
+                   recovery_source=None,voice_source=None,restore_voice=True):
         power = require_power(confirmed=power_confirmed)
         if version != '2.01':
             raise ValueError('Direct operations support ILCE-7CM2 2.01 only')
@@ -441,6 +443,7 @@ class DirectJob(Rollback):
         self.state = dict(schema='a7c2-direct-job/1', mode=mode, slot=slot, name=name,
             factory_path=factory_path, job_id=uuid.uuid4().hex[:16], journal=[], backup_created=False,
             power_confirmation=power)
+        if mode=='factory_reset':self.state['restore_voice']=restore_voice
         if mode=='factory_reset' and recovery_source:self.state['supersedes_workspace']=str(recovery_source)
         if mode == 'install_all':self.state['bundle_options'] = bundle_options
         self.save('READING')
@@ -448,6 +451,8 @@ class DirectJob(Rollback):
         try:
             with self.factory() as camera:
                 self.state['identity'] = camera.identity
+                if mode=='factory_reset' and factory_values and factory_values.get('source_identity'):
+                    checkpoint.same_body(factory_values['source_identity'],camera.identity)
                 if mode in ('sound_enable','sound_disable','sound_restore','sound_reset'):
                     import sys
                     sys.path.insert(0,str(nativebuild.ROOT/'src/shutter_sound'))
@@ -459,15 +464,15 @@ class DirectJob(Rollback):
                 current = self.capture(camera)
                 if mode=='factory_reset':
                     from . import voicelock
-                    if voicelock.active(current['appFw.so']):
+                    if restore_voice and voicelock.active(current['appFw.so']):
                         if not voice_source:
                             raise ValueError('语音空间清理已启用。请先选择索尼官方 2.01 BODYDATA.DAT，再一键恢复；'
                                 '必须完整补回语音文件后才能解除关闭限制，本次尚未恢复程序。')
-                        from .resourceworker import restore_voice
+                        from .resourceworker import restore_voice as restore_voice_resources
                         from .verticalresources import release
                         _,reset_fields,_=plan(current,camera.records(current['settings-ram.bin']),
-                            'factory_reset',factory=factory_values)
-                        restore_voice(camera,self,voice_source,
+                            'factory_reset',factory=factory_values,restore_voice=restore_voice)
+                        restore_voice_resources(camera,self,voice_source,
                             before_restore=lambda:release(camera,self,current,wanted=reset_fields))
                 if mode in ('preview_native', 'preview_legacy', 'preview_pending'):
                     from . import uploadgate
@@ -476,7 +481,7 @@ class DirectJob(Rollback):
                     target, wanted, rename = bundle.plan(current, camera.records(current['settings-ram.bin']), bundle_options, bundle_rows)
                 else:
                     target, wanted, rename = plan(current, camera.records(current['settings-ram.bin']), mode,
-                        factory=factory_values, slot=slot, look=look, name=name)
+                        factory=factory_values, slot=slot, look=look, name=name,restore_voice=restore_voice)
                 # Preserve the independent saved calibration when reconstructing
                 # CP units; only the declared FL23 subranges use factory data.
                 prepared = self.settings(camera, current, wanted)
@@ -678,7 +683,8 @@ class DirectJob(Rollback):
                 target, wanted, _ = bundle.plan(current, camera.records(current['settings-ram.bin']), options, selected)
             else:
                 target, wanted, _ = plan(current, camera.records(current['settings-ram.bin']), self.state['mode'],
-                    factory=factory_values, slot=self.state['slot'], look=look, name=self.state['name'])
+                    factory=factory_values, slot=self.state['slot'], look=look, name=self.state['name'],
+                    restore_voice=self.state.get('restore_voice',True))
             for program in checkpoint.PROGRAM_PATHS:
                 difference=program_difference(target[program],current[program])
                 if difference:

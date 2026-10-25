@@ -9,6 +9,9 @@ import tarfile
 import tempfile
 import time
 import uuid
+import base64
+import zlib
+from hashlib import sha256
 from .paths import ROOT, data_root, write_json
 
 MODEL = 0x20030014
@@ -17,7 +20,7 @@ FILES = ('appFw.so', 'cpapp-b.bin', 'CX89700_ALLLANG.bin')
 
 def load(folder=None):
     if folder is None or str(folder) == 'builtin':
-        return builtin()
+        raise ValueError('请提供本地原厂恢复来源；软件不再内置原厂恢复字节')
     folder = Path(folder or data_root() / 'factory-2.01')
     pointer = folder / 'current.json'
     if pointer.is_file():
@@ -33,8 +36,71 @@ def load(folder=None):
     return values
 
 
-def builtin():
-    return json.loads((ROOT / 'src/looks/assets/factory-regions-2.01.json').read_text(encoding='utf-8'))
+def layout():
+    return json.loads((ROOT/'src/looks/assets/factory-layout-2.01.json').read_text(encoding='utf-8'))
+
+
+def regions(values,*,identity=None,settings=None):
+    """Take only declared original regions from a user-provided local source."""
+    from looktool.devicesession import modules
+    result=layout();result['schema']='a7c2-factory-regions/1'
+    def fill(rows,raw):
+        for row in rows:
+            value=raw[row['offset']:row['offset']+row['bytes']]
+            if len(value)!=row['bytes'] or sha256(value).hexdigest()!=row['sha256']:
+                raise ValueError('恢复来源不是可用的原厂区域，请选择官方 2.01 固件；普通当前状态备份不一定可用。')
+            row['zlib_base64']=base64.b64encode(zlib.compress(value,9)).decode('ascii')
+    for name,spec in result['programs'].items():
+        if len(values[name])!=spec['bytes']:raise ValueError('Original program size differs: '+name)
+        fill(spec['regions'],values[name])
+    records=modules()[1].backup_records(settings if settings is not None else values['CX89700_ALLLANG.bin'])
+    for key,rows in result['color_units'].items():fill(rows,records[1][int(key)].data)
+    if identity:result['source_identity']=identity
+    return result
+
+
+def load_restore(path):
+    path=Path(path)
+    if path.is_file() and path.suffix.lower()=='.json':
+        value=json.loads(path.read_text(encoding='utf-8'))
+        if value.get('schema')!='a7c2-factory-regions/1':raise ValueError('Invalid local recovery reference')
+        expected=layout()
+        if (value.get('model'),value.get('version'))!=(expected['model'],expected['version']):
+            raise ValueError('Local recovery source model/version differs')
+        pairs=[(value['programs'][name]['regions'],spec['regions']) for name,spec in expected['programs'].items()]
+        pairs.extend((value['color_units'][key],rows) for key,rows in expected['color_units'].items())
+        for actual,rows in pairs:
+            if len(actual)!=len(rows):raise ValueError('Local recovery source layout differs')
+            for row,wanted in zip(actual,rows):
+                raw=zlib.decompress(base64.b64decode(row['zlib_base64']))
+                if (row['offset'],row['bytes'])!=(wanted['offset'],wanted['bytes']) or len(raw)!=wanted['bytes'] or sha256(raw).hexdigest()!=wanted['sha256']:
+                    raise ValueError('Local recovery source contents differ')
+        return value
+    return regions(load(path))
+
+
+def prepare_restore(arguments):
+    """Prepare all recovery inputs before opening USB; never bundle originals."""
+    from . import screenreader
+    source=arguments.get('sony_firmware')
+    backup=arguments.get('backup')
+    if source:
+        cache=prepare(source)['cache'];value=regions(load(cache))
+        voice=screenreader.prepare(source)['source'] if arguments.get('restore_voice',True) else None
+    elif backup:
+        from looktool import checkpoint
+        manifest,values=checkpoint.load_target(backup)
+        value=regions(values,identity=manifest['identity'],settings=values['settings-saved.bin'])
+        voice=screenreader.restore_source(dict(backup=backup)) if arguments.get('restore_voice',True) else None
+        if arguments.get('restore_voice',True) and not voice:
+            raise ValueError('所选备份没有语音包。请选择官方固件、带语音 ZIP 的同机原始备份，或取消勾选“同时恢复语音包”。')
+    elif arguments.get('factory') and arguments['factory']!='builtin':
+        value=load_restore(arguments['factory']);voice=None
+    else:
+        raise ValueError('一键恢复需要原厂恢复来源。请选择官方 ILCE-7CM2 2.01 BODYDATA.DAT，或可用同机原始备份；安装不要求预先提供。')
+    folder=data_root()/'recovery-sources'/uuid.uuid4().hex;folder.mkdir(parents=True)
+    path=folder/'reference.private.json';write_json(path,value)
+    return value,str(path),voice
 
 
 @contextmanager

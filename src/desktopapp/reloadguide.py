@@ -10,7 +10,7 @@ STEPS = (
 )
 
 WAITING_PHASES = {'WAIT_RELOAD', 'AWAITING_RELOAD', 'RESTORED_AWAITING_RELOAD',
-                  'installed_pending_cold_start','WAIT_RESOURCE_RELOAD','AWAITING_RESOURCE_RELOAD'}
+                  'installed_pending_cold_start','WAIT_RESOURCE_RELOAD','AWAITING_RESOURCE_RELOAD','WAIT_VOICE_RELOAD'}
 SOUND_PHASES = {
     'sound_on': {'written'}, 'sound_off': {'restored'},
     'sound_install': {'installed_cold_test_pending'},
@@ -63,7 +63,7 @@ def text(*, setup=False, mode=None):
             '程序会核对已加载的原生路径，完整复制并读回三份竖屏资源后才保存开启。')
     if mode=='voice_disable':
         return ('语音指南关闭限制及菜单置灰已写入，尚未删除音频。必须先让相机加载关闭限制与菜单禁用状态。\n\n'+STEPS+
-            '\n\n重开后接回 USB 海量存储，再点击刚才的“释放音频空间”或“补回语音文件”按钮继续。'
+            '\n\n重开后接回 USB 海量存储，再点击首页“继续安装”。'
             '程序会核对实际加载的关闭限制；核对不符时不删除或写回语音文件。')
     if mode=='voice_unlock':
         return ('语音文件已完整写回并读回，关闭限制已解除。\n\n'+STEPS+
@@ -78,7 +78,7 @@ def text(*, setup=False, mode=None):
     if mode=='factory_reset':
         return ('恢复尚未完成：本次写入和完整读回已结束，还必须重启后核对相机实际加载状态。\n\n'+STEPS+
                 '\n\n下一步：确认相机能正常取景，接回 USB 海量存储，点击恢复页'
-                '“重启后核对并完成恢复（恢复写入后必做）”。\n\n'
+                '“继续完成一键恢复”。\n\n'
                 '只有核对通过才显示恢复完成。核对失败时保留日志，不要把写入结束当成恢复完成。'
                 '弹窗“确定”只关闭说明，不会自动完成核对。')
     if mode=='resource_reload':

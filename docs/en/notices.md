@@ -38,7 +38,7 @@ Licenses:
 
 ## Firmware and data
 
-Sony A7C II 2.01, Alpha 1 II 4.00 and A7 IV 6.02 firmware were analysis sources; Sony firmware, trademarks and data remain their owners' material. This project distributes no complete firmware, signed update container, body backup/calibration, photos, credentials or private derived data. The built-in factory reference holds only generic stock bytes for the regions this project changes.
+Sony A7C II 2.01, Alpha 1 II 4.00 and A7 IV 6.02 firmware were analysis sources; Sony firmware, trademarks and data remain their owners' material. This project distributes no complete firmware, signed update container, body backup/calibration, photos, credentials or private derived data. Original recovery bytes are obtained locally from user-provided sources; the distributed recovery layout contains only locations, lengths and digests.
 
 ## Risk notice and use statement
 
@@ -66,11 +66,11 @@ The author opposes paid flashing, paid remote installation, misleading resale bu
 
 ### Firmware sources, copyright and DMCA considerations
 
-To respect firmware copyright and reduce distribution and anti-circumvention risks, including those under the US Digital Millennium Copyright Act (DMCA), the project does not supply complete Sony firmware, signed official update packages, original voice packs or other bodies' backups for download. Where a complete recovery source is required, use your own same-body backup or obtain a compatible **ILCE-7CM2 2.01 `BODYDATA.DAT`** from Sony for local processing.
+To respect firmware copyright and reduce distribution and anti-circumvention risks, including those under the US Digital Millennium Copyright Act (DMCA), the project does not supply complete Sony firmware, signed official update packages, original voice packs or other bodies' backups for download. Factory recovery always requires an original source; use your own same-body backup or obtain a compatible **ILCE-7CM2 2.01 `BODYDATA.DAT`** from Sony for local processing.
 
 This is a project distribution policy, not a claim that the DMCA requires every user to download firmware. Device ownership, backups, personal research or non-commercial purpose do not automatically authorize circumvention; applicable restrictions and exceptions depend on the law and conduct involved.
 
-Some implementations contain or process small instruction/data fragments derived from firmware research and generic stock references; it would be inaccurate to claim that the project contains no Sony-derived bytes. Rights remain with their owners, and authorization for every implementation is not guaranteed. **This statement, the research purpose and user consent neither confer Sony authorization nor prevent objections, takedown requests or litigation.**
+Some implementations contain or process small instruction/data fragments derived from firmware research and FL2/FL3 donor color data; it would be inaccurate to claim that the project contains no Sony-derived bytes. Rights remain with their owners, and authorization for every implementation is not guaranteed. **This statement, the research purpose and user consent neither confer Sony authorization nor prevent objections, takedown requests or litigation.**
 
 ### Confirmation and rights-holder contact
 
