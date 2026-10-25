@@ -4091,3 +4091,72 @@ run:108-record epoch refusal,zero CP sends,own group/affinity/signal/context
 inverse and two absent-process observations. This is the unchanged typed V6
 worker,not a substituted stub;the VM used its own disposable CPU0 conditions.
 It does not admit current physical boot/source inputs or prove a CP response.
+
+Phase158/160–168 completes the separately approved passive three-count cycle.
+Owner approved two CP windows totaling58 bytes(53 changed),one fixed e2/24-byte
+query,and exact inverse;no lock/IRQ/exposure/RAW scope. Installation/full readback
+and vendor retained-image preparation passed;owner confirmed ordinary shooting
+after cold reload. Fresh boot/worker metadata160–162,kernel bootstrap163 and
+35 selected loaded code/state spans164–167 qualified the fresh168 scope with
+14 exact table/state words. Historical159 inputs were not used as live evidence.
+
+Exact168 V6 worker passed209 models and the original Sony-kernel VM:
+108-record native epoch-refusal/inverse,zero CP sends,two same-child absence
+observations. Fresh parent/observer models passed25+50 cases,16 malformed/two
+stale-BSS controls,23 adapter,17 operator,13 follow-up and11 actual durable
+one-query-budget/admission controls. The physical nonce/path/budget were unique;
+no previous query,child or immutable failed fence was replayed.
+
+Initial physical observer returned UNKNOWN with no journal;no source reads,
+cleanup,signals,kill/reap or second child followed that result. One observer-only
+follow-up of the SAME receipt then qualified392 records,one allocation/send/free,
+CPU2 group/signal/context inverse and two absent-process observations. Exact
+owned-file cleanup,four unchanged source files and normal USB exit completed.
+The typed reply/status5c and tail nonce matched. Raw head816,tail699,count907
+satisfy(699-816)&1023==907. Message ownership/release was qualified independently
+of ring consistency. This is non-atomic management-state evidence,not coherent
+resource ownership,ABA exclusion,pixels,asynchronous capture or exposure timing.
+
+The separately authorized inverse restored both CP windows to the exact current
+pre-diagnostic CP,including its333-byte LUT preview repair. Full AP/CP/three
+driver readback,read-only mount/inode/size,exact cleanup and original drop->mode0
+reload preparation passed. All USB I/O ended. Owner then cold-reloaded and
+reported ordinary viewfinder/photo/playback/existing looks all normal. The
+single-query permission is consumed. Private source/results and both complete
+experiment archives were mirrored and hash-verified on E and P. main unchanged.
+
+Next native blocker is backing-resource provenance,not another transport send.
+audit_metadata_capacity.py executes originalb16314 arena arithmetic BEFORE the
+omitted native configuration initializer,then a separate explicitly zero-reserved
+configuration fixture atb163ae. It creates1023 64-byte records and a1024-position
+free-index ring. Index1023 aliases HEAD22b4720,it is NOT an extra record. Original
+b16686/b1671a execute2048 pops and2048 returns,total empty/full refusal and all
+1024 head positions at synthetic count907. No physical ring payload is supplied,
+and no pixel buffer is read or allocated. A first offline assertion mistakenly
+expected an untouched1024th record;source arithmetic identified its alias with
+HEAD,and the assertion now checks that alias explicitly,without enlarging arena.
+
+The same audit stops at originalb15d32 allocation(route8f013a,16 bytes),then
+executes only the post-replyb15d82 slice with an explicitly synthetic shared
+block. Original4f6b50 is literally ARM BX LR;it validates no address or extent.
+Original magic words,pointers,zeroing and1023 entries at stride84 match through
+offset3ca90. These are shared bookkeeping layout/access facts,NOT a physical
+pixel allocation. The AP reply/base/ownership and backing-resource configuration
+are still unobserved. An initial15000-instruction fixture budget correctly
+refused completion during original zeroing;the isolated caller now permits a
+bounded500000 instructions and requires the actual STOP,never a fabricated
+native success. No camera operation,CP request or writable deployment artifact
+is produced by this audit.
+
+Backing provenance now follows originalb143fe configuration-row construction
+through actualb15526 node acquisition andb155b6 free-list insertion,then original
+b1645a allocation andb16a52 pinned descriptor creation. Four synthetic config rows
+cover zero size plus high-word4,5,ffff with nonzero extents. The three nonzero
+descriptors preserve configured low offset/high word/size exactly,including
+fffffff0/ffff/ffffffff. No advertised address is dereferenced. The constructor
+does not itself qualify bounds/ownership;real policy contents,physical region
+admission and terminal leases remain required. Existing cached/free-list/owner/
+parent-backed matrix is retained. One offline entry supplied the pointer-cell
+value instead of the original global pointer-cell address in R5;unmapped-read
+failure identified it,the independent post-config entry now uses1a8c0d0. No
+native success was stubbed,no unbounded hardware call or camera operation ran.

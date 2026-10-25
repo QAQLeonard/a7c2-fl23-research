@@ -1,8 +1,8 @@
 """Original/new instruction and fixed pool packet tests, strictly offline.
 
-Does not install this NEW candidate, follow CP pixels, execute native services
-or prove a serial/atomic pool snapshot. Its permission is separate from the
-completed four-pointer experiment and has not been requested or granted.
+Does not install a candidate, follow CP pixels, execute native services or prove
+a serial/atomic pool snapshot. The completed private single-query experiment
+does not grant these offline commands permission to operate on a camera.
 """
 import argparse,hashlib,itertools,json,struct
 from pathlib import Path

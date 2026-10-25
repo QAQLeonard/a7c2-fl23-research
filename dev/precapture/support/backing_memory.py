@@ -11,7 +11,7 @@ import struct
 
 from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2,
     UC_ARM_REG_R3, UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R6,
-    UC_ARM_REG_R8, UC_ARM_REG_R9, UC_ARM_REG_SP, UC_ARM_REG_LR)
+    UC_ARM_REG_R8, UC_ARM_REG_R9, UC_ARM_REG_R11, UC_ARM_REG_SP, UC_ARM_REG_LR)
 from .capture_native import NativeCapture, BASE, OWNER, STACK, STOP, words
 
 HEAD, RECORDS = OWNER+0x10000, OWNER+0x20000
@@ -25,6 +25,7 @@ SPANS=((0xb144d6,0x56),(0xb14554,0x704),
 SPANS += ((0x4088c8,0x80),(0xb12dba,0x1da),(0x495620,0xc0),
     (0x4089b4,0xb2),(0xb13236,0x5c),(0x409104,0x48),
     (0xb1645a,0x22a))
+SPANS += ((0xb143fe,0xa0),(0xb15526,0xce),(0x516cf0,0x110))
 
 
 class Fixture:
@@ -70,6 +71,63 @@ class Fixture:
         u.mem_write(TEMPLATE,words(0x500,0xffffffff))
         self.put(0x1a8c0d4,SELECTOR);self.put(0x1a8c0d8,CATEGORIES)
         u.mem_write(OUT,b'\xa5'*64)
+
+
+def configured_nodes(f):
+    """Original config-row -> free-node construction; synthetic rows only.
+
+    Runs the real node allocator and insertion, never supplies their successful
+    returns. Entry is explicitly AFTER omitted configuration parsing; neither
+    that parser nor a real physical memory owner is claimed.
+    """
+    u=f.u;rows=[]
+    descriptor,table,available,indices=OWNER+0x9600,OWNER+0x9700,OWNER+0xa000,OWNER+0xb800
+    for domain,offset,size in ((0,0,0),(4,0x100000,0x800000),
+            (5,0x200000,0x100000),(0xffff,0xfffffff0,0xffffffff)):
+        f.reset();u.mem_write(NODE,b'\xa5'*80);f.half(NODE,1)
+        u.mem_write(descriptor,bytes(40));f.put(table,descriptor)
+        f.put(descriptor,offset);f.half(descriptor+6,domain)
+        f.put(descriptor+8,0x500);f.put(descriptor+12,size)
+        f.put(descriptor+16,2);f.put(descriptor+28,0xffffffff)
+        # One owned synthetic node in the original allocator's free-node table.
+        for address,value in ((0x1a8c0b8,CONTROL+0x80),(0x1a8c0b0,CONTROL+0x84),
+                (0x1a8c0bc,available),(0x1a8c0c0,indices),
+                (0x1a8c0c4,CONTROL+0x88),(0x1a8c0c8,CONTROL+0x8c)):
+            f.put(address,value)
+        f.put(CONTROL+0x80,1);f.put(CONTROL+0x84,0)
+        f.put(CONTROL+0x88,0);f.put(CONTROL+0x8c,0)
+        f.put(available,NODE);f.put(indices,0x11223344)
+        f.put(HEAD+0x500*8,0);f.put(HEAD+0x500*8+4,0)
+        got=f.n.run(0xb143fe,(0xb1449e,),[(UC_ARM_REG_R0,table),
+            (UC_ARM_REG_R5,0x1a8c0d0),(UC_ARM_REG_R11,0xffff),
+            (UC_ARM_REG_SP,STACK+0x8000),(UC_ARM_REG_LR,STOP|1)])
+        assert got['address']==BASE+0xb1449e
+        assert f.get(available)==0 and f.get(indices)==0xffffffff
+        assert f.get(CONTROL+0x80)==0 and f.get(CONTROL+0x84)==1
+        assert f.get(HEAD+0x500*8)==f.get(HEAD+0x500*8+4)==NODE
+        assert f.get(CONTROL+0x88)==f.get(CONTROL+0x8c)==NODE
+        assert [f.get(NODE+n) for n in (8,12,16,20,36)]==[0,domain,offset,size,0x500]
+        assert f.get(NODE+0x28)==0 and f.get(NODE+0x2c)==0xffffffff
+        assert f.get(NODE+0x3c)==8
+        produced=None
+        if size:
+            # Compose the original constructor's node with the actual original
+            # allocator and pin-to-descriptor path. Returned addresses remain
+            # untrusted synthetic values and are deliberately not dereferenced.
+            got=f.call(0xb1645a,[0x505,0x31,OUT])
+            assert got['address']==STOP and u.reg_read(UC_ARM_REG_R0)==0
+            handle=f.get(OUT);assert handle==0x8403
+            output,count=OWNER+0x9c00,OWNER+0x9d00
+            got=f.call(0xb16a52,[handle,1,output,count])
+            assert got['address']==STOP and u.reg_read(UC_ARM_REG_R0)==0
+            produced=list(struct.unpack('<3I',u.mem_read(output,12)))
+            assert produced==[offset,domain,size]
+        rows.append(dict(configured_address_high_word=domain,configured_offset=offset,
+            configured_size=size,original_node_allocation_and_free_list_insertion=True,
+            original_allocator_and_pin_descriptor=produced,
+            memory_address_or_extent_validated=False,pixel_memory_accessed=False,
+            configuration_and_node_storage_are_synthetic=True))
+    return rows
 
 
 def audit(cp):
@@ -271,6 +329,7 @@ def audit(cp):
         original_free_pool_trust_cases=address_cases,
         original_owner_sequence_binding_cases=binds,
         parent_backed_cached_selection_cases=shared,
+        original_configuration_to_backing_node_cases=configured_nodes(f),
         original_client_worker_allocator_reply_path=True,
         original_provider23_release_and_client_reply_path=True,
         queue_delivery_and_resource_accounting_executed=False,

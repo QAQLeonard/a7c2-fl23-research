@@ -57,6 +57,7 @@ def audit(cp):
     assert got['args'][0]==0xfa0182
     pool=dict(original_metadata_arena='0x22a4760',derived_metadata_pointers=pointers,
         AP_provisioning_route='0x8f013a',provisioning_command=11,subcommand=0x61,
+        AP_provisioning_role='shared bookkeeping; not itself a pixel lease',
         resource_policy_destination='0x25b7ee8',configuration_reader_file='0x496044',
         native_configuration_selector='0xfa0182',
         physical_pool_provenance_verified=False,

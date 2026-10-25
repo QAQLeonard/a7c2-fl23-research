@@ -3,7 +3,8 @@
 Uses the already observed fixed head/tail/count locations. Three aligned reads
 are not atomic, IRQ-serialized or ABA-safe; host consistency checks cannot turn
 them into an ownership/completion fence. No pixels, pointers or native services
-are followed. This is a separate, unapproved candidate from the four-word test.
+are followed. One exact private installation/query/inverse completed separately;
+this module provides no device entry or general deployment admission.
 """
 import struct
 from keystone import Ks,KS_ARCH_ARM,KS_MODE_THUMB

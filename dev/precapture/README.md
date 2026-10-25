@@ -10,7 +10,18 @@ and compare original-source/model reports before and after refactoring.
 
 ## Current evidence and remaining work
 
-**Four fixed CP metadata reads have completed; pre-capture has not.**
+**One live head/tail/count sample and its exact restoration have completed;
+pre-capture has not.** A separately approved58-byte passive callback change
+(53 actual changed bytes) returned head816,tail699,count907 in one24-byte
+transaction. The ring relation holds: `(699-816)&1023 == 907`. Its392-record
+journal qualifies one allocation/send/release, same-child exit, exact cleanup
+and unchanged source files. The inverse was fully read back; the owner confirmed
+ordinary viewfinder, photography, playback and existing looks after cold reload.
+The one-query allowance is consumed. No lock, IRQ change, exposure or RAW
+retention was tested. This non-atomic sample counts management records, not
+photographs or bytes of available image memory.
+
+The earlier four fixed CP pointer reads remain a separate completed experiment.
 An explicitly approved diagnostic reused58 bytes of the existing callback
 (52 changed bytes), adding no code page, heap state or shooting hook. Its four
 single-use queries returned `0x22a4760`, `0x22b4720`, `0x22b4728` and `0x22b4730`.
@@ -39,7 +50,7 @@ repair. This is existing-file evidence, not live CP pool or exposure evidence.
 
 | Area | Verified evidence | Remaining work |
 |---|---|---|
-| Fixed CP metadata access | Four real BSS-word reads match the originally derived pool/head/tail/count pointer addresses; exact diagnostic inverse read back | Actual contents, owner-coherent pool state, pixels and resource lifetime; the four reads were separate transactions |
+| Fixed CP metadata access | Four pointer reads, then one separately approved three-word callback sample816/699/907; both exact inverses and cold reloads accepted | Owner-coherent pool state, backing pixels and resource lifetime; ring consistency alone is insufficient |
 | AP/CP query and cleanup | One original unsupported-mode transaction, exact reply and nonce-tail validation, one allocation/send/release, terminal process observations and source preservation | Capture-specific protocol, real frame ownership and repeatability under separately approved tests |
 | Caller scheduling/lifetime | Native Sony-kernel VM: 16 real wait/wakeup trials with normal/FIFO148 threads on CPU0; physical query: CPU2, affinity7→4→7, signal restoration and context release | General concurrent/lifetime guarantees; one completed query does not qualify arbitrary callbacks or schedules |
 | Loaded source and current boot | Fresh kernel/section/worker metadata, 96-byte bootstrap and 35 selected code/state spans; exact relocation and page-table checks | Whole-module verification is not claimed; later boots require fresh bindings |
@@ -48,14 +59,16 @@ repair. This is existing-file evidence, not live CP pool or exposure evidence.
 | Native shooting order | Original target/donor AP start/data dispatch and96 admission cases; CP1224 post-prepare branches,544 table queries,22 sequence callbacks and one fixed state-pair interpreter | Native preparation, dynamic state rows, actual readout/retention and hardware completion |
 | Native state feedback | Original feedback stores, masked completion, deferred task/notification dispatch and CAP handle checks;60 input combinations plus negative controls | Hardware feedback provenance, actual exposure/RAW ownership and a generation-bound terminal fence; two commands share event308 |
 | RAW resource path | Staged slots → RAW client → MEMMGR_CP dispatch; native reply-ID, descriptor transfer, handle generation and reference checks | Actual backing pixel allocation and matched terminal release; native handle generation wraps, local invalidation precedes backing free |
-| Existing free-block allocator | Original cached-block unlink/bind/pin/return and worker20/client allocation reply, provider23/release reply, on synthetic RAM | Camera pool provenance, real pixels, queue/accounting/notification completion and growing/parent-backed paths |
+| Existing free-block allocator | Original configuration-row → node creation → allocation → pinned descriptor, cached-block return and worker/client replies, on synthetic RAM | Current configured address/extent ownership, real pixels, queue/accounting/notification completion and growing/parent-backed paths |
+| Metadata capacity and shared bookkeeping | Original1023-record initialization,2048 pops/2048 returns and shared bookkeeping layout on synthetic RAM | These counts and bookkeeping addresses do not establish RAW buffer capacity or ownership |
 | [CP startup study](VM-CP-REQUEST-WORDS.md) | Conditional original startup slices and restricted peripheral fixtures | Physical timing, full initialization and sensor/frame integration |
 | Manual in-camera switch | Required independent Off/On control, initially Off | Implementation and safe enable/disable binding |
 
-The combined check now reports the three requested physical verdicts together:
+The combined check reports the three requested physical verdicts together:
 pool provenance, asynchronous completion and exposure timing all remain
-**unverified**. Original pool initialization depends on a shared-block/config
-binding; the synchronization helper can wait again; the exposure-end callback
+**unverified**. Original backing descriptors depend on configuration and native
+allocation; the AP-provided shared bookkeeping block is not itself a pixel lease.
+The synchronization helper can wait again; the exposure-end callback
 posts an event without saving an end counter. A new source/owner-bound observer
 and real capture trace are needed before any of those verdicts can pass.
 
@@ -129,7 +142,8 @@ do not add up to physical pre-capture.
 | `cp_trace_export.c/h`, `support/trace_export.py`, `verify_trace_export.py` | Uninstalled24-byte frozen-lane packet adapter and exact offline reconstruction; no native registration/lifetime admission |
 | `audit_dma_reader.py` | Original kernel DMA ioctl/stack-cookie/timeout boundaries, executed on synthetic RAM; no live reader or successful service stubs |
 | `support/cp_metadata_probe.py`, `verify_cp_metadata_probe.py` | Offline existing-callback prototype and original-instruction equivalence checks; private authorized four-word experiment completed, no public installer |
-| `support/cp_pool_probe.py`, `verify_cp_pool_probe.py` | Next uninstalled three-word sample prototype and strict local packet/range checks; no atomicity, pixel ownership or physical admission |
+| `support/cp_pool_probe.py`, `verify_cp_pool_probe.py` | Offline three-word protocol/patch tests; one exact private installation/query/inverse completed separately, with no general deployment admission |
+| `audit_metadata_capacity.py` | Original ring initialization/pop/return and post-reply shared bookkeeping layout; source-bound synthetic RAM only, no pixel or physical-capacity claim |
 | `audit_pool_serialization.py` | Original task try-lock/release on synthetic Cortex-A9 state, plus original wrapper pre-service boundaries; no physical lock/IRQ admission |
 | `support/cp_locked_pool_probe.py`, `verify_locked_pool_probe.py` | Uninstalled lock/sample/unlock experiment; failed-release/IRQ retention controls remain explicit; excluded from the passive sampler's proposed hardware scope |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
@@ -202,6 +216,7 @@ python dev/precapture/audit_source_spans.py --cp PRIVATE_STOCK_CP --current-cp P
 python dev/precapture/audit_ap_capture_order.py --ap PRIVATE_STOCK_AP --donor-ap PRIVATE_DONOR_AP --current-ap PRIVATE_CAPTURED_AP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
+python dev/precapture/audit_metadata_capacity.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER
 python dev/precapture/verify_cp_trace.py --zig PATH_TO_ZIG --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_FOLDER
 python dev/precapture/audit_frame_reference.py --cp PRIVATE_STOCK_CP --output NEW_PRIVATE_JSON

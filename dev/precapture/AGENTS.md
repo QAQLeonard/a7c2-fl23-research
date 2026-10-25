@@ -44,13 +44,33 @@ change causes unlock failure with IRQ/lock retained,so no safe deployment or
 recovery is claimed. The prototype shortens an original diagnostic format and
 still lacks full format-reference,writer-lock and callback-context admission.
 It must NOT be combined with the next passive count-sample experiment.
-Phase158's sole proposed live path remains the58-byte passive three-count
-sampler: no lock/IRQ operations,one separately approved query maximum,inverse.
-Fresh source acquisition and actual mode0 preflight passed with no writes;
-new installation/query approval is still pending. Its V6 private result adds
+Phase158's58-byte passive three-count sampler was separately approved,installed
+and cold-loaded,then queried exactly once by fresh child168. It returned
+816/699/907,status5c,392 records,one allocation/send/release,CPU2 inverse,
+same-child absence and exact cleanup;four source files were unchanged. Its
+exact inverse/full readback and vendor reload preparation completed,and the
+owner confirmed ordinary photography/playback/looks after cold reload. That
+one-query allowance is CONSUMED. Never replay168 or infer new send/patch scope.
+There were no lock/IRQ operations,exposures or RAW retention. Its V6 result adds
 typed raw_words[3]; inconsistent ring data must not prevent completed message
 release. Phase159 client/launcher models use historical inputs as SYNTHETIC
 fixtures only;fresh post-install boot/worker/loaded-source binding is required.
+
+Phase168's actual fresh bindings came from completed metadata160–167,not the
+historical159 template. The exact168 worker passed209 models and original
+Sony-kernel VM epoch refusal/inverse;the latter sent no CP request. Its physical
+three-word reply is non-atomic and does not establish ABA exclusion or pixels.
+The source-bound metadata audit executes original1023-record initialization,
+2048 pops/2048 returns and post-reply shared bookkeeping layout on synthetic
+RAM. Record1023 aliases HEAD,not an additional usable record. The original
+4f6b50 address helper is BX LR,not range validation. AP command0b/subcommand61
+supplies shared bookkeeping;do not label it an owned RAW buffer or conflate
+this with the separate backing-resource configuration/allocation prerequisite.
+The new backing audit composes actual configuration-row node creation,original
+node allocator/free-list insertion,and allocation/pin descriptor generation.
+Explicit synthetic high-word4/5/ffff and offsets pass through as supplied;
+source acceptance is not address/extent validation. No runtime configuration,
+pixel read or native lifetime is supplied. Preserve the existing85-case matrix.
 
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
