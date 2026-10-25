@@ -1,4 +1,4 @@
-"""Build the decoded-plane mean library offline; no camera/USB entry point."""
+"""Build a freestanding ARM64 core library offline; default is the mean kernel."""
 import argparse
 import os
 from pathlib import Path
@@ -8,7 +8,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def build(destination, zig=None):
+def build(destination, zig=None, *, source=None, entry='a7_average_u8'):
     from elftools.elf.elffile import ELFFile
 
     compiler = zig or os.environ.get('A7C2_ZIG') or shutil.which('zig')
@@ -21,7 +21,7 @@ def build(destination, zig=None):
                '-fno-builtin', '-fno-stack-protector', '-fno-unwind-tables',
                '-fno-asynchronous-unwind-tables', '-nostdlib', '-g0',
                '-Wl,--no-undefined', '-Wl,-Bsymbolic', '-Wl,-z,noexecstack',
-               str(ROOT / 'src/double_exposure/native/average.c'),
+               str(source or ROOT / 'src/double_exposure/native/average.c'),
                '-o', str(destination)]
     result = subprocess.run(command, capture_output=True, text=True, timeout=180,
                             creationflags=0x08000000 if os.name == 'nt' else 0)
@@ -39,9 +39,9 @@ def build(destination, zig=None):
         if any(symbol.name and symbol['st_shndx'] == 'SHN_UNDEF'
                for symbol in symbols):
             raise ValueError('Unexpected external symbol')
-        if not any(symbol.name == 'a7_average_u8' and
+        if not any(symbol.name == entry and
                    symbol['st_info']['type'] == 'STT_FUNC' for symbol in symbols):
-            raise ValueError('Missing mean function')
+            raise ValueError('Missing native function: ' + entry)
         if any(section['sh_type'] in ('SHT_RELA', 'SHT_REL') and section.num_relocations()
                for section in elf.iter_sections()):
             raise ValueError('Unexpected library relocation')

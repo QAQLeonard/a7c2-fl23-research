@@ -125,6 +125,10 @@ python desktop.py
 
 **双重曝光开发**：`dev/double_exposure/build_jpeg.py` 使用本地未修改的 libjpeg-turbo 3.1.2 源码、Zig、CMake 与 Ninja，构建静态 ARM64 Linux 处理器。传入 `--source`、`--output`、`--zig`、`--cmake`、`--ninja`；`--target host` 可将同一份 C 流程构建为本机测试程序。构建工具列在 `dev/double_exposure/requirements.txt`，输出目录包含编解码库的声明与许可。处理器读取两张已完成写入、尺寸／方向一致的基线 8 位 sRGB／无标记 JPEG，逐行对 RGB 采样取平均，另存质量 95 的 JPEG。运行 `python -m unittest discover -s dev/double_exposure -v`；内核测试需要 `A7C2_ZIG`，JPEG 测试需要将 `A7C2_JPEG_COMMAND` 设为程序或运行器命令的 JSON 参数数组。处理器尚未加入桌面安装包、相机菜单或拍摄钩子；处理文件本身不会将结果登记到相机媒体库。
 
+`capture_pair.c` 是独立的无外部依赖配对器，实际适配层需要提供已关联的拍摄开始／完成事件、解析后的 JPEG 路径和介质代次，并持久保存会话状态；它本身不执行 I/O 或固件调用。拍摄结果解析只读取预留身份。可选将 `A7C2_CAPTURE_AP` 指向原始 2.01 `appFw.so`，在模拟器中与原生自动回放读数函数对照目录／文件编号；此检查拦截模型／字符串辅助调用，不执行相机硬件操作。
+
+配对器允许源图／媒体库条目使用原生 Fsys 盘符路径；这些路径需要读写适配层，不能直接交给 Linux 处理器的 POSIX 文件接口。暂存输出仍使用 POSIX 路径。
+
 **打包：**
 1. 准备被 Git 忽略的发行资源：`python dev/desktop/prepare_assets.py`。用 `--preset-archive <zip>` 从导出的资源包或 Windows 安装包中导入默认六款和配对库；用 `--export-presets <zip>` 导出资源包。
 2. 构建：`python dev/desktop/build.py`。

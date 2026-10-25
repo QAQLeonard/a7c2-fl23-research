@@ -136,6 +136,17 @@ The helper is not included in the desktop installer or connected to a camera
 menu/capture hook yet; file processing does not register the result in the
 camera's media database.
 
+`capture_pair.c` is a separate freestanding coordinator: the adapter must supply
+correlated capture-start/completion events, resolved JPEG paths and media
+generations, and persist the session state. It does no I/O or firmware calls.
+Its capture-result decoder reads reservation identity only. Set the optional
+`A7C2_CAPTURE_AP` to an original 2.01 `appFw.so` to compare directory/file
+decoding against the native auto-review reader under emulation; that check
+intercepts model/string helpers and does not execute camera hardware.
+The coordinator accepts native Fsys drive paths for sources/catalog entries;
+these require an I/O adapter and cannot be passed directly to the Linux
+processor's POSIX file interface. Staging destinations remain POSIX paths.
+
 **Packaging:**
 1. Prepare the ignored distribution assets: `python dev/desktop/prepare_assets.py`. Use `--preset-archive <zip>` to import the six defaults and the paired library from an exported pack or a Windows build; use `--export-presets <zip>` to create such a pack.
 2. Build: `python dev/desktop/build.py`.
