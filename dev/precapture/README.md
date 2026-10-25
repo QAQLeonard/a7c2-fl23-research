@@ -17,8 +17,9 @@ single-use queries returned `0x22a4760`, `0x22b4720`, `0x22b4728` and `0x22b4730
 Each has392 journal records, one send/release and qualified same-child exit;
 temporary cleanup and source preservation were checked. The owner confirmed
 normal photography after installing/cold-loading the diagnostic. Its exact
-inverse has now been written and fully read back; ordinary shooting after the
-final cold reload is awaiting the owner's check. This is live pointer evidence,
+inverse has now been written and fully read back; the owner confirmed ordinary
+shooting/playback and original/custom-look selection after the final cold reload.
+This completes that diagnostic's install/test/inverse cycle. This is live pointer evidence,
 not a coherent pool snapshot, pixel lease or working pre-capture feature.
 
 The earlier original-default query remains a separate completed checkpoint.
@@ -129,6 +130,7 @@ do not add up to physical pre-capture.
 | `audit_dma_reader.py` | Original kernel DMA ioctl/stack-cookie/timeout boundaries, executed on synthetic RAM; no live reader or successful service stubs |
 | `support/cp_metadata_probe.py`, `verify_cp_metadata_probe.py` | Offline existing-callback prototype and original-instruction equivalence checks; private authorized four-word experiment completed, no public installer |
 | `support/cp_pool_probe.py`, `verify_cp_pool_probe.py` | Next uninstalled three-word sample prototype and strict local packet/range checks; no atomicity, pixel ownership or physical admission |
+| `audit_pool_serialization.py` | Original task try-lock/release on synthetic Cortex-A9 state, plus original wrapper pre-service boundaries; no physical lock/IRQ admission |
 | `support/register_source.py`, `audit_mtg_select.py`, `audit_source_spans.py` | Shared explicit-input original register slices, MTG field/label evidence and named FILE-offset comparisons; no hardware ACK or loaded-source admission |
 | `vm/cp_boot/config_rmw/qemu_source_word.h`, `vm/cp_boot/mtg_select/` | Shared restricted single-word storage and the optional MTG selector fixture; no timing edges, frame IRQ or sensor |
 | `audit_mtg_period.py`, `vm/cp_boot/mtg_period/` | Original indexed period setters/getters and write-first requested-word storage; undefined-before-write, no timing generation |
@@ -235,10 +237,13 @@ separate tagged12-byte query component; a matched reply is not quiescence.
 经具体授权，诊断只复用原回调58字节窗口，其中52字节改变；没有新增代码页、堆状态或拍摄钩子。
 四次分别返回 `0x22a4760`、`0x22b4720`、`0x22b4728`、`0x22b4730`，均有392条记录、
 单次发送／释放、同一子进程退出、精确清理和来源未变的核对。机主已确认诊断版重开后普通拍摄正常。
-诊断补丁的精确逆向已写回并完整读回，最终重新加载后的普通拍摄检查待机主回报。
+诊断补丁的精确逆向已写回并完整读回，机主确认最终断电重开后普通取景／拍摄／回放及原有／自定义外观选择正常。
+本次小型诊断的安装、验证、还原流程已完成。
 这只是实机指针证据，四项也不是同时读取，不能当成一致资源池、像素归属或预拍摄可用。
 下一步的单次回调 head／tail／count 有界采样原型已完成离线检查，尚未写入或授权实测；
 即使三个数满足环形表关系，也不能据此认定原子快照、无并发变化或像素归属。
+原厂尝试加锁／解锁已在显式虚拟CPU及锁对象上执行：竞争时不等待，成功时须由匹配释放恢复IRQ。
+两条包装路径都使用锁 `0x6c`；尚未证明全部写入者覆盖或实际回调环境，未在机身调用这些锁。
 
 此前一次原厂不支持模式查询仍作为独立完成的检查点保留。
 

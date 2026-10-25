@@ -20,7 +20,9 @@ page/state/hook. The owner confirmed normal shooting after its cold load.
 Queries151–154 each completed once, returning22a4760/22b4720/22b4728/22b4730,
 with392 journal records, one send/release, same-child absence and exact cleanup.
 The explicit four-query budget is consumed. Exact inverse/full program readback
-and reload preparation completed; final cold-reload shooting check is pending.
+and reload preparation completed; owner confirmed ordinary viewfinder/photo/
+playback and FL23/custom-look selection after the final cold reload. This
+completes that diagnostic/install/inverse experiment,not physical pre-capture.
 Do not replay those jobs or treat this as arbitrary CP reads, coherent pools,
 actual pixel ownership, exposure timing or a pre-capture installation. A future
 candidate needs a new concrete scope; preserve all source/epoch/fence evidence.
@@ -28,6 +30,13 @@ Phase155's head/tail/count single-callback sample is a NEW UNINSTALLED prototype
 It returns three fixed words/status5c without following pointers. Bounded ring
 checks do not prove atomicity,IRQ/task serialization,ABA exclusion or backing
 pixel ownership. It is outside the consumed four-pointer experiment approval.
+Phase156 executes original task try-lock/release on synthetic Cortex-A9 CPU,
+context and lock objects. No successful native service return is fabricated.
+Successful try leaves IRQ masked until matching release; contention refuses
+without waiting. Original worker/direct wrappers select lock6c, but universal
+pool-writer coverage,actual callback/task/CPU context and hardware interrupt-off
+cost remain unqualified. Never deploy a blocking lock or infer that unit tests
+authorize live synchronization changes. The four-query permission is exhausted.
 
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never

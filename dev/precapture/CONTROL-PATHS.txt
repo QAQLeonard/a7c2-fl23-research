@@ -3979,3 +3979,47 @@ ABA. They do not identify backing pixels or prove completion. This candidate
 is separate from the now-consumed four-pointer approval,has no deployment
 operator/admission and was NOT installed. Actual owner-coherent pool/resource
 and exposure observations remain the next native blockers.
+
+## Phase156: owner-confirmed inverse and original nonblocking pool lock
+
+Owner replied all normal after the requested final cold reload: ordinary
+viewfinder/photo/playback and FL2/FL3/custom-look selection. The exact inverse
+was already fully read back and all native operations had ended. This closes
+the explicitly scoped58-byte diagnostic install/four-query/inverse experiment.
+Acceptance was recorded as a new immutable private file and mirrored to E:/P:;
+old archive's pending field remains historical rather than silently rewritten.
+No camera I/O,new patch,CP request or additional owner permission in phase156.
+Main782785641ca9 refreshed,still ancestor;product files untouched.
+
+audit_pool_serialization.py now executes the ORIGINAL ARM task try-lock at
+FILE4e66f0 and release4e68a8. Cortex-A9 MPIDR/context/table/lock values are
+explicit synthetic inputs,not inferred camera state. Original MRC,LDREX/STREX,
+barriers and IRQ mask instructions execute without native success stubs.
+13 cases cover successful acquisition followed by actual release,contention,
+masked IRQ,interrupt context,invalid IDs and wrong release ownership. Success
+sets lock/current-context owner and leaves IRQ masked;matching original release
+clears them and unmasks. Busy try refuses without WFE/spin or modifying the
+synthetic lock/owner. Wrong release owner preserves lock and prior IRQ mask.
+
+Four separate original Thumb wrapper selector cases qualify task/interrupt
+routes to the same ID6c: acquisitionb1788a->4e6450/4e65a0;release498034->
+4e68a8/4e6988. Context query4ea67c and selected wrapper services are pre-call
+boundaries,never fake successful returns. Blocking acquire bodies are not run.
+Independent after-query selectors are labeled as such. The full try/release
+fixture is distinct from those wrapper slices.
+
+First offline paired-call model forgot to restore its own synthetic caller LR
+after the try-lock routine used LR as scratch. It correctly stopped at an
+unexpected boundary;the harness now sets a fresh return LR for each C call.
+Another offline guard originally prohibited even a checked BLX to a stop
+boundary;it now permits only immediate calls whose target is explicitly in
+the boundary set. No external target is executed. Retain failed model logs;
+neither issue was sent to a camera.
+
+This identifies a bounded synchronization primitive for future sampling,not
+physical lock ownership or a completed observer. All pool writers,IRQ/other-CPU
+coverage,actual callback nesting/CPU and bounded IRQ-off cost still need proof.
+Never put the blocking native acquire in a diagnostic,loop on failed try-lock,
+free unknown resources or treat the consumed four queries as new authorization.
+Full pre-trigger exposure/owned RAW/S2save/cancel release/default-Off menu remain
+unfinished;keep next candidate uninstalled until its concrete review is ready.
