@@ -2,6 +2,10 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Unreleased — two-frame mean kernel (offline)
+
+- Add an independent AArch64 C kernel for the equal-weight mean of two matching decoded 8-bit sample planes, with rounded integer arithmetic, independent row strides, capacity/overflow checks and input preservation. It can process individual rows. Compiled instruction replay covers every 8-bit input pair, vector tails, padding and invalid/overlapping buffers. This is sample-domain blending, not a claim of linear-light exposure averaging or RAW synthesis. Camera capture hooks, pixel-format adaptation, JPEG read/save and live preview are not connected; there is no installable double-exposure feature yet.
+
 ## Standard license update — 2026-10-25
 
 - Use the unmodified public PolyForm Noncommercial License 1.0.0, replacing the previous MIT/Commons Clause combination and custom preamble. README and startup notice prominently state the commercial-use/profit prohibition, separately from the false-authorization heading. Third-party and previous licenses are retained.
