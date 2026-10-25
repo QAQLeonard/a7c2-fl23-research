@@ -4203,3 +4203,36 @@ two-byte initialized guest-data cell only;instructions and every other image
 write remain protected. Instruction/data FILE observations bind retained CP
 comparisons. Current runtime policy selection,task locks,terminal completion,
 exposure,RAW ownership and actual pre-trigger photographs remain unverified.
+
+Phase171: original lock/notification continuation,synthetic CPU0 only.
+Reviewed main7827856. Same original config/parent-backed allocation/pin/unpin/
+local return now composes with original task try-lock6c and notificationb1746c.
+The Cortex-A9 CPU/context/lock objects are explicit fixtures;the source's lock
+count111 is read unchanged. ARM entry ISA is explicit;existing Thumb/default
+instruction budgets remain unchanged. No helper success is inserted.
+Original default category0 releases/reacquires lock6c,then stops beforeb160da
+clock access;busy remains1 and IRQ is masked. Explicit category1 stops before
+45d204 allocation of16 bytes to92a20524 with lock/IRQ released. Prior busy1
+executes original unlock and prepares the40-byte910041 wait descriptor with
+raw timeout10,then stops before45cfac. It is not a total deadline or real wait.
+Explicit wrong owner is rejected by original unlock(-28),stopping before the
+4fdd70 logger;lock/IRQ remain held. An adversarial lock change at the original
+reacquisition boundary reaches4e64fc WFE and stops before that instruction.
+Every case already has1023 available metadata records,binding this distinction
+to the actual fixture allocation/local-return sequence,not a supplied free count.
+Only originalb17488 may initialize the4-byte guest state cell11f7330;the earlier
+allocation diagnostic halfword remains separately qualified. All other writes
+to loaded image bytes refuse. Source comparisons include the reached original
+lock/context/notification code and constants. No current body task/IRQ ownership,hardware
+clock,actual message,RTOS wait,exposure or terminal pixel release is established.
+
+Phase171 current read-only policy observation: the reviewed existing-file/
+settings wrapper and pinned host source acquired current cpapp-b.bin plus live
+and saved BK4 snapshots,under the common device lock and matched normal/service
+body identities. Existing loader/preload files were absent. All three host
+archives match;both fa0182 segment scalars match live/saved and a second read.
+The CP file reread is identical,and all five notification experiment FILE-span
+sets match original CP bytes. This updates the property observation from old
+backups to the current body,without proving the loaded CP getter's primary-table
+binding or bytes at the selected stream pointer. No upload,native execution,
+direct CP request,patch,parameter change or capture occurred. USB ended normally.

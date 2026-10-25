@@ -12,6 +12,7 @@ from unicorn import arm_const as R
 
 from .capture_native import NativeCapture, BASE, OWNER, STACK, STOP, words
 from .dmm_config import config_tables, CP_CONFIG_SHA256
+from . import pool_notification
 
 ARENA, STREAM, PAGE_ROOT = 0x22a4760, 0x09a08e00, 0x32000000
 REGIONS = ((0x1a8b000, 8192), (0x1a93000, 4096), (0x174e000, 4096),
@@ -31,13 +32,17 @@ def merged_spans(spans):
     return result
 
 
-def audit(cp, raw):
+def audit(cp, raw, *, notification=None):
     if hashlib.sha256(raw).hexdigest() != CP_CONFIG_SHA256:
         raise ValueError('Exact retained original CP DMM configuration required')
     expected = config_tables(raw)
-    n = NativeCapture(cp)
+    if notification is not None:
+        if notification not in pool_notification.SCENARIOS:
+            raise ValueError('Unsupported synthetic notification scenario')
+    n = NativeCapture(cp, cpu_model=R.UC_CPU_ARM_CORTEX_A9 if notification else None)
     u = n.u
-    for at, size in REGIONS:
+    regions = (*REGIONS, *(pool_notification.REGIONS if notification is not None else ()))
+    for at, size in regions:
         u.mem_map(at, size)
     put = lambda at, value: u.mem_write(at, words(value))
     get = lambda at: struct.unpack('<I', u.mem_read(at, 4))[0]
@@ -46,8 +51,9 @@ def audit(cp, raw):
     put(PAGE_ROOT+(STREAM >> 20)*4, 2)
     source_spans = set()
     diagnostic_writes = []
+    notification_state_writes = []
     source_end = BASE+len(cp)
-    mutable = (*REGIONS, (OWNER, 0x10000), (STACK, 0x10000))
+    mutable = (*regions, (OWNER, 0x10000), (STACK, 0x10000))
 
     def code(cpu, at, size, user):
         if at in {STOP, *(BASE+b for b in (*BOUNDARIES, 0xae133a, 0xb1474c))}:
@@ -62,11 +68,14 @@ def audit(cp, raw):
                 # Exact original allocation-diagnostic halfword in initialized
                 # data. This is a guest RAM copy, never an instruction patch.
                 pc = cpu.reg_read(R.UC_ARM_REG_PC)
-                assert at == 0x120614c and size == 2 and pc in (
-                        BASE+0xb145a0, BASE+0xb147a0, BASE+0xb14c16), (
-                    'Outside allocation diagnostic cell', hex(at), hex(pc))
-                diagnostic_writes.append(dict(address=hex(at), bytes=size,
-                    writer_file_offset=hex(pc-BASE), value=value))
+                event = dict(address=hex(at), bytes=size, writer_file_offset=hex(pc-BASE), value=value)
+                if notification is not None and at == 0x11f7330 and size == 4 and pc == BASE+0xb17488:
+                    notification_state_writes.append(event)
+                else:
+                    assert at == 0x120614c and size == 2 and pc in (
+                            BASE+0xb145a0, BASE+0xb147a0, BASE+0xb14c16), (
+                        'Outside allocation diagnostic cell', hex(at), hex(pc))
+                    diagnostic_writes.append(event)
             source_spans.add((at-BASE, size))
         elif any(start <= at < at+size <= start+length for start,length in mutable):
             assert kind != UC_MEM_WRITE or not STREAM <= at < STREAM+len(raw), 'Config modified'
@@ -171,6 +180,8 @@ def audit(cp, raw):
     n.call(0xb16b4c, [handle])
     assert u.reg_read(R.UC_ARM_REG_R0) == 0
     assert bytes(u.mem_read(ARENA+9, 1)) == b'\x00'
+    if notification is not None:
+        pool_notification.prepare(n, notification)
     released = n.run(0xb16bd6, (0xb1746c, 0xb155f4),
         [(R.UC_ARM_REG_R0, handle), (R.UC_ARM_REG_SP, STACK+0x8000),
             (R.UC_ARM_REG_LR, STOP | 1)], instruction_budget=500000)
@@ -180,7 +191,7 @@ def audit(cp, raw):
         descriptor_pinned_and_unpinned=True, metadata_records_after_release=1023,
         stopped_before_notification=True, notification_executed=False,
         physical_pixel_lease_or_terminal_completion_verified=False)
-    return dict(schema='OFFLINE_ORIGINAL_DMM_BACKING_STREAM/1', camera_io=False,
+    report = dict(schema='OFFLINE_ORIGINAL_DMM_BACKING_STREAM/1', camera_io=False,
         configuration_sha256=CP_CONFIG_SHA256, configuration_bytes=len(raw),
         original_read_slices=reads, omitted_property_queries=len(reads),
         property_query_and_lock_executed=False, property_address_is_synthetic=True,
@@ -197,3 +208,13 @@ def audit(cp, raw):
             'Root extents are configuration data, not acquired RAW pixel buffers',
             'Parent-backed allocation and local release execute only on fixture metadata',
             'Notification, native task locks, physical pixels and terminal release remain unverified'])
+    if notification is not None:
+        report['native_notification'] = pool_notification.finish(n, notification)
+        report['native_notification']['initialized_guest_state_writes'] = notification_state_writes
+        report['native_notification']['continued_from_same_local_release'] = True
+        report['native_notification']['available_metadata_records'] = get(0x22b4730)
+        assert get(0x22b4730) == 1023
+        report['limits'][-1] = 'Physical CPU/task/IRQ ownership, clocks, messages and terminal release remain unverified'
+        report['source_spans'] = [dict(offset=at, bytes=size)
+            for at,size in merged_spans(source_spans)]
+    return report

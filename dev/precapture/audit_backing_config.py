@@ -18,6 +18,7 @@ from support.backup import factory_segments
 from support.capture_native import NativeCapture, BASE, OWNER, STACK, STOP, words
 from support.reference import SPECS
 from support.backing_config import audit as audit_stream
+from support.pool_notification import SCENARIOS as NOTIFICATION_SCENARIOS
 
 TABLE = 0xcee830
 PAGE_ROOT = OWNER + 0x8000
@@ -185,15 +186,20 @@ def main():
     parser.add_argument('--current-cp', type=Path)
     parser.add_argument('--config', type=Path,
         help='Retained original CP DmmCfg; execute its native parser on synthetic RAM')
+    parser.add_argument('--notification', choices=NOTIFICATION_SCENARIOS,
+        help='With --config: execute original notification/lock paths on a synthetic CPU')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if args.notification and not args.config:
+        parser.error('--notification requires --config')
     cp = args.cp.read_bytes()
     if hashlib.sha256(cp).hexdigest() != SPECS['a7c2-2.01']['sha256']:
         raise ValueError('Exact original target CP required')
     report = audit(cp, args.factory.read_bytes() if args.factory else None)
     selected_spans = list(SPANS)
     if args.config:
-        report['retained_configuration_stream'] = stream_audit = audit_stream(cp, args.config.read_bytes())
+        report['retained_configuration_stream'] = stream_audit = audit_stream(
+            cp, args.config.read_bytes(), notification=args.notification)
         selected_spans.extend((s['offset'], s['bytes']) for s in stream_audit['source_spans'])
     report['original_CP_sha256'] = hashlib.sha256(cp).hexdigest()
     report['selected_FILE_spans'] = [dict(offset=hex(at), bytes=size) for at,size in selected_spans]

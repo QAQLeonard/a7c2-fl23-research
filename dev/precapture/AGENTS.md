@@ -98,6 +98,27 @@ cached-node matrix and original metadata reports;the decoder's old import remain
 as compatibility for retained replays. Shared execution retains its15000 default
 instruction bound;this initializer explicitly selects a bounded500000 budget.
 
+Phase171 continues from that same local-release boundary with original ARM
+try-lock,context selection,unlock and uncontended task reacquisition on explicit
+synthetic Cortex-A9 CPU0 state. No successful lock/wait/message/clock return is
+supplied. Default category stops before the clock with lock/IRQ/busy still held;
+category1 stops before message allocation;prior busy stops before its real wait;
+wrong owner stops before the error logger with the lock and IRQ retained. An
+explicit adversarial change while unlocked reaches WFE before executing it.
+All cases already have1023 available management records. Those records are not
+a terminal-release fence. Current body task/IRQ ownership and policy-stream bytes remain
+unobserved;never turn these fixture inputs into a live lock observer or admission.
+CPU model selection precedes all Unicorn memory/register APIs;entry ISA is
+explicit for original ARM helpers,while existing callers keep the Thumb default.
+Fresh phase171 read-only acquisition then captured the current CP file and
+live/saved settings with matched body identity and three verified host mirrors.
+Both fa0182 segment values match live/saved and subsequent reads;CP file reread
+is identical,and all five notification FILE-span sets match the original source.
+The selected CP getter's loaded primary-table binding and actual pointed-to
+stream are still unobserved. Existing USB backup reads are distinct from a new
+direct CP diagnostic request. No upload,patch,parameter write or capture occurred;
+the healthy USB session ended normally. Preserve these current backups.
+
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
 inject fake AP pending records to defeat the earlier empty-deque assertion.

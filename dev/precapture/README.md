@@ -43,10 +43,16 @@ then confirmed normal viewfinder, photography and playback using the requested
 direct test sequence. No firmware, shooting setting or existing code patch was
 written by this experiment. This is one successful case, not broad stability.
 
-The latest read-only acquisition (phase135) captured five current program/module
+An earlier read-only acquisition (phase135) captured five current program/module
 files twice with identical bytes and verified two backup copies; USB exited
 normally. They match the retained current sources, including the LUT preview
 repair. This is existing-file evidence, not live CP pool or exposure evidence.
+
+Phase171 refreshed the CP file and live/saved settings through existing read-only
+USB methods,with three verified host copies and normal session exit. The two
+fa0182 property segments match across live/saved and repeated reads;the five
+notification experiments' selected FILE spans match. Actual loaded CP table
+binding and pointed-to policy-stream bytes remain unobserved.
 
 | Area | Verified evidence | Remaining work |
 |---|---|---|
@@ -137,6 +143,7 @@ do not add up to physical pre-capture.
 | `support/capture_resources.py`, `resource_service.py` | Resource preparation, RAW service/task routing, dynamic reply IDs, descriptor/handle/reference lifetime; no native service success or camera I/O |
 | `support/backing_memory.py` | Original cached-free-node allocator and request/reply composition on synthetic memory; explicit queue/accounting/notifier boundaries |
 | `support/dmm_config.py`, `support/backing_config.py`, `audit_backing_config.py` | Shared bounded config decoder and original CP parser/root/parent-allocation/pin/local-return audit; explicit post-query fixture inputs and unexecuted terminal notification |
+| `support/pool_notification.py` | Same local return continued through original CPU-context/lock instructions on synthetic CPU0; message, wait, clock, error and contended-WFE boundaries remain unexecuted |
 | `support/capture_validation.py`, `audit_capture_validation.py` | Combined pool/completion/exposure source checks bound to a completed read-only snapshot; physical verdicts stay unverified |
 | `cp_trace.c/h`, `cp_trace_native.c`, `cp_trace_hooks.S` | Bounded owner-lane recording core, uninstalled native metadata/edge adapters and exposure entry wrappers; no loader/storage/export admission |
 | `support/trace.py`, `decode_cp_trace.py`, `verify_cp_trace.py` | Offline record decoder and compiled cross-ISA/entry-wrapper checks; no camera entry or physical validation |
@@ -217,6 +224,7 @@ python dev/precapture/audit_source_spans.py --cp PRIVATE_STOCK_CP --current-cp P
 python dev/precapture/audit_ap_capture_order.py --ap PRIVATE_STOCK_AP --donor-ap PRIVATE_DONOR_AP --current-ap PRIVATE_CAPTURED_AP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --output NEW_PRIVATE_JSON
+python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --notification default_category --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/audit_metadata_capacity.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER

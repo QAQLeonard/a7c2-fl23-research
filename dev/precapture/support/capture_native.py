@@ -19,8 +19,10 @@ def words(*v):
 
 
 class NativeCapture:
-    def __init__(self, cp):
+    def __init__(self, cp, *, cpu_model=None):
         self.u = u = Uc(UC_ARCH_ARM, UC_MODE_THUMB)
+        if cpu_model is not None:
+            u.ctl_set_cpu_model(cpu_model)
         u.mem_map(BASE, (len(cp) + 4095) & ~4095)
         u.mem_write(BASE, cp)
         for at, size in [(OWNER, 0x10000), (STACK, 0x10000), (STOP, 4096),
@@ -38,16 +40,18 @@ class NativeCapture:
                 cpu.emu_stop()
         u.hook_add(UC_HOOK_CODE, trace)
 
-    def run(self, start, stops, inputs=(), *, instruction_budget=15000):
+    def run(self, start, stops, inputs=(), *, instruction_budget=15000, thumb=True):
         if type(instruction_budget) is not int or not 1 <= instruction_budget <= 500000:
             raise ValueError('Invalid bounded original-instruction budget')
+        if type(thumb) is not bool:
+            raise ValueError('Explicit original entry ISA required')
         u = self.u
         for reg, value in inputs:
             u.reg_write(reg, value)
         self.stops = {BASE + n for n in stops} | {STOP}
         self.observed.clear()
         try:
-            u.emu_start(BASE + start | 1, 0xffffffff, count=instruction_budget)
+            u.emu_start((BASE + start) | int(thumb), 0xffffffff, count=instruction_budget)
         except UcError as error:
             raise RuntimeError('Original execution failed at ' + hex(u.reg_read(UC_ARM_REG_PC)) +
                 ' args=' + repr([hex(u.reg_read(r)) for r in
