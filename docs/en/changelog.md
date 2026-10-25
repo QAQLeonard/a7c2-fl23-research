@@ -75,6 +75,9 @@
 
 - Acceptance correction on 2026-10-23: the owner withdrew the earlier report of normal live-view switching. Switching to another custom slot can leave preview on the previous look. The reported EVF/S35 line removal remains, but the combined line-removal and reliable-preview goal is **not accepted**. The recorded transaction `COMPLETE` is historical write/reload evidence, not evidence that this later functional regression passed. Keep the current trial isolated while investigating the missed-consumption path.
 - Fix macOS look-conversion startup failure in issue #29: SciPy 1.16.3 arm64 wheels and the released DMG contain nonzero file offsets for PROPACK `__thread_bss` zero-fill sections. Normalize those header fields in bundled SciPy extensions before creating the DMG, re-sign affected libraries and the app, and verify the result. No LUT algorithm or camera code changes. The wheel and DMG binaries were checked on Windows; loading on the affected macOS version remains unverified.
+## License change — 2026-10-25
+
+- Apply MIT with Commons Clause 1.0 to QAQLeonard's original project code in subsequent distributions, within the rights owned or authorized. Restrict paid flashing, resale and paid unlocking according to the clause's definition of Sell. Retain the original MIT text and separately licensed contributions, third-party components and DCP/profile terms. This is a source-available license, not plain MIT or an OSI-approved open-source license. Earlier grants and published release packages are unchanged.
 
 ## 3.0.3 — USB recovery and sound workflow fixes — 2026-10-23
 

@@ -42,6 +42,8 @@ Sony A7C II 2.01, Alpha 1 II 4.00 and A7 IV 6.02 firmware were analysis sources;
 
 ## Risk notice and use statement
 
+> **Version note:** this statement matches the current local preview's startup notice. Released 3.0.3 does not yet include that consent dialog and still uses a limited built-in factory reference; user-provided recovery sources belong to the development version. This documentation update does not replace published packages.
+
 ### Independent research and device authorization
 
 This is a free, independent project for photographic color research, interoperability, learning and technical discussion. It is not affiliated with, authorized, approved, sponsored or endorsed by Sony, its affiliates or authorized repair providers. Product names identify compatible devices; the corresponding trademarks remain their owners' property.
