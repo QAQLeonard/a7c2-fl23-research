@@ -54,6 +54,18 @@ fa0182 property segments match across live/saved and repeated reads;the five
 notification experiments' selected FILE spans match. Actual loaded CP table
 binding and pointed-to policy-stream bytes remain unobserved.
 
+Phase172 connects the original primary-table binder and scalar getter body to
+all2411 configuration reads using an explicit retained snapshot segment. This
+path reaches the same configuration/allocation/local-return and notification
+boundaries. Native property semaphores remain omitted;the selected primary
+segment and stream storage are model inputs,not current loaded-RAM observations.
+
+One fixed vendor policy read completed on the body in phase173. Its8-byte reply
+matches the corresponding value in snapshot segment1;policy-scalar and CP-file
+rereads match and USB ended normally. The endpoint value is now observed;
+actual pointed-to configuration bytes and physical resource ownership remain
+unverified. This used no uploaded code or firmware/settings write.
+
 | Area | Verified evidence | Remaining work |
 |---|---|---|
 | Fixed CP metadata access | Four pointer reads, then one separately approved three-word callback sample816/699/907; both exact inverses and cold reloads accepted | Owner-coherent pool state, backing pixels and resource lifetime; ring consistency alone is insufficient |
@@ -144,6 +156,8 @@ do not add up to physical pre-capture.
 | `support/backing_memory.py` | Original cached-free-node allocator and request/reply composition on synthetic memory; explicit queue/accounting/notifier boundaries |
 | `support/dmm_config.py`, `support/backing_config.py`, `audit_backing_config.py` | Shared bounded config decoder and original CP parser/root/parent-allocation/pin/local-return audit; explicit post-query fixture inputs and unexecuted terminal notification |
 | `support/pool_notification.py` | Same local return continued through original CPU-context/lock instructions on synthetic CPU0; message, wait, clock, error and contended-WFE boundaries remain unexecuted |
+| `support/backup_binding.py` | Original BK4 primary binding and scalar-getter body on retained snapshot bytes; explicit bank choice and unexecuted semaphore boundaries |
+| `support/readonly_session.py`, `verify_readonly_scope.py` | Existing-file/settings constraints plus an explicit optional one-use vendor policy read; defaults reject CP packets, all writes/other keys/replays refuse |
 | `support/capture_validation.py`, `audit_capture_validation.py` | Combined pool/completion/exposure source checks bound to a completed read-only snapshot; physical verdicts stay unverified |
 | `cp_trace.c/h`, `cp_trace_native.c`, `cp_trace_hooks.S` | Bounded owner-lane recording core, uninstalled native metadata/edge adapters and exposure entry wrappers; no loader/storage/export admission |
 | `support/trace.py`, `decode_cp_trace.py`, `verify_cp_trace.py` | Offline record decoder and compiled cross-ISA/entry-wrapper checks; no camera entry or physical validation |
@@ -225,6 +239,7 @@ python dev/precapture/audit_ap_capture_order.py --ap PRIVATE_STOCK_AP --donor-ap
 python dev/precapture/audit_capture_transition.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --output NEW_PRIVATE_JSON
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --output NEW_PRIVATE_JSON
 python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --notification default_category --output NEW_PRIVATE_JSON
+python dev/precapture/audit_backing_config.py --cp PRIVATE_STOCK_CP --current-cp PRIVATE_CAPTURED_CP --config PRIVATE_ORIGINAL_CP_DMMCFG --backup-segment PRIVATE_COMPLETE_BK4_SEGMENT --output NEW_PRIVATE_JSON
 python dev/precapture/audit_capture_validation.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --acquisition-report PRIVATE_COMPLETED_ACQUISITION_JSON --output NEW_PRIVATE_JSON
 python dev/precapture/audit_metadata_capacity.py --cp PRIVATE_STOCK_CP --current-snapshot PRIVATE_SNAPSHOT_ZIP --output NEW_PRIVATE_JSON
 python dev/precapture/verify_capture_workflow.py --zig PATH_TO_ZIG --output NEW_PRIVATE_FOLDER

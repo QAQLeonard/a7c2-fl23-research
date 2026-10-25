@@ -1,9 +1,11 @@
-"""Constrain a reviewed modern host transport to named existing-file reads.
+"""Constrain a reviewed transport to existing-file/settings reads.
 
 No USB module is imported or opened here. The private operator supplies the
 pinned transport and the common device lock. Normal entry/healthy exit use
 its authentication protocol, but an unknown exchange never triggers rescue,
 reauthentication, temporary-file cleanup or upload from this wrapper.
+An explicit optional scope permits one fixed eight-byte vendor policy read;
+the default session continues to reject direct CP property packets.
 """
 import struct
 
@@ -24,7 +26,9 @@ def exit_without_rescue(transport, session):
         transport.usb.util.dispose_resources(session.dev)
 
 
-def session_class(transport):
+def session_class(transport, *, policy_scalar=False):
+    if type(policy_scalar) is not bool:
+        raise ValueError('Explicit policy-scalar read scope required')
     if getattr(transport.SonySenserDevice, 'RESPONSE_FRAMING', None) not in REVIEWED_FRAMINGS:
         raise ValueError('Reviewed length-delimited reply transport required')
 
@@ -36,6 +40,7 @@ def session_class(transport):
                 raise ValueError('Explicit existing-file path allowlist required')
             self.allowed_paths = paths
             self._selected = None
+            self._policy_scalar_available = policy_scalar
             super().__init__(expected)
 
         def call(self, method, *args):
@@ -46,6 +51,10 @@ def session_class(transport):
             if owner is camera and camera is not None and name == 'getBackupPresetData':
                 if len(args) != 1 or type(args[0]) is not bool:
                     raise ValueError('Only a live/saved settings snapshot is permitted')
+            elif owner is camera and camera is not None and name == '_sendAdjustControlPacket' and policy_scalar:
+                if args != (0x603, 0x40, struct.pack('<II', 0xfa0182, 1)) or not self._policy_scalar_available:
+                    raise ValueError('Outside the single fixed policy-scalar read')
+                self._policy_scalar_available = False
             elif owner is channel and channel is not None and name == 'sendSenserPacket':
                 if len(args) != 2 or args[0] != 0x40 or not isinstance(args[1], bytes):
                     raise ValueError('Not a read-only file packet')
@@ -59,6 +68,13 @@ def session_class(transport):
             else:
                 raise ValueError('No parameter writes, native calls, capture or arbitrary packets')
             return super().call(method, *args)
+
+        def read_cp_policy_value(self):
+            raw = self.call(self.camera._sendAdjustControlPacket,
+                0x603, 0x40, struct.pack('<II', 0xfa0182, 1))
+            if not isinstance(raw, bytes) or len(raw) != 8:
+                raise ValueError('Incomplete fixed policy-scalar reply; do not replay')
+            return raw
 
         def select(self, path):
             if path not in self.allowed_paths:

@@ -4236,3 +4236,40 @@ sets match original CP bytes. This updates the property observation from old
 backups to the current body,without proving the loaded CP getter's primary-table
 binding or bytes at the selected stream pointer. No upload,native execution,
 direct CP request,patch,parameter change or capture occurred. USB ended normally.
+
+Phase172: original backup binding/getter composed with configuration reader.
+Reviewed main7827856. Shared backup_binding.py validates one complete BK4 segment
+with the existing scalar parser,then original455f9c derives all three primary
+pointers. The originalae133a body executes lookupae18c6,widthae195c,addressae1990,
+actualLDRD and return. Source semaphore take4ed03c/release4ed384 remain explicit
+unexecuted boundaries;post-take overwritesR0 and post-release uses the actual
+loadedR4/R5,without supplying a successful native return.
+The two preserved live-snapshot segments independently produce the same values
+as the host decoder. Only one matches the explicitly staged CP stream address;
+the other is valid backup data but refuses this fixture before stream copying.
+Native loading still must establish which segment/data the current CP primary
+table actually uses. Order in a USB backup is not that runtime observation.
+The selected-segment model now feeds2411 actual scalar getter bodies into the
+original43508-byte config parsing,root/1023-record initialization,parent-backed
+allocation,pin/unpin,local return and optional source-bound notification paths.
+There are zero omitted scalar bodies in this path and4822 omitted semaphore
+calls. Snapshot source bytes remain unchanged. Full source/current FILE checks,
+wrong-segment/truncation/checksum and binder/getter drift controls pass;the prior
+phase171 report remains identical without the optional backup input. No camera
+operation,patch,exposure or physical pre-trigger photo was produced in this phase.
+
+Phase173: one fixed vendor policy read,completed on the current body.
+The opt-in read-only session accepts exactly603/40 with keyfa0182/flags1 and
+an8-byte response,once. The resumed read-only research scope applies to this
+ordinary vendor setting read;the consumed private e2 callback jobs were not used.
+Default file/settings-only sessions remain unchanged. Four host guard tests
+cover exact read,replay,default refusal,wrong key/route/flags/write,timeout and
+wrong-length replies;the six prior read-only-session tests also pass.
+The private operator verifies pinned host source,normal/service body identity,
+CP getter FILE spans and absent loader/preload state,and preserves CP/settings
+before the permanent single-read intent. One complete response matches the
+second captured settings segment's fa0182 value. Follow-up policy snapshots
+match;CP full-file reread is identical. Three private archives match and USB
+ended normally. No code upload,native job,custom UIPC request,parameter/ROM/RAM
+write or capture occurred. This closes the CP-endpoint scalar observation gap,
+not physical primary-table identity,the actual stream bytes or RAW ownership.

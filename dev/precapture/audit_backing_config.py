@@ -188,10 +188,14 @@ def main():
         help='Retained original CP DmmCfg; execute its native parser on synthetic RAM')
     parser.add_argument('--notification', choices=NOTIFICATION_SCENARIOS,
         help='With --config: execute original notification/lock paths on a synthetic CPU')
+    parser.add_argument('--backup-segment', type=Path,
+        help='With --config: bind one retained BK4 segment and execute the original scalar getter body')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.notification and not args.config:
         parser.error('--notification requires --config')
+    if args.backup_segment and not args.config:
+        parser.error('--backup-segment requires --config')
     cp = args.cp.read_bytes()
     if hashlib.sha256(cp).hexdigest() != SPECS['a7c2-2.01']['sha256']:
         raise ValueError('Exact original target CP required')
@@ -199,7 +203,8 @@ def main():
     selected_spans = list(SPANS)
     if args.config:
         report['retained_configuration_stream'] = stream_audit = audit_stream(
-            cp, args.config.read_bytes(), notification=args.notification)
+            cp, args.config.read_bytes(), notification=args.notification,
+            primary_backup=args.backup_segment.read_bytes() if args.backup_segment else None)
         selected_spans.extend((s['offset'], s['bytes']) for s in stream_audit['source_spans'])
     report['original_CP_sha256'] = hashlib.sha256(cp).hexdigest()
     report['selected_FILE_spans'] = [dict(offset=hex(at), bytes=size) for at,size in selected_spans]

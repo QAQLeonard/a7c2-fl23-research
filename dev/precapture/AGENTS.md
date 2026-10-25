@@ -119,6 +119,31 @@ stream are still unobserved. Existing USB backup reads are distinct from a new
 direct CP diagnostic request. No upload,patch,parameter write or capture occurred;
 the healthy USB session ended normally. Preserve these current backups.
 
+Phase172 binds a caller-selected complete segment from that retained live BK4
+snapshot using original455f9c,then executes the originalae133a scalar getter's
+lookup/width/address/load/return instructions on every one of2411 config reads.
+Native semaphore take4ed03c/release4ed384 remain omitted boundaries;independent
+post-call slices never insert successful returns. This replaces the earlier
+supplied scalar input in this OPTIONAL model path,not a current loaded-table
+observation. The primary and secondary snapshot segments yield different values;
+the other segment refuses this specific CP stream fixture. Never relabel it
+corrupt,automatically swap banks or infer physical primary selection from order.
+The captured segments also share the same table counts/offset geometry;three
+primary pointers alone would not identify their contents. Keep that limitation.
+Bound BK4 bytes remain immutable,and raw body segments/results remain private.
+Old no-backup-input callers and the phase171 report remain identical.
+
+Phase173 uses one fixed existing vendor603/40 read of8-byte keyfa0182 under the
+resumed read-only scope,not a custom UIPC query or patch. The opt-in read-only
+session admits only that exact key/flags/route once;writes,other keys and replay
+after timeout or malformed reply refuse. Its default file/settings scope is
+unchanged. Current normal/service body identity,CP getter FILE spans and backups
+were checked first. The single complete reply matches snapshot segment1's
+value;policy snapshots/CP file reread match and USB ended normally. Raw files
+have three verified private host copies. This confirms the CP endpoint value,
+not the entire loaded primary bank or stream bytes. The one private vendor-read
+intent is consumed;no custom-query,patch,exposure or pixel-read scope follows.
+
 Phase130 resumes native shooting integration offline: AP event6/7 and pending
 record admission, CP postprepare branches and original state sequences. Never
 inject fake AP pending records to defeat the earlier empty-deque assertion.

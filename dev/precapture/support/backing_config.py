@@ -13,6 +13,7 @@ from unicorn import arm_const as R
 from .capture_native import NativeCapture, BASE, OWNER, STACK, STOP, words
 from .dmm_config import config_tables, CP_CONFIG_SHA256
 from . import pool_notification
+from . import backup_binding
 
 ARENA, STREAM, PAGE_ROOT = 0x22a4760, 0x09a08e00, 0x32000000
 REGIONS = ((0x1a8b000, 8192), (0x1a93000, 4096), (0x174e000, 4096),
@@ -32,16 +33,21 @@ def merged_spans(spans):
     return result
 
 
-def audit(cp, raw, *, notification=None):
+def audit(cp, raw, *, notification=None, primary_backup=None):
     if hashlib.sha256(raw).hexdigest() != CP_CONFIG_SHA256:
         raise ValueError('Exact retained original CP DMM configuration required')
     expected = config_tables(raw)
+    if primary_backup is not None:
+        backup_binding.validate(primary_backup)
     if notification is not None:
         if notification not in pool_notification.SCENARIOS:
             raise ValueError('Unsupported synthetic notification scenario')
     n = NativeCapture(cp, cpu_model=R.UC_CPU_ARM_CORTEX_A9 if notification else None)
     u = n.u
-    regions = (*REGIONS, *(pool_notification.REGIONS if notification is not None else ()))
+    backup_regions = ((backup_binding.BACKUP, (len(primary_backup)+4095) & ~4095),
+        (backup_binding.GLOBALS & ~4095, 4096)) if primary_backup is not None else ()
+    regions = (*REGIONS, *backup_regions,
+        *(pool_notification.REGIONS if notification is not None else ()))
     for at, size in regions:
         u.mem_map(at, size)
     put = lambda at, value: u.mem_write(at, words(value))
@@ -56,7 +62,9 @@ def audit(cp, raw, *, notification=None):
     mutable = (*regions, (OWNER, 0x10000), (STACK, 0x10000))
 
     def code(cpu, at, size, user):
-        if at in {STOP, *(BASE+b for b in (*BOUNDARIES, 0xae133a, 0xb1474c))}:
+        if at in {STOP, *(BASE+b for b in (*BOUNDARIES, 0xb1474c))}:
+            return
+        if at == BASE+0xae133a and primary_backup is None:
             return
         if not BASE <= at < at+size <= source_end:
             raise AssertionError('Outside original instruction source')
@@ -79,11 +87,14 @@ def audit(cp, raw, *, notification=None):
             source_spans.add((at-BASE, size))
         elif any(start <= at < at+size <= start+length for start,length in mutable):
             assert kind != UC_MEM_WRITE or not STREAM <= at < STREAM+len(raw), 'Config modified'
+            if primary_backup is not None and backup_binding.BACKUP <= at < backup_binding.BACKUP+len(primary_backup):
+                assert kind != UC_MEM_WRITE, 'Bound BK4 bytes modified'
         else:
             raise AssertionError('Outside explicit synthetic storage: '+hex(at))
 
     u.hook_add(UC_HOOK_CODE, code)
     u.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, access)
+    binding = backup_binding.bind(n, primary_backup) if primary_backup is not None else None
     got = n.run(0xb16314, BOUNDARIES, [(R.UC_ARM_REG_R0, 0),
         (R.UC_ARM_REG_R1, ARENA), (R.UC_ARM_REG_SP, STACK+0x8000),
         (R.UC_ARM_REG_LR, STOP | 1)], instruction_budget=500000)
@@ -96,11 +107,16 @@ def audit(cp, raw, *, notification=None):
         reads.append(dict(offset=offset, bytes=size, destination=hex(destination)))
         got = n.run(0x496044, (0xae133a,))
         assert got['args'][0] == 0xfa0182
-        # Independent original post-query slice with a stated fixture input.
-        # No lock/query completion or actual runtime property is supplied.
-        got = n.run(0x49605c, BOUNDARIES,
-            [(R.UC_ARM_REG_R0, STREAM), (R.UC_ARM_REG_R1, 8)],
-            instruction_budget=500000)
+        # Use an explicit value fixture or execute the bound snapshot getter
+        # body. Neither path supplies native semaphore completion.
+        if binding is None:
+            inputs = [(R.UC_ARM_REG_R0, STREAM), (R.UC_ARM_REG_R1, 8)]
+        else:
+            value = backup_binding.query_body(n, return_file=0x49605c)
+            if value != 0x800000000+STREAM:
+                raise ValueError('Bound policy address differs from explicit stream fixture')
+            inputs = ()
+        got = n.run(0x49605c, BOUNDARIES, inputs, instruction_budget=500000)
     assert got['address'] == STOP and u.reg_read(R.UC_ARM_REG_R0) == 0
     assert get(0x1a8c578) == len(raw) and sum(r['bytes'] for r in reads) == len(raw)
     assert bytes(u.mem_read(STREAM, len(raw))) == raw
@@ -217,4 +233,14 @@ def audit(cp, raw, *, notification=None):
         report['limits'][-1] = 'Physical CPU/task/IRQ ownership, clocks, messages and terminal release remain unverified'
         report['source_spans'] = [dict(offset=at, bytes=size)
             for at,size in merged_spans(source_spans)]
+    if binding is not None:
+        assert bytes(u.mem_read(backup_binding.BACKUP, len(primary_backup))) == primary_backup
+        report['primary_backup_binding'] = binding
+        report['omitted_property_queries'] = 0
+        report['property_query_body_executed'] = True
+        report['property_address_is_synthetic'] = False
+        report['property_address_from_bound_snapshot'] = True
+        report['stream_storage_is_synthetic'] = True
+        report['omitted_property_semaphore_calls'] = 2*len(reads)
+        report['limits'][1] = 'Primary-bank selection and policy-stream storage are explicit model inputs; current loaded binding remains unobserved'
     return report
