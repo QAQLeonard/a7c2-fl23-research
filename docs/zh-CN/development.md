@@ -23,7 +23,7 @@
 | `src/camera_runtime/` | USB 服务会话（`transport.py`）、FL23 规划与资源、macOS 主机辅助（`macos_host.py`）、内置 Sony-PMCA-RE |
 | `src/shutter_sound/` | 声音转换／音量、试听、持久安装；`native/` 是 AArch64 相机 worker |
 | `src/vertical/` | 竖屏显示 worker 与竖屏资源（**正在重写**） |
-| `src/double_exposure/native/` | 实验性的平均／串流核心、拍摄配对器、AP 绑定／存活期与输出预留；设备引导、拍摄钩子及媒体库发布尚未接通 |
+| `src/double_exposure/native/` | 实验性的平均／串流核心、拍摄配对器、AP 绑定／存活期、显式调用的加载控制器与输出预留；设备传输／入口、拍摄钩子及媒体库发布尚未接通 |
 | `src/fl23/` | 旧版独立 FL23 安装器；其 `native/` worker 被各引擎复用 |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic 自动识别插件 |
 | `calibration/` | 编译器使用的 2.01 虚拟响应模型 |
@@ -138,6 +138,10 @@ python desktop.py
 `ap_runtime.c` 只绑定已载入的 SDK（`RTLD_NOLOAD`），核对函数所属模块并保留核心自身引用。`BOUND` 只代表导出已解析，不代表相机／SDK 已就绪。任务使用引用需要持续到读写及句柄核对完成；回调使用引用需要持续到注销与原生回调全部结束。退出会拒绝仍有使用引用的情况，并将模块引用交还调用者，在核心函数之外关闭。绑定本身不初始化 SDK、不操作照片、不安装回调。`--harness` 还会构建加载测试程序及 `test-sdk/` 中的模拟 SDK 库；它们只用于测试，不能作为设备资源。`A7C2_BINDING_COMMAND` 是该 ARM64 测试运行器命令的 JSON 参数数组。
 
 `output_reservation.c` 将纯规划／意图状态与实际创建目录／打开暂存文件分开，每个 SDK 步骤前需先持久记录意图。它使用选定 DCF 照片目录下新建的独立目录，单独的“写入＋创建”标志 6 不建立独占所有权。既有或结果不确定的状态会保留，不自动重试或删除。最终文件名分配、移动／发布、媒体库登记及设备加载仍未完成；当前 SDK 测试全都使用本地模拟后端。
+
+`bootstrap.c` 是独立的小型显式调用加载控制器。它解析并核对核心 ABI／启动／查询／退出导出的所属模块，在控制调用期间保持临时模块引用，只在核心返回后关闭交还的自身引用。查询／退出使用 `RTLD_NOLOAD`，关闭失败即停止，不重试。外层调用者必须串行执行请求、先持久记录调用意图并保留未知结果。`dev/double_exposure/build_bootstrap.py --output <dir> --harness` 构建 ARM64 控制器（限制为 64 KiB 内）及测试加载程序。它没有 libJit `_init` 分发入口或设备传输。载入已校验核心仍可能执行其 ELF 启动代码，因此必须先验证文件及其所有权。控制器报告不包含可转交的加载句柄。
+
+`dev/double_exposure/staging_model.py` 模拟离线本地事务：每块 48 KiB，逐块及完整核心 SHA-256，新目录所有权、先记录意图以及本地不覆盖发布。重新打开时核对所有已确认字节；未完成意图保留证据并停止，只有校验通过的已确认前缀可以续传。它不实现相机上传，也不证明相机文件系统／断电行为。`READY` 只表示字节已校验，不表示 ELF／SDK 就绪。设置 `A7C2_ZIG` 可执行九项加载故障注入测试；`A7C2_BOOTSTRAP_COMMAND`（以控制器路径和模拟 SDK 目录结尾的运行器 JSON 参数数组）与 `A7C2_STAGE_CORE` 可启用五项实际 ARM64 加载测试，包括先分块重组核心，再完整载入／退出。
 
 **打包：**
 1. 准备被 Git 忽略的发行资源：`python dev/desktop/prepare_assets.py`。用 `--preset-archive <zip>` 从导出的资源包或 Windows 安装包中导入默认六款和配对库；用 `--export-presets <zip>` 导出资源包。

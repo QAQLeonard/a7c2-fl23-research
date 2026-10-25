@@ -23,7 +23,7 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), shared Sony-PMCA-RE under `src/fl23/vendor` |
 | `src/shutter_sound/` | Sound conversion/volume, audition, persistent install; `native/` holds the AArch64 camera workers |
 | `src/vertical/` | Vertical Display workers and portrait resources (**being rewritten**) |
-| `src/double_exposure/native/` | Experimental mean/stream core, capture coordinator, AP binding/lifetime and output reservation; device bootstrap, capture hooks and catalog publication are not connected |
+| `src/double_exposure/native/` | Experimental mean/stream core, capture coordinator, AP binding/lifetime, explicit-call loader control and output reservation; device transport/entry, capture hooks and catalog publication are not connected |
 | `src/fl23/` | Standalone legacy FL23 installer; its `native/` workers are reused by the engines |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic auto-profile plugin |
 | `calibration/` | Virtual 2.01 response model used by the compiler |
@@ -183,6 +183,28 @@ write|create flag 6 alone does not establish exclusive ownership. Existing or
 uncertain state is retained, with no automatic retry/delete. Final filename
 allocation, move/publication, media registration and device loading remain
 unfinished; all current SDK tests use local synthetic backends.
+
+`bootstrap.c` is a separate small explicit-call control helper. It resolves and
+qualifies the core's ABI/start/query/retire exports, retains a temporary module
+reference during control calls, and closes a transferred self-pin only after
+the core returns. Query/retire use `RTLD_NOLOAD`; a failed close stops without
+retry. The outer caller must serialize requests, persist dispatch intent and
+retain unknown results. `dev/double_exposure/build_bootstrap.py --output <dir>
+--harness` builds the ARM64 helper (limited to 64 KiB) and a test-only loader
+runner. It has no libJit `_init` dispatch entry or device transport. Loading a
+verified core can execute its ELF startup code; verification/ownership must
+precede the call. The helper report contains no transferable loader handles.
+
+`dev/double_exposure/staging_model.py` models an offline local transaction:
+48 KiB immutable chunks, per-chunk and whole-core SHA-256, create-new directory
+ownership, journaled intents and no-replace local publication. Reopening checks
+all acknowledged bytes; unfinished intents retain evidence and stop. Only a
+verified acknowledged prefix can resume. It does not implement a camera upload
+or prove camera filesystem/power-loss behavior. `READY` means verified bytes,
+not ELF/SDK readiness. Set `A7C2_ZIG` for nine loader fault-injection tests;
+`A7C2_BOOTSTRAP_COMMAND` (JSON runner argv ending in helper path and synthetic
+SDK directory) and `A7C2_STAGE_CORE` enable five actual ARM64 loader tests,
+including chunking/reassembling the core before a full load/retire cycle.
 
 **Packaging:**
 1. Prepare the ignored distribution assets: `python dev/desktop/prepare_assets.py`. Use `--preset-archive <zip>` to import the six defaults and the paired library from an exported pack or a Windows build; use `--export-presets <zip>` to create such a pack.
