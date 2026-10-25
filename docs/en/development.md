@@ -23,7 +23,7 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 | `src/camera_runtime/` | USB service session (`transport.py`), FL23 planner/assets, macOS host helpers (`macos_host.py`), shared Sony-PMCA-RE under `src/fl23/vendor` |
 | `src/shutter_sound/` | Sound conversion/volume, audition, persistent install; `native/` holds the AArch64 camera workers |
 | `src/vertical/` | Vertical Display workers and portrait resources (**being rewritten**) |
-| `src/double_exposure/native/` | Experimental mean/stream core, capture coordinator, AP binding/lifetime, explicit-call loader control and output reservation; device transport/entry, capture hooks and catalog publication are not connected |
+| `src/double_exposure/native/` | Experimental mean/stream core, capture coordinator, AP binding/lifetime, POSIX core receiver, explicit-call loader control and output reservation; device transport/entry, capture hooks and catalog publication are not connected |
 | `src/fl23/` | Standalone legacy FL23 installer; its `native/` workers are reused by the engines |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic auto-profile plugin |
 | `calibration/` | Virtual 2.01 response model used by the compiler |
@@ -205,6 +205,32 @@ not ELF/SDK readiness. Set `A7C2_ZIG` for nine loader fault-injection tests;
 `A7C2_BOOTSTRAP_COMMAND` (JSON runner argv ending in helper path and synthetic
 SDK directory) and `A7C2_STAGE_CORE` enable five actual ARM64 loader tests,
 including chunking/reassembling the core before a full load/retire cycle.
+
+`staging.c/.h` implements the native Linux POSIX receiver behind the model.
+Its 80-byte little-endian request identifies the transaction, core size/hash,
+operation and chunk index; CREATE appends the chunk hashes. CREATE owns a new
+directory, PUT accepts only the next chunk, ASSEMBLE checks the independent
+whole-core hash and publishes without replacing an existing file, and QUERY
+rechecks the immutable plan, intent/data/confirmation records and file contents.
+An unfinished intent stops without replay. A lost reply can be reconciled by
+QUERY when durable confirmation and matching bytes exist; duplicate PUT and
+ASSEMBLE requests still fail. Directory `flock` serializes cooperating callers.
+Descriptor-relative no-follow/exclusive opens preserve foreign files; only a
+successfully published assembly's temporary link is removed. The report is
+112 bytes; `pending_fd` is diagnostic evidence, never a request to retry close.
+
+Build `build_bootstrap.py --component staging --output <dir> --harness` for the
+separate small ARM64 receiver and local test runners. Set
+`A7C2_STAGING_COMMAND` to the native runner JSON argv and
+`A7C2_STAGING_FAULT_COMMAND` to the separate test-only fault runner. Twenty-nine
+ARM64 tests cover SHA-256 padding boundaries, concurrent requests, corruption,
+partial/zero writes, readback/flush/close errors, process interruption and
+publication collisions. One test receives the actual core through this C
+receiver, then loads/retires it against synthetic SDK libraries. Two host
+protocol tests check wire encoding. There is still no libJit request entry,
+device transport or automatic stage-to-load dispatch. Camera filesystem and
+power-loss behavior are unverified; the receiver does not write camera firmware,
+settings, captured photos or media database entries.
 
 **Packaging:**
 1. Prepare the ignored distribution assets: `python dev/desktop/prepare_assets.py`. Use `--preset-archive <zip>` to import the six defaults and the paired library from an exported pack or a Windows build; use `--export-presets <zip>` to create such a pack.

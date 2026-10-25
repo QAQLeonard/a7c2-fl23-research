@@ -23,7 +23,7 @@
 | `src/camera_runtime/` | USB 服务会话（`transport.py`）、FL23 规划与资源、macOS 主机辅助（`macos_host.py`）、内置 Sony-PMCA-RE |
 | `src/shutter_sound/` | 声音转换／音量、试听、持久安装；`native/` 是 AArch64 相机 worker |
 | `src/vertical/` | 竖屏显示 worker 与竖屏资源（**正在重写**） |
-| `src/double_exposure/native/` | 实验性的平均／串流核心、拍摄配对器、AP 绑定／存活期、显式调用的加载控制器与输出预留；设备传输／入口、拍摄钩子及媒体库发布尚未接通 |
+| `src/double_exposure/native/` | 实验性的平均／串流核心、拍摄配对器、AP 绑定／存活期、POSIX 核心接收器、显式调用的加载控制器与输出预留；设备传输／入口、拍摄钩子及媒体库发布尚未接通 |
 | `src/fl23/` | 旧版独立 FL23 安装器；其 `native/` worker 被各引擎复用 |
 | `plugins/A7LookAuto.lrplugin/` | Lightroom Classic 自动识别插件 |
 | `calibration/` | 编译器使用的 2.01 虚拟响应模型 |
@@ -142,6 +142,10 @@ python desktop.py
 `bootstrap.c` 是独立的小型显式调用加载控制器。它解析并核对核心 ABI／启动／查询／退出导出的所属模块，在控制调用期间保持临时模块引用，只在核心返回后关闭交还的自身引用。查询／退出使用 `RTLD_NOLOAD`，关闭失败即停止，不重试。外层调用者必须串行执行请求、先持久记录调用意图并保留未知结果。`dev/double_exposure/build_bootstrap.py --output <dir> --harness` 构建 ARM64 控制器（限制为 64 KiB 内）及测试加载程序。它没有 libJit `_init` 分发入口或设备传输。载入已校验核心仍可能执行其 ELF 启动代码，因此必须先验证文件及其所有权。控制器报告不包含可转交的加载句柄。
 
 `dev/double_exposure/staging_model.py` 模拟离线本地事务：每块 48 KiB，逐块及完整核心 SHA-256，新目录所有权、先记录意图以及本地不覆盖发布。重新打开时核对所有已确认字节；未完成意图保留证据并停止，只有校验通过的已确认前缀可以续传。它不实现相机上传，也不证明相机文件系统／断电行为。`READY` 只表示字节已校验，不表示 ELF／SDK 就绪。设置 `A7C2_ZIG` 可执行九项加载故障注入测试；`A7C2_BOOTSTRAP_COMMAND`（以控制器路径和模拟 SDK 目录结尾的运行器 JSON 参数数组）与 `A7C2_STAGE_CORE` 可启用五项实际 ARM64 加载测试，包括先分块重组核心，再完整载入／退出。
+
+`staging.c/.h` 将模型落实为原生 Linux POSIX 接收器。80 字节的小端请求包含事务身份、核心大小／哈希、操作和块编号；CREATE 另附各块哈希。CREATE 取得新目录所有权，PUT 只接受下一块，ASSEMBLE 独立核对完整核心哈希并以不覆盖方式发布，QUERY 重新核对不可变计划、意图／数据／确认记录及实际文件内容。未完成意图会停止而不重放；丢失回复后，只有持久确认和字节匹配才能通过 QUERY 核对结果，重复 PUT／ASSEMBLE 仍会被拒绝。目录 `flock` 串行化配合协议的调用者；基于目录描述符、不跟随链接、独占创建的操作保留外来文件，只移除成功发布后本次组装的临时链接。报告为 112 字节，`pending_fd` 仅作诊断证据，不能据此重试关闭。
+
+使用 `build_bootstrap.py --component staging --output <dir> --harness` 构建独立小型 ARM64 接收器及本地测试程序。`A7C2_STAGING_COMMAND` 是原生运行器的 JSON 参数数组，`A7C2_STAGING_FAULT_COMMAND` 是单独的故障注入运行器。二十九项 ARM64 测试覆盖 SHA-256 填充边界、并发请求、损坏、部分／零写入、读回／刷新／关闭失败、进程中断及发布重名；其中一项由 C 接收器接收实际核心，再使用模拟 SDK 库载入／退出。另有两项主机协议编码测试。仍没有 libJit 请求入口、设备传输或自动暂存后加载的分发器；相机文件系统及断电行为未验证，接收器不写相机固件、设置、实拍照片或媒体库。
 
 **打包：**
 1. 准备被 Git 忽略的发行资源：`python dev/desktop/prepare_assets.py`。用 `--preset-archive <zip>` 从导出的资源包或 Windows 安装包中导入默认六款和配对库；用 `--export-presets <zip>` 导出资源包。
