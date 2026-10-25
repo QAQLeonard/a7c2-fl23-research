@@ -41,6 +41,7 @@ For other models, these independent projects may help. They are not part of this
 | --- | --- | --- |
 | A7CR | [lzh2016zzz/a7cr-fl23-research](https://github.com/lzh2016zzz/a7cr-fl23-research) | FL2/FL3 porting research |
 | A7CR | [injectiver/a7cr-creative-look-tools](https://github.com/injectiver/a7cr-creative-look-tools) | Research tools for FL2/FL3 and custom looks on firmware 2.01 (source only, no flashing command) |
+| A7CR | [littleben/a7cr-creative-look-tools](https://github.com/littleben/a7cr-creative-look-tools) | Agent-neutral downstream extension: reviewed single-slot CC and incremental PRO Neg. Std/ASTIA workflows, JSON CLI and bilingual documentation; one A7CR 2.01 / Apple Silicon Mac |
 | A7R V | [Hearts-Ace/sony-a7r5-custom-firmware](https://github.com/Hearts-Ace/sony-a7r5-custom-firmware) | FL2/FL3 firmware adaptation and RAW color research |
 | A7 IV | [DavidBuchanan314/ILCE-7M4-RE](https://github.com/DavidBuchanan314/ILCE-7M4-RE) | Firmware reverse-engineering notes |
 | A6700 | [xyzhangxin/sony-a6700-powerful](https://github.com/xyzhangxin/sony-a6700-powerful) | Chinese guide for firmware 2.00: Pico wiring, Fastboot, backups and feature unlocks |

@@ -10,6 +10,36 @@ One overview for maintainers and AI agents. Read [AGENTS.md](../../AGENTS.md) fi
 - Product: the 3.0 desktop app (`desktop.py`), on Windows 10/11 x64 and macOS 14+ Apple Silicon. Windows and macOS share the GUI, planners, camera writes and recovery. Only USB drivers, privilege elevation and media handling differ per host.
 - Legacy command-line tools (`FL23.cmd`, `lut.py`, `recovery.py`, `shutter.py`, `vertical.py`, `a7look_*.py`, `raw_*.py`) remain for advanced use. Their backup-based workflows are separate from the desktop's backup-free direct operations.
 
+## External A7CR port: research boundary
+
+The downstream [agent-neutral A7CR workflow](https://github.com/littleben/a7cr-creative-look-tools)
+extends the previously listed injectiver research source. It does not change
+this app's ILCE-7CM2-only contract or provide permission to substitute an A7CR PID.
+The A7CR adapter uses separate exact-source guards and model-specific offsets:
+
+| A7CR 2.01 location | File offset / role |
+| --- | --- |
+| AP converter and bounded title helper | `0x3528cd8..0x3528d5c` |
+| AP title-getter entry | `0x1b5ce5c` |
+| AP native look map | `0x4c7d4cc` |
+| CP native controller entry | `0x1354d8`; native continuations differ from the A7C II reference |
+
+These are file offsets, not live process addresses. The downstream code audits
+ownership, incoming branches, loaded extents, data/BSS and the loader/bootstrap
+before building a candidate. It separately saves and synchronizes native ST,
+using the A7CR menu call chain and re-probing all 18 bases after each slot. It
+binds loaded/native reports by PID, base and kernel boot ID. Its increment keeps
+slot 1 CC while adding slots 2/3, with an exact inverse to the preceding CC state.
+
+Reported physical coverage is one A7CR 2.01 on Apple Silicon macOS: full program
+and 68-resource readback, new-boot AP-span checks, saved/native bases, and new
+JPEGs with custom markers 249/250/251 plus an ST control. New portrait-look
+samples were still life; skin-tone fidelity and complete physical restoration
+remain unverified. A completed-write/ordinary-USB-exit timeout was resolved by
+preserved binary evidence and a later cold-start read-only verification, without
+replaying installation. No firmware, body backup, calibration, DCP or photo is
+included in this documentation contribution.
+
 ## Repository map
 
 | Path | Responsibility |
