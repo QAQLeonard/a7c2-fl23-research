@@ -2025,6 +2025,77 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_original_population_publishers_default_interface_and_libc_lock_initializers(self):
+        from cp_population_init_replay import compare
+        report = compare(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 16)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            init = result['native_continuation']
+            repeats = 2 if inputs['repeat'] else 1
+            self.assertEqual(init['native_context_bytes'], 200)
+            self.assertEqual(init['native_derived_product_or_one'], inputs['component_a']*inputs['component_b'] or 1)
+            self.assertEqual(init['native_default_type'], 'N6Camera2LC20CaptureSequence_NoneE')
+            self.assertEqual(init['native_default_method_return'], 0xffff)
+            self.assertEqual(init['native_initializer_entries'], 5*repeats)
+            self.assertEqual(init['native_libc_lock_acquire_release_pairs'], repeats)
+            self.assertEqual(init['native_lock_words'], [0x33330003, 1, 0xff, 0, 0, 0, 0])
+            for field in ('native_irq_state_restored', 'native_source_and_neighbors_preserved',
+                          'native_caller_state_preserved', 'cpu_backing_leaf_inputs_and_stage_handoffs_are_fixtures'):
+                self.assertTrue(init[field], field)
+            for field in ('host_assigned_context_pointers_or_lock_magic', 'api_results_replaced',
+                          'full_frame_population_executed', 'four_frame_scheduler_executed',
+                          'positioning_or_exposure_executed', 'saved_off_setting_executed', 'camera_io', 'installable'):
+                self.assertFalse(init[field], field)
+
+    def test_native_population_initialization_preserves_header_and_queued_clear_in_same_ram(self):
+        from cp_frame_header_replay import compare_initialized
+        report = compare_initialized(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 8)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            frame = result['native_continuation']
+            self.assertIsNotNone(frame['native_population_initialization'])
+            self.assertEqual(frame['native_population_initialization']['native_libc_lock_acquire_release_pairs'], 1)
+            self.assertTrue(frame['complete_frame_header_returned'])
+            self.assertTrue(frame['first_ordinal_produced_by_native_reset'])
+            self.assertEqual(frame['native_frame_ordinal'], 0)
+            self.assertEqual(frame['native_next_ordinal'], 1)
+            self.assertEqual(frame['native_group_count'], 4)
+            self.assertEqual(frame['queued_group_end_executed'], inputs['clear_after_header'])
+            self.assertEqual(frame['native_runtime_mode_clear_executed'], inputs['clear_after_header'])
+            self.assertEqual(frame['native_shared_group_reference_count'], 1 if inputs['clear_after_header'] else 2)
+            self.assertFalse(frame['saved_off_setting_executed'])
+            self.assertFalse(frame['complete_population_executed'])
+            self.assertFalse(frame['sensor_settling_or_exposure_executed'])
+
+    def test_native_steady_callback_event_wait_and_clear_without_invented_ready_reply(self):
+        from cp_steady_event_replay import compare_delivery
+        report = compare_delivery(self.c2, self.cr)
+        self.assertEqual(report['paired_cases'], 16)
+        for case in report['cases']:
+            inputs, result = case['input'], case['target']
+            self.assertEqual(result, case['reference'])
+            signaled = inputs['signal']
+            self.assertEqual(result['after_callback'], inputs['initial_bits'] | (0x80000000 if signaled else 0))
+            self.assertEqual(result['after_wait'], inputs['initial_bits'])
+            self.assertEqual(result['native_timed_wait_status'], 0 if signaled else None)
+            self.assertEqual(result['native_clear_status'], 0 if signaled else None)
+            self.assertEqual(result['native_wait_arguments'], [0x2e, 0x80000000, 2, 10000])
+            self.assertEqual(result['software_event_delivered'], signaled)
+            self.assertEqual(result['timed_wait_completed'], signaled)
+            self.assertEqual(result['boundary'], 'before_original_timer_cancel' if signaled else 'before_native_waiter_state_change')
+            self.assertEqual(result['diagnostic_calls_omitted'], 2 if signaled else 1)
+            self.assertTrue(result['frame_and_neighbors_preserved'])
+            self.assertTrue(result['callback_invocation_frame_event_and_os_are_fixtures'])
+            for field in ('host_assigned_event_bits_after_callback', 'api_results_replaced',
+                          'timer_expiry_or_registration_executed', 'outer_waiter_returned', 'timer_cancel_executed',
+                          'physical_position_acknowledgement_verified', 'exposure_or_centering_executed',
+                          'saved_off_setting_executed', 'camera_io', 'installable'):
+                self.assertFalse(result[field], field)
+
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare
         report = compare(self.c2, self.cr)

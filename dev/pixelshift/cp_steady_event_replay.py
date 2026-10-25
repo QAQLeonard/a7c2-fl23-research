@@ -168,13 +168,141 @@ def compare(c2, reference):
                 separate_callback_and_waiter_invocations=True, physical_shift_verified=False)
 
 
+def deliver(directory, *, ordinal=0, initial_bits=0, signal=True):
+    """Execute callback -> real event set -> native timed wait/clear.
+
+    Task/frame/event backing and callback invocation are fixtures. A pre-set
+    software event does not establish elapsed time or actuator settling.
+    Stop before the outer waiter's timer-cancel operation, which needs its own
+    timer registration lifecycle. Preserve the existing void-log omissions.
+    """
+    from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
+    import unicorn.arm_const as arm
+    from cp_completion_replay import profile as completion_profile
+    from cp_native_mutex_replay import setup as setup_kernel
+    from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB
+    data, p = profile(directory)
+    _, event_profile = completion_profile(directory)
+    cpu = machine(data, [])
+    kernel = setup_kernel(cpu, directory)
+    frame, event, attrs, stack, finish = 0x34000000, 0x30015000, 0x30003400, 0x3001f000, 0x3001e000
+    cpu.mem_map(frame, 0x8000)
+    slot = event_profile['table']+4*(0x2e-1)
+    for address in (slot, p['debug']):
+        page = address & ~4095
+        if not any(lo <= page <= hi for lo, hi, _ in cpu.mem_regions()):
+            cpu.mem_map(page, 4096)
+    cpu.mem_write(slot, struct.pack('<I', event))
+    cpu.mem_write(event-4, b'\xa5'*4+struct.pack('<4I', event, event, attrs, initial_bits)+b'\xa5'*4)
+    cpu.mem_write(attrs, bytes(8))
+    cpu.mem_write(p['debug'], b'\0')
+    cpu.mem_write(frame, bytes(0x7000))
+    cpu.mem_write(frame+0x208, struct.pack('<I', ordinal))
+    cpu.mem_write(frame+0x5c04, struct.pack('<I', 0x12345678))
+    cpu.mem_write(frame+0x9d7, b'\1')
+    source = bytes(cpu.mem_read(frame, 0x7000))
+    decoder = Cs(CS_ARCH_ARM, CS_MODE_THUMB)
+    at = p['wait_helper']+0x3e
+    call = list(decoder.disasm(data[at-0x108000:at-0x108000+4], at))
+    if len(call) != 1 or call[0].mnemonic != 'blx':
+        raise ValueError('Original steady wait helper no longer clears the event after waiting')
+    clear = int(call[0].op_str.lstrip('#'), 0)
+    regions = p['regions']+[(p['task_set'], p['task_set']+0x248),
+        (p['timed_wait'], p['timed_wait']+0x34c), (clear, clear+0x248)]
+    phase, diagnostics, wait_statuses, clear_statuses, returned_flags = 'callback', [], [], [], []
+    boundary, wait_arguments = None, None
+
+    def hook(uc, address, size, unused):
+        nonlocal boundary, wait_arguments
+        if address == p['timed_wait']+0x214:
+            boundary = 'before_native_waiter_state_change'
+            uc.emu_stop()
+            return
+        if address in p['traces']:
+            diagnostics.append(phase)
+            uc.reg_write(arm.UC_ARM_REG_PC, uc.reg_read(arm.UC_ARM_REG_LR) | 1)
+            return
+        if address == p['cancel_timer']:
+            boundary = 'before_original_timer_cancel'
+            uc.emu_stop()
+            return
+        if address == p['timed_wait']:
+            wait_arguments = [uc.reg_read(r) for r in (arm.UC_ARM_REG_R0, arm.UC_ARM_REG_R1, arm.UC_ARM_REG_R2)]
+            wait_arguments.append(struct.unpack('<I', uc.mem_read(uc.reg_read(arm.UC_ARM_REG_SP), 4))[0])
+        if address == p['wait_helper']+0x38:
+            wait_statuses.append(uc.reg_read(arm.UC_ARM_REG_R0))
+            returned_flags.append(struct.unpack('<I', uc.mem_read(uc.reg_read(arm.UC_ARM_REG_SP)+4, 4))[0])
+        if address == p['wait_helper']+0x42:
+            clear_statuses.append(uc.reg_read(arm.UC_ARM_REG_R0))
+        if not any(lo <= address and address+size <= hi for lo, hi in regions):
+            raise ValueError('Native steady event delivery reached an unresolved dependency: '+hex(address))
+
+    def write_hook(uc, access, address, size, value, unused):
+        spans = [(event+12, 4), (event_profile['guard'], 4), (stack-4096, 4096)]+kernel['writes']
+        if not any(lo <= address and address+size <= lo+n for lo, n in spans):
+            raise ValueError('Native steady event delivery changed unrelated state: '+hex(address))
+
+    ch, wh = cpu.hook_add(UC_HOOK_CODE, hook), cpu.hook_add(UC_HOOK_MEM_WRITE, write_hook)
+    try:
+        if signal:
+            cpu.reg_write(arm.UC_ARM_REG_R0, frame)
+            cpu.reg_write(arm.UC_ARM_REG_SP, stack)
+            cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
+            cpu.emu_start(p['callback'] | 1, finish, count=10000)
+        after_callback = struct.unpack('<I', cpu.mem_read(event+12, 4))[0]
+        if ((signal and cpu.reg_read(arm.UC_ARM_REG_PC) != finish)
+                or after_callback != initial_bits | (0x80000000 if signal else 0)):
+            raise ValueError('Original callback/event API did not produce its ready bit')
+        phase = 'waiter'
+        cpu.reg_write(arm.UC_ARM_REG_R0, frame)
+        cpu.reg_write(arm.UC_ARM_REG_SP, stack)
+        cpu.reg_write(arm.UC_ARM_REG_LR, finish | 1)
+        cpu.emu_start(p['waiter'] | 1, finish, count=20000)
+    finally:
+        cpu.hook_del(ch)
+        cpu.hook_del(wh)
+    after_wait = struct.unpack('<I', cpu.mem_read(event+12, 4))[0]
+    if (boundary != ('before_original_timer_cancel' if signal else 'before_native_waiter_state_change')
+            or wait_statuses != ([0] if signal else []) or clear_statuses != ([0] if signal else [])
+            or returned_flags != ([initial_bits | 0x80000000] if signal else []) or after_wait != initial_bits
+            or wait_arguments != [0x2e, 0x80000000, 2, 10000]
+            or bytes(cpu.mem_read(frame, 0x7000)) != source
+            or bytes(cpu.mem_read(event-4, 4)) != b'\xa5'*4 or bytes(cpu.mem_read(event+16, 4)) != b'\xa5'*4
+            or diagnostics != (['callback', 'waiter'] if signal else ['waiter'])):
+        raise ValueError('Native steady event wait/clear did not preserve its software contract')
+    return dict(ordinal=ordinal, initial_event_bits=initial_bits, after_callback=after_callback, after_wait=after_wait,
+        native_timed_wait_status=wait_statuses[0] if signal else None,
+        native_clear_status=clear_statuses[0] if signal else None,
+        native_wait_arguments=wait_arguments, software_event_delivered=signal, timed_wait_completed=signal,
+        frame_and_neighbors_preserved=True, diagnostic_calls_omitted=len(diagnostics),
+        boundary=boundary, host_assigned_event_bits_after_callback=False, api_results_replaced=False,
+        callback_invocation_frame_event_and_os_are_fixtures=True, timer_expiry_or_registration_executed=False,
+        outer_waiter_returned=False, timer_cancel_executed=False, physical_position_acknowledgement_verified=False,
+        exposure_or_centering_executed=False, saved_off_setting_executed=False, camera_io=False, installable=False)
+
+
+def compare_delivery(c2, reference):
+    rows = []
+    for ordinal in range(4):
+        for bits in (0, 0x204):
+            for signal in (False, True):
+                values = dict(ordinal=ordinal, initial_bits=bits, signal=signal)
+                x, y = deliver(c2, **values), deliver(reference, **values)
+                if x != y:
+                    raise ValueError('C2/CR native steady event delivery differs')
+                rows.append(dict(input=values, target=x, reference=y))
+    return dict(schema='a7c2-native-steady-event-delivery/1', paired_cases=len(rows), cases=rows,
+        camera_io=False, physical_shift_verified=False, installable=False)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--c2', type=Path, required=True)
     parser.add_argument('--reference', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--deliver-event', action='store_true', help='Execute actual task-context event set/wait/clear')
     args = parser.parse_args(argv)
-    report = compare(args.c2, args.reference)
+    report = (compare_delivery if args.deliver_event else compare)(args.c2, args.reference)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open('x', encoding='utf-8') as handle:
         json.dump(report, handle, indent=2)

@@ -81,7 +81,7 @@ def profile(directory):
 
 def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_count=4,
            continue_header=False, queue_start=0, bank_gate=0, aux_flag=0, clear_after_header=False,
-           disable_runtime_mode=False):
+           disable_runtime_mode=False, initialize_population=False):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, p = profile(directory)
@@ -97,6 +97,7 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
         kernel, base, stride = initial['kernel'], initial['base'], initial['stride']
         stack, finish = 0x3001f000, 0x3001e000
         extension = None
+        population_initialization = None
         regions = list(p['regions'])
         if continue_header:
             from cp_frame_extensions import prepare
@@ -106,6 +107,9 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
             regions += extension['profile']['regions']+shared['regions']
             for index in range(initial['total']):
                 cpu.mem_write(base+index*stride+0x52d8, b'\0')
+            if initialize_population:
+                from cp_population_init_replay import initialize
+                population_initialization = initialize(cpu, directory, dirty=dirty)
 
         def map_range(at, size):
             for page in range(at & ~4095, (at+size+4095) & ~4095, 4096):
@@ -359,6 +363,7 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
             complete_frame_header_returned=continue_header,
             notification_actor_binding_and_configuration_banks_are_fixtures=continue_header,
             native_notification_callbacks=callback_count,
+            native_population_initialization=population_initialization,
             first_ordinal_produced_by_native_reset=continue_header and initial_ordinal == 0,
             native_shared_group_reference_count=group_count, native_image_helper_result=helper_result,
             queued_group_end_executed=clear_verified, native_group_end_invocations=end_entries,
@@ -431,6 +436,21 @@ def compare_queued_clear(c2, reference):
         camera_io=False, physical_shift_verified=False, installable=False)
 
 
+def compare_initialized(c2, reference):
+    rows = []
+    for dirty in (0, 0x6b):
+        for queue_start in (0, 112):
+            for clear in (False, True):
+                values = dict(continue_header=True, initialize_population=True, dirty=dirty,
+                    queue_start=queue_start, clear_after_header=clear, disable_runtime_mode=clear)
+                x, y = replay(c2, **values), replay(reference, **values)
+                if x != y:
+                    raise ValueError('C2/CR initialized population/header/clear chain differs')
+                rows.append(dict(input=values, target=x, reference=y))
+    return dict(schema='a7c2-native-initialized-frame-header/1', paired_cases=len(rows), cases=rows,
+        camera_io=False, physical_shift_verified=False, installable=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--c2', type=Path, required=True)
@@ -440,8 +460,11 @@ def main():
         help='Execute original notification and complete header on explicit actor/configuration fixtures')
     parser.add_argument('--queued-clear', action='store_true',
         help='Follow complete header with native queued group-end and optional runtime-mode clear')
+    parser.add_argument('--initialize-population', action='store_true',
+        help='Execute original context/default-interface/libc-lock initialization before complete header')
     args = parser.parse_args()
-    runner = compare_queued_clear if args.queued_clear else compare_continued if args.continue_header else compare
+    runner = (compare_initialized if args.initialize_population else compare_queued_clear if args.queued_clear
+              else compare_continued if args.continue_header else compare)
     result = runner(args.c2, args.reference)
     with args.output.open('x', encoding='utf-8') as handle:
         json.dump(result, handle, indent=2)
