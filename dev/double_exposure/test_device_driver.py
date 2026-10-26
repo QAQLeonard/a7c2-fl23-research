@@ -20,6 +20,7 @@ class FakeSession:
         self.healthy, self.mutating = True, False
         self.files, self.calls, self.fault = {}, [], fault
         self.operation, self.request_id, self.phase, self.active = 0, 0, 0, 0
+        self.epoch, self.generation = 0, 0
 
     def read(self, path, missing=False):
         name = path.rsplit('/', 1)[1]
@@ -46,12 +47,21 @@ class FakeSession:
             if op != 3:
                 self.operation, self.request_id = op, struct.unpack_from('<Q', wire, 16)[0]
                 self.active = 1
-            elif self.operation == 1: self.phase = 7
+                if op == 1: self.epoch, self.generation = struct.unpack_from('<QQ', wire, 24)
+            elif self.operation == 1: self.phase = 1 if self.fault == 'arm-ready' else 7
             elif self.operation == 4: self.active = 0
             payload = bytearray(2832)
             struct.pack_into('<IIIIQ', payload, 0, 1, self.operation, int(op != 3), 0, self.request_id)
             struct.pack_into('<I', payload, 44, self.active)
             struct.pack_into('<I', payload, 80, self.phase)
+            struct.pack_into('<I', payload, 32, 1)
+            struct.pack_into('<I', payload, 60, self.active)
+            struct.pack_into('<QQ', payload, 88, self.generation, self.epoch)
+            payload[1688:1688+34] = b'A:/DCIM/101A7AVG/A7AV0001.JPG\0'.ljust(34, b'\0')
+            struct.pack_into('<II', payload, 2760, 101, 1)
+            struct.pack_into('<I', payload, 2212, 6)
+            struct.pack_into('<QQ', payload, 2224, 12345, 12345)
+            payload[2248:2760] = payload[1688:2200]
             kind, status = 2, 0
             if self.fault == 'busy' and op == 3:
                 status = -16004; struct.pack_into('<I', payload, 8, 1)
@@ -81,7 +91,7 @@ class DeviceTransport(unittest.TestCase):
         driver.stage(); self.assertEqual(driver.state['phase'], 'CORE_READY')
         self.assertFalse(session.files)
         driver.arm(epoch=1, generation=1, nonce=123)
-        self.assertEqual(driver.state['phase'], 'ARMED')
+        self.assertEqual(driver.state['phase'], 'ARMING')
         self.assertTrue(driver.query()['photo_complete'])
         self.assertEqual(driver.state['phase'], 'COMPLETE')
         driver.disable(); self.assertEqual(driver.state['phase'], 'DISABLING')
@@ -125,11 +135,11 @@ class DeviceTransport(unittest.TestCase):
         driver.arm(epoch=1, generation=1)
         session.fault = 'busy'
         self.assertEqual(driver.query()['status'], -16004)
-        self.assertEqual(driver.state['phase'], 'ARMED')
+        self.assertEqual(driver.state['phase'], 'ARMING')
         self.assertTrue(session.healthy)
 
     def test_final_host_state_failure_stops_every_operation_without_replay(self):
-        cases = (('stage', 'CORE_READY'), ('arm', 'ARMED'),
+        cases = (('stage', 'CORE_READY'), ('arm', 'ARMING'),
                  ('query', 'COMPLETE'), ('disable', 'DISABLING'))
         for operation, phase in cases:
             with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
@@ -185,7 +195,7 @@ class DeviceTransport(unittest.TestCase):
                 release.set(); worker.join(5)
             self.assertFalse(worker.is_alive())
             self.assertEqual(failures, [])
-        self.assertEqual(driver.state['phase'], 'ARMED')
+        self.assertEqual(driver.state['phase'], 'ARMING')
 
     def test_invalid_arm_parameters_leave_ready_transaction_usable(self):
         session = FakeSession(); driver = self.driver(session); driver.stage()
@@ -195,4 +205,24 @@ class DeviceTransport(unittest.TestCase):
         self.assertEqual(session.calls, calls)
         self.assertTrue(session.healthy)
         driver.arm(epoch=1, generation=1)
+        self.assertEqual(driver.state['phase'], 'ARMING')
+
+    def test_arm_is_not_ready_until_matching_native_acceptance(self):
+        session = FakeSession(); driver = self.driver(session); driver.stage()
+        report = driver.arm(epoch=7, generation=9)
+        self.assertFalse(report['arm_accepted'])
+        self.assertEqual(driver.state['phase'], 'ARMING')
+        session.fault = 'arm-ready'
+        report = driver.query()
+        self.assertTrue(report['arm_accepted'])
         self.assertEqual(driver.state['phase'], 'ARMED')
+        self.assertEqual((report['epoch'], report['generation']), (7, 9))
+
+    def test_different_accepted_capture_identity_stops_instead_of_allowing_shots(self):
+        session = FakeSession(); driver = self.driver(session); driver.stage()
+        driver.arm(epoch=7, generation=9)
+        session.fault = 'arm-ready'; session.epoch = 8
+        with self.assertRaisesRegex(ReviewRequired, 'differs'):
+            driver.query()
+        self.assertEqual(driver.state['phase'], 'REVIEW')
+        self.assertFalse(session.healthy)

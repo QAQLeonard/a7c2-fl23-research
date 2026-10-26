@@ -197,6 +197,19 @@ def run_case(case):
         report = DeviceReport()
         status = lib.a7_device_execute(device, wire, len(wire), C.byref(report))
         assert status == report.status
+        if len(wire) == 64 and wire[:8] == b'A7DEX001':
+            from entry_protocol import receipt
+            header = bytearray(64); header[:8] = b'A7ENT001'
+            struct.pack_into('<II', header, 8, 1, 2)
+            header[32:64] = hashlib.sha256(wire).digest()
+            wrapped = bytes(header) + struct.pack('<iI', status, C.sizeof(report)) + bytes(report)
+            wrapped += hashlib.sha256(wrapped).digest() + b'A7DONE01'
+            decoded = receipt(wrapped, wire)
+            assert decoded['phase'] == report.pipeline.pair.phase
+            if status == 0 and operation == 1: assert decoded['arm_accepted']
+            if status == 0 and report.pipeline.pair.phase == 7:
+                assert decoded['photo_complete']
+                assert decoded['result_path'].encode() == report.pipeline.pair.result
         return status, report
     if case == 'invalid':
         for wire in (b'', b'X' * 64): assert execute(1, 1, raw=wire)[0] == -16001

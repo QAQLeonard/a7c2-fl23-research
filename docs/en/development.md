@@ -300,7 +300,24 @@ REVIEW and the session unhealthy/mutating; no subsequent command is sent.
 Invalid ARM arguments detected before starting leave the transaction usable.
 The caller still owns session-wide exclusivity across driver instances.
 Only its three fixed temporary names were added
-to the existing transport allowlists. The desktop does not expose this driver.
+to the existing transport allowlists. ARM submission leaves the host ARMING;
+only a fresh native report with matching request/epoch/media generation and an
+active attached collector makes it ARMED. Photo completion additionally checks
+pipeline/catalog status, UID validity, matching result/publication paths and
+matching nonzero output/publication sizes.
+
+`dev/double_exposure/experiment.py --helper <entry.so> --core <core.so>
+--output <new-directory> --run` is the explicit first-pair operator entry.
+Only --run creates service sessions. It stages/arms and polls acceptance, exits
+the service session, then prompts for USB removal and two manual JPEG shots.
+Reconnect to the same body without restarting/changing cards; it polls the
+result, preserves the result path and disables/drains processing before service
+exit. Failure/timeout preserves evidence and stops without automatic rearming,
+disabling or replay. The first trial uses matching baseline sRGB JPEG settings
+and a fixed physical card generation; changing cards is outside that trial.
+The small loader's original 2.01 SET_FILE2 implementation uses RTLD_LAZY then
+dlclose; loader reference handling was also checked against local original
+instructions. These are development trial tools, not a desktop feature.
 
 Use `A7C2_PIPELINE_LIBRARY` for integrated host tests,
 `A7C2_PIPELINE_COMMAND` for the ARM64 asynchronous pipeline runner, and

@@ -152,7 +152,7 @@ class DeviceDriver:
         return report
 
     def _control(self, operation, **kwargs):
-        if self.state['phase'] not in ('CORE_READY', 'ARMED', 'COMPLETE', 'DISABLING', 'DISABLED'):
+        if self.state['phase'] not in ('CORE_READY', 'ARMING', 'ARMED', 'COMPLETE', 'DISABLING', 'DISABLED'):
             raise ReviewRequired('A verified staged core is required')
         self._operation_started = True
         self.state['request_id'] += 1; self._save()
@@ -163,6 +163,13 @@ class DeviceDriver:
         if not report.get('intent') and report.get('operation') == 4 and not report.get('active'):
             self.state['phase'] = 'DISABLED'
         elif report.get('photo_complete'): self.state['phase'] = 'COMPLETE'
+        elif report.get('arm_accepted'):
+            arm = self.state['arms'][-1]
+            if (report['request_id'] != arm['request_id'] or report['epoch'] != arm['epoch'] or
+                report['generation'] != arm['generation'] or
+                (arm['media'] is not None and arm['media'] != 0xffffffff and report['media'] != arm['media'])):
+                raise ReviewRequired('Accepted pair differs from the requested capture identity')
+            self.state['phase'] = 'ARMED'
         self._save()
         return report
 
@@ -181,10 +188,11 @@ class DeviceDriver:
         device_request(self.identity, 1, self.state['request_id'] + 1, epoch=epoch,
                        generation=generation, media=media, nonce=nonce)
         self._operation_started = True
-        arms.append({'epoch': epoch, 'generation': generation, 'media': media, 'nonce': nonce})
+        arms.append({'epoch': epoch, 'generation': generation, 'media': media, 'nonce': nonce,
+                     'request_id': self.state['request_id'] + 1})
         self._save()
         report = self._control(1, epoch=epoch, generation=generation, media=media, nonce=nonce)
-        self.state['phase'] = 'ARMED'; self._save()
+        self.state['phase'] = 'ARMING'; self._save()
         return report
 
     @operation

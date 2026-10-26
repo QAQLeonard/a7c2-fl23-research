@@ -34,3 +34,20 @@ class EntryProtocol(unittest.TestCase):
         changed = bytearray(data); changed[72 + 80] = 7
         with self.assertRaises(ValueError): receipt(changed, request)
         with self.assertRaises(ValueError): receipt(data, device_request(b'INSTANCE-0000001', 3, 2))
+
+    def test_completed_phase_alone_cannot_replace_catalog_and_file_evidence(self):
+        from test_device_driver import FakeSession
+        session = FakeSession()
+        wire = device_request(b'INSTANCE-0000001', 3, 2)
+        session.operation = 1; session.request_id = 1
+        session.epoch = session.generation = 1
+        session.files['a7c2.dex.request'] = wire
+        session.temp('libJit.so', b'test-only')
+        raw = session.files['a7c2.dex.result']
+        self.assertTrue(receipt(raw, wire)['photo_complete'])
+        for offset, value in ((32, 0), (2212, 5), (2764, 0), (2232, 1), (2248, 88)):
+            with self.subTest(offset=offset):
+                changed = bytearray(raw)
+                changed[72 + offset] = value
+                changed[-40:-8] = hashlib.sha256(changed[:-40]).digest()
+                with self.assertRaises(ValueError): receipt(bytes(changed), wire)
