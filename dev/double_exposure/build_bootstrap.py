@@ -121,6 +121,19 @@ def build(output, *, target='camera', zig=None, harness=False, component='contro
             if result.returncode:
                 raise RuntimeError(result.stderr)
             os.replace(runner, output / runner.name)
+            # Load the production .so with its real constructor, without linking
+            # or explicitly calling a7_file_entry_run. A private mount namespace
+            # supplies fixed /tmp/jiritsu paths during offline tests.
+            runner = Path(scratch) / 'a7c2-file-entry-loader-harness'
+            result = subprocess.run([str(zig), 'cc', '-target', triple, '-O2', '-g0', '-s',
+                                     '-std=c11', '-Wall', '-Wextra', '-Werror',
+                                     str(ROOT / 'dev/double_exposure/file_entry_loader_harness.c'),
+                                     '-ldl', '-o', str(runner)], capture_output=True,
+                                    text=True, timeout=180,
+                                    creationflags=0x08000000 if os.name == 'nt' else 0)
+            if result.returncode:
+                raise RuntimeError(result.stderr)
+            os.replace(runner, output / runner.name)
     return destination
 
 

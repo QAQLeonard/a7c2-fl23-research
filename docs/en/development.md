@@ -238,8 +238,18 @@ ARM/WORK/QUERY/DISABLE protocol. ARM requires verified complete core staging;
 QUERY/DISABLE use `RTLD_NOLOAD`. A complete command receipt is not a completed
 photo. Build `build_bootstrap.py --component entry --output <dir> --harness`;
 the entry file stays within 64 KiB. Large staging buffers are heap/module-owned,
-not placed on the AP request thread's stack. Test runners disable automatic
-constructor execution and use explicit local fixture directories.
+not placed on the AP request thread's stack. The explicit-call test runner
+disables automatic constructor execution and uses local fixture directories.
+An additional loader runner opens the actual production helper without calling
+its entry export. `A7C2_FILE_ENTRY_CONSTRUCTOR_COMMAND` is a JSON argv list
+using `dev/double_exposure/file_entry_namespace.py` with explicit `--qemu`,
+`--sysroot`, `--runner` and `--helper` paths. Linux user/mount namespaces hide
+host `/tmp` and bind the owned fixture at `/tmp/jiritsu`; keep all input paths
+and TMPDIR outside `/tmp`. Six ARM64 cases cover full staging, query/disable,
+missing SDK, retained handles and unload/reload. Holding an entry handle avoids
+constructor reexecution; the one-shot loader must release it between requests.
+That requirement concerns the small entry, not the permanently pinned core.
+These loader tests do not validate the camera service's actual loader lifecycle.
 
 `device_request.c`, `pipeline.c`, `native_session.c` and `resident_entry.c`
 connect requests, callback queues, JPEG means, publication, SIDB transactions
