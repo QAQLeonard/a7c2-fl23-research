@@ -283,7 +283,13 @@ session; import/construction never enumerates/authenticates/connects USB. Its
 explicit stage/arm/query/disable operations use bounded uploads, durable host
 intents and matching archived receipts. All owned temporary contents are checked
 before deletion and results are removed last; uncertainty preserves evidence
-and disables further commands. Only its three fixed temporary names were added
+and disables further commands. A nonblocking per-driver lock covers each entire
+operation, including host state changes. Once an operation begins, any failure
+(including a final host journal save after the native return) marks the driver
+REVIEW and the session unhealthy/mutating; no subsequent command is sent.
+Invalid ARM arguments detected before starting leave the transaction usable.
+The caller still owns session-wide exclusivity across driver instances.
+Only its three fixed temporary names were added
 to the existing transport allowlists. The desktop does not expose this driver.
 
 Use `A7C2_PIPELINE_LIBRARY` for integrated host tests,

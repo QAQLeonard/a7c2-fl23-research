@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 import struct
 import tempfile
+import threading
+from unittest.mock import patch
 import unittest
 from device_driver import DeviceDriver
 from staging_model import ReviewRequired
@@ -125,3 +127,72 @@ class DeviceTransport(unittest.TestCase):
         self.assertEqual(driver.query()['status'], -16004)
         self.assertEqual(driver.state['phase'], 'ARMED')
         self.assertTrue(session.healthy)
+
+    def test_final_host_state_failure_stops_every_operation_without_replay(self):
+        cases = (('stage', 'CORE_READY'), ('arm', 'ARMED'),
+                 ('query', 'COMPLETE'), ('disable', 'DISABLING'))
+        for operation, phase in cases:
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
+                session = FakeSession()
+                driver = DeviceDriver(session, Path(directory)/'job', elf(4096), elf(180001))
+                if operation != 'stage': driver.stage()
+                if operation in ('query', 'disable'): driver.arm(epoch=1, generation=1)
+                save = driver._save
+                def unavailable():
+                    if driver.state['phase'] == phase:
+                        raise OSError('host journal unavailable after native return')
+                    save()
+                with patch.object(driver, '_save', side_effect=unavailable):
+                    with self.assertRaisesRegex(OSError, 'host journal unavailable'):
+                        if operation == 'arm': driver.arm(epoch=1, generation=1)
+                        else: getattr(driver, operation)()
+                self.assertEqual(driver.state['phase'], 'REVIEW')
+                self.assertFalse(session.healthy)
+                self.assertTrue(session.mutating)
+                self.assertTrue(list(driver.root.glob('*.receipt.private.bin')))
+                calls = list(session.calls)
+                for method in (driver.stage, driver.query, driver.disable,
+                               lambda: driver.arm(epoch=2, generation=1)):
+                    with self.assertRaises(ReviewRequired): method()
+                self.assertEqual(session.calls, calls)
+                self.assertEqual(json.loads((driver.root/'state.private.json').read_text())['phase'], 'REVIEW')
+
+    def test_concurrent_command_is_rejected_without_touching_running_session(self):
+        session = FakeSession(); driver = self.driver(session); driver.stage()
+        entered, release = threading.Event(), threading.Event()
+        temp = session.temp
+        failures = []
+        def blocked(name, data=None, remove=False):
+            if name == 'libJit.so' and not remove and not entered.is_set():
+                entered.set()
+                if not release.wait(5): raise TimeoutError('test barrier expired')
+            return temp(name, data, remove)
+        def stage():
+            try: driver.arm(epoch=1, generation=1)
+            except BaseException as error: failures.append(error)
+        with patch.object(session, 'temp', side_effect=blocked):
+            worker = threading.Thread(target=stage)
+            worker.start()
+            try:
+                self.assertTrue(entered.wait(5))
+                calls = list(session.calls)
+                with self.assertRaisesRegex(ReviewRequired, 'operation is running'):
+                    driver.query()
+                self.assertEqual(session.calls, calls)
+                self.assertEqual(driver.state['phase'], 'CORE_READY')
+                self.assertTrue(session.healthy)
+            finally:
+                release.set(); worker.join(5)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(failures, [])
+        self.assertEqual(driver.state['phase'], 'ARMED')
+
+    def test_invalid_arm_parameters_leave_ready_transaction_usable(self):
+        session = FakeSession(); driver = self.driver(session); driver.stage()
+        calls = list(session.calls)
+        with self.assertRaises(ValueError): driver.arm(epoch=0, generation=1)
+        self.assertEqual(driver.state['phase'], 'CORE_READY')
+        self.assertEqual(session.calls, calls)
+        self.assertTrue(session.healthy)
+        driver.arm(epoch=1, generation=1)
+        self.assertEqual(driver.state['phase'], 'ARMED')
