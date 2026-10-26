@@ -107,7 +107,9 @@ def prepare_registered_pool(directory, *, ready_state=3, free_count=2, dirty=0x6
     # The low-memory notification has already been raised in the small-pool
     # fixture. Large-pool cases naturally bypass that notification threshold.
     notification_history = int(free_count < 11)
-    cpu.mem_write(p['state']-4, b'\xa5'*0x68)
+    # This observation window includes independent, initialized firmware
+    # objects (including callback lists). Preserve their source bytes instead
+    # of treating the entire window as scratch space for a sentinel fill.
     cpu.mem_write(p['state'], struct.pack('<4I', ready_state, 0x1111, 0x2222, notification_history))
     primary = struct.pack('<6I', base if free_count else 0, total, free_count,
                            0x1111, base, total*stride)

@@ -6,6 +6,14 @@ A7CR owners can contribute native reference images and optional read-only settin
 
 Target: the native Sony workflow used by A7CR: tripod, static subject, four shifted RAW captures, then computer composition. Sixteen-shot support is a later goal. Published programs are **offline research, not an installable or working Pixel Shift release**.
 
+## Current remaining work
+
+Continuous-caller discovery now executes the A7CR native CapID request, worker handling, reply and temporary-queue destruction. This queries available capture-ID table entries, not remaining RAW image buffers. Cold configuration, shared memory and OS objects still include fixture inputs; the AP producer of shared-table entries is not connected.
+
+The [registered-pool fixture](../../dev/pixelshift/cp_image_parameter_replay.py) no longer fills adjacent native callback records with sentinel bytes; a paired regression checks their preservation. Private continuation now runs the first frame-parameter constructor and sequence-object binding, but stricter observation identifies a failed asynchronous worker enqueue. Multiple objects seen in later exploration do not establish four-frame scheduling. The immediate dependency is that worker's original initialization, message consumption and object recycling.
+
+Positioning parameters, actual settling before exposure, timeout/cancel/centering and early-boot OFF still need verification. The earlier VM saved-OFF roundtrip establishes storage/reloading, not physical fault recovery. This round performs no camera access or modification.
+
 ## Whole-firmware analysis and external claims
 
 Research now includes the complete regular-file corpora of both official 2.01 packages: 1,198 files for A7CR and 1,196 for C2, including 564 AArch64 ELF programs/libraries each. [Corpus extraction](../../dev/pixelshift/extract_firmware_corpus.py) and [ELF indexing](../../dev/pixelshift/index_elf_corpus.py) produce complete executable-section listings, branches, symbols, relocations, dependencies, unwind ranges and ASCII candidates. Both AP `.text` sections decode completely; other executable sections contain undecoded bytes. Two libraries per model have unwind records this parser cannot read. These gaps remain in private reports; section decoding does not resolve every indirect call or establish runtime behavior.

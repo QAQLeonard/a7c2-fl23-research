@@ -1854,6 +1854,27 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['physical_shift_verified'])
         self.assertFalse(report['installable'])
 
+    def test_registered_image_pool_preserves_adjacent_native_callback_records(self):
+        from cp_image_parameter_replay import prepare_registered_pool, profile
+        for directory in (self.c2, self.cr):
+            with self.subTest(model=directory.parent.name):
+                data, p = profile(directory)
+                begin, size = p['state']-4, 0x68
+                expected = bytearray(data[begin-0x108000:begin-0x108000+size])
+                cpu, _, evidence = prepare_registered_pool(directory, free_count=8, reserved_count=1)
+                for address, payload in (
+                        (p['state'], struct.pack('<4I', 3, 0x1111, 0x2222, 1)),
+                        (p['primary'], evidence['primary']),
+                        (p['secondary'], evidence['secondary'])):
+                    offset = address-begin
+                    expected[offset:offset+len(payload)] = payload
+                self.assertEqual(bytes(cpu.mem_read(begin, size)), bytes(expected))
+                # The old broad sentinel fill corrupted this first callback
+                # list's pointer and active count, outside either pool record.
+                neighbor = p['secondary']+24
+                self.assertEqual(bytes(cpu.mem_read(neighbor, 20)),
+                                 data[neighbor-0x108000:neighbor-0x108000+20])
+
     def test_native_image_parameter_acquisition_initializes_and_reaches_population_callback(self):
         from cp_image_parameter_replay import compare
         report = compare(self.c2, self.cr)
