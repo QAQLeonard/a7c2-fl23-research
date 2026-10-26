@@ -200,7 +200,7 @@ def replay(directory, *, trinity=1, capture_mode=2, override=0, pipeline=1, nati
         cpu.hook_del(wh)
     selected, adjacent = struct.unpack('<II', cpu.mem_read(frame+0x158, 8))
     expected_mode = capture_mode
-    expected_adjacent = 0
+    expected_adjacent = struct.unpack_from('<I',before,0x15c)[0]
     if not native_state:
         if capture_mode == 2 and expected_flag:
             expected_mode, expected_adjacent = 0x17, 1

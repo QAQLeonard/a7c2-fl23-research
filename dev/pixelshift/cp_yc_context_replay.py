@@ -92,7 +92,9 @@ def profile(directory):
     arm = Cs(CS_ARCH_ARM, CS_MODE_ARM)
     malloc_code = list(arm.disasm(data[p['malloc']-0x108000:p['malloc']-0x108000+0x18],p['malloc']))
     p['heap'] = next(value for reg,value in literals(malloc_code) if reg=='r6')
-    p['memory'] = list(p['owners'])+[(p['index'],4),(p['banks'],2*0x818),(p['heap'],4)]
+    p['destructor_head']=materialized(p['register_destructor']+0x20,8,'r3')
+    p['memory'] = list(p['owners'])+[(p['index'],4),(p['banks'],2*0x818),(p['heap'],4),
+                                  (p['destructor_head'],4)]
     # Additional readonly backing named by original constructors/getters.
     for lo,hi in p['regions']:
         p['memory'] += [(value,64) for _,value in literals(code(lo,hi-lo))
@@ -100,7 +102,7 @@ def profile(directory):
     return data,p
 
 
-def initialize(cpu,directory,*,bank=0,repeat=False):
+def initialize(cpu,directory,*,bank=0,repeat=False,heap_state=None):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _,p=profile(directory)
@@ -111,25 +113,37 @@ def initialize(cpu,directory,*,bank=0,repeat=False):
             if not any(lo<=page<=hi for lo,hi,_ in cpu.mem_regions()):
                 cpu.mem_map(page,4096)
     # Cold data inputs, not published object pointers or successful API results.
-    cpu.mem_write(p['heap'],bytes(4))
+    if heap_state is None:
+        cpu.mem_write(p['heap'],bytes(4))
+    elif struct.unpack('<I',cpu.mem_read(p['heap'],4))[0]!=heap_state['native_heap']:
+        raise ValueError('The native heap was not published in this same CPU state')
     cpu.mem_write(p['index'],struct.pack('<I',bank))
     stack,finish=0x3000e000,0x3000d000
     before_context=bytes(cpu.mem_read(p['gate']['context'],200))
-    calls,registrations,allocation_results=[],[],[]
+    calls,registrations,allocation_results,registration_inputs=[],[],[],[]
     expected_bank=p['banks']+bank*0x818+0x750
     saved_regs=[getattr(arm,'UC_ARM_REG_R'+str(n)) for n in range(4,12)]
     saved=[cpu.reg_read(reg) for reg in saved_regs]
 
     def code_hook(uc,at,n,_):
-        if at==p['register_destructor']+0x14:
+        if at==p['register_destructor']:
+            registration_inputs.append([uc.reg_read(reg) for reg in
+                (arm.UC_ARM_REG_R0,arm.UC_ARM_REG_R1,arm.UC_ARM_REG_R2)])
+        if at==p['register_destructor']+0x1c:
             allocation_results.append(uc.reg_read(arm.UC_ARM_REG_R0))
         if at==p['register_destructor']+0x7c:
             registrations.append(uc.reg_read(arm.UC_ARM_REG_R0))
-        if not any(lo<=at and at+n<=hi for lo,hi in p['regions']):
+        if at==p['register_destructor']+0x40:
+            registrations.append(uc.reg_read(arm.UC_ARM_REG_R0))
+        regions=p['regions']+(heap_state['profile']['regions'] if heap_state else [])
+        if not any(lo<=at and at+n<=hi for lo,hi in regions):
             raise ValueError('Native Yc initialization reached an unresolved dependency: '+hex(at))
 
     def write_hook(uc,access,at,n,value,_):
-        if not any(lo<=at and at+n<=lo+size for lo,size in p['owners']+[(stack-4096,4096)]):
+        spans=p['owners']+[(stack-4096,4096)]+(heap_state['writes'] if heap_state else [])
+        if heap_state:
+            spans.append((p['destructor_head'],4))
+        if not any(lo<=at and at+n<=lo+size for lo,size in spans):
             raise ValueError('Native Yc initialization changed unrelated state: '+hex(at))
 
     def run(entry):
@@ -165,25 +179,48 @@ def initialize(cpu,directory,*,bank=0,repeat=False):
                 raise ValueError('Native reader binding/bank publication differs from source layout')
     finally:
         cpu.hook_del(ch);cpu.hook_del(wh)
-    if (allocation_results!=[0]*4 or registrations!=[0xffffffff]*4
+    expected_results=[0]*4 if heap_state else [0xffffffff]*4
+    if (registrations!=expected_results
             or struct.unpack('<I',cpu.mem_read(p['auto'],4))[0]!=p['auto_vtable']
             or bytes(cpu.mem_read(p['gate']['context'],200))!=before_context):
         raise ValueError('Native construction/heap-unavailable registration/context contract differs')
+    if heap_state:
+        arena,size=heap_state['arena'],heap_state['size']
+        if (len(allocation_results)!=4 or len(set(allocation_results))!=4
+                or any(not arena<=node<arena+size-16 or node%8 for node in allocation_results)):
+            raise ValueError('Native registration allocations are outside their original arena')
+        node=struct.unpack('<I',cpu.mem_read(p['destructor_head'],4))[0]
+        for expected_node,inputs in zip(reversed(allocation_results),reversed(registration_inputs)):
+            if node!=expected_node:raise ValueError('Original destructor list order differs')
+            words=struct.unpack('<4I',cpu.mem_read(node,16))
+            if list(words[1:])!=inputs:raise ValueError('Native registration changed destructor/object/DSO')
+            node=words[0]
+        if node!=0:raise ValueError('Native destructor list has an unexpected tail')
+        for at in (arena-4,arena+size):
+            if bytes(cpu.mem_read(at,4))!=b'\xa5'*4:raise ValueError('Native allocation changed arena neighbor')
+    elif allocation_results!=[0]*4:
+        raise ValueError('Native unavailable-heap allocator did not preserve its failure')
     return dict(native_auto_type=p['auto_type'],native_bank_index=bank,native_bank_stride=0x818,
         native_bank_member_offset=0x750,native_reader_binding_and_backend_virtuals_executed=True,
         native_published_bank_matches_original_getter=True,native_initializer_calls=len(calls),
-        native_malloc_results=allocation_results,native_destructor_registration_results=[-1]*4,
-        destructor_registration_completed=False,heap_unavailable_fixture=True,
+        native_malloc_results=['arena_node_'+str(n) for n in range(4)] if heap_state else allocation_results,
+        native_destructor_registration_results=[0]*4 if heap_state else [-1]*4,
+        destructor_registration_completed=heap_state is not None,heap_unavailable_fixture=heap_state is None,
+        native_destructor_list_verified=heap_state is not None,
         native_context_and_caller_state_preserved=True,host_assigned_consumed_object_pointers=False,
         api_results_replaced=False,cold_data_and_stage_order_are_fixtures=True,
         full_startup_or_frame_population_executed=False,four_frame_scheduler_executed=False,
         positioning_or_exposure_executed=False,saved_off_setting_executed=False,camera_io=False,installable=False)
 
 
-def replay(directory,*,bank=0,repeat=False):
+def replay(directory,*,bank=0,repeat=False,initialize_heap=False):
     def continuation(cpu,snapshot,capture):
         initialize_population(cpu,directory)
-        return initialize(cpu,directory,bank=bank,repeat=repeat)
+        heap_state=None
+        if initialize_heap:
+            from cp_native_heap_replay import initialize as initialize_arena
+            heap_state=initialize_arena(cpu,directory)
+        return initialize(cpu,directory,bank=bank,repeat=repeat,heap_state=heap_state)
     return capture_replay(directory,native_context=True,guard_actions=('exit',),
         pipeline_source=dict(gpio_bit=1,capture_mode=2),continuation=continuation)['native_continuation']
 
@@ -192,10 +229,11 @@ def compare(c2,reference):
     rows=[]
     for bank in (0,1):
         for repeat in (False,True):
-            values=dict(bank=bank,repeat=repeat)
-            x,y=replay(c2,**values),replay(reference,**values)
-            if x!=y:raise ValueError('Native C2/CR Yc initialization contracts differ')
-            rows.append(dict(input=values,target=x,reference=y))
+            for initialize_heap in (False,True):
+                values=dict(bank=bank,repeat=repeat,initialize_heap=initialize_heap)
+                x,y=replay(c2,**values),replay(reference,**values)
+                if x!=y:raise ValueError('Native C2/CR Yc initialization contracts differ')
+                rows.append(dict(input=values,target=x,reference=y))
     return dict(schema='a7c2-native-yc-context/1',paired_cases=len(rows),cases=rows,
         camera_io=False,physical_shift_verified=False,installable=False)
 

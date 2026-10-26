@@ -2127,24 +2127,93 @@ class NativeTests(unittest.TestCase):
     def test_original_yc_context_constructs_objects_and_retains_heap_failure(self):
         from cp_yc_context_replay import compare
         report = compare(self.c2, self.cr)
-        self.assertEqual(report['paired_cases'], 4)
+        self.assertEqual(report['paired_cases'], 8)
         for case in report['cases']:
             result = case['target']
             self.assertEqual(result, case['reference'])
             self.assertEqual(result['native_bank_index'], case['input']['bank'])
             self.assertEqual(result['native_bank_stride'], 0x818)
             self.assertEqual(result['native_bank_member_offset'], 0x750)
-            self.assertEqual(result['native_malloc_results'], [0] * 4)
-            self.assertEqual(result['native_destructor_registration_results'], [-1] * 4)
+            heap=case['input']['initialize_heap']
+            self.assertEqual(result['native_malloc_results'], ['arena_node_'+str(n) for n in range(4)] if heap else [0]*4)
+            self.assertEqual(result['native_destructor_registration_results'], [0]*4 if heap else [-1]*4)
+            self.assertEqual(result['destructor_registration_completed'], heap)
+            self.assertEqual(result['native_destructor_list_verified'], heap)
             self.assertTrue(result['native_reader_binding_and_backend_virtuals_executed'])
             self.assertTrue(result['native_published_bank_matches_original_getter'])
             self.assertTrue(result['native_context_and_caller_state_preserved'])
-            self.assertTrue(result['heap_unavailable_fixture'])
-            for field in ('destructor_registration_completed', 'host_assigned_consumed_object_pointers',
+            self.assertEqual(result['heap_unavailable_fixture'],not heap)
+            for field in ('host_assigned_consumed_object_pointers',
                           'api_results_replaced', 'full_startup_or_frame_population_executed',
                           'four_frame_scheduler_executed', 'positioning_or_exposure_executed',
                           'saved_off_setting_executed', 'camera_io', 'installable'):
                 self.assertFalse(result[field], field)
+
+    def test_native_heap_constructs_allocates_and_coalesces_without_supplied_returns(self):
+        from cp_native_heap_replay import compare
+        report=compare(self.c2,self.cr)
+        self.assertEqual(report['paired_cases'],4)
+        for case in report['cases']:
+            result=case['target']
+            self.assertEqual(result,case['reference'])
+            self.assertEqual(result['native_allocation_count'],len(case['input']['requests'])+2)
+            self.assertEqual(result['native_free_count'],result['native_allocation_count'])
+            self.assertTrue(result['client_payloads_preserved'])
+            self.assertTrue(result['large_allocation_restored_after_coalescing'])
+            self.assertTrue(result['native_lock_released'])
+            self.assertFalse(result['api_results_replaced'])
+            self.assertFalse(result['full_os_startup_executed'])
+            self.assertFalse(result['camera_io'])
+
+    def test_native_capture_count_uses_cached_settings_and_actual_cp_storage(self):
+        from cp_capture_count_replay import compare
+        report=compare(self.c2,self.cr)
+        self.assertEqual(report['paired_cases'],6)
+        for case in report['cases']:
+            result,values=case['target'],case['input']
+            self.assertEqual(result,case['reference'])
+            self.assertEqual(result['native_capture_count'],1 if values['companion'] else {0:1,1:4,2:16}[values['mode']])
+            self.assertEqual(result['native_capture_mode'],23 if values['mode'] or values['companion'] else 0)
+            self.assertTrue(result['native_cp_total_count_storage_executed'])
+            self.assertTrue(result['native_ap_prefix_bytes_preserved'])
+            for field in ('host_assigned_capture_count','api_results_replaced',
+                          'complete_ap_formatter_or_cp_handler_executed','four_frame_scheduler_executed',
+                          'saved_off_setting_executed','positioning_or_exposure_executed','camera_io'):
+                self.assertFalse(result[field],field)
+
+    def test_native_count_reaches_first_header_and_queued_end_in_the_same_ram(self):
+        from cp_capture_count_replay import compare_headers
+        report=compare_headers(self.c2,self.cr)
+        self.assertEqual(report['paired_cases'],8)
+        for case in report['cases']:
+            self.assertEqual(case['target'],case['reference'])
+            values=case['input'];result=case['target']['native_continuation']
+            count=1 if values['companion'] else 4 if values['mode']==1 else 16
+            self.assertEqual(result['native_group_count'],count)
+            self.assertEqual(result['native_frame_ordinal'],0)
+            self.assertEqual(result['native_next_ordinal'],1)
+            self.assertEqual(result['native_pool_allocations'],2)
+            self.assertTrue(result['complete_frame_header_returned'])
+            self.assertEqual(result['queued_group_end_executed'],values['queued_clear'])
+            self.assertFalse(result['upstream_group_count_is_fixture'])
+            self.assertFalse(result['complete_population_executed'])
+            self.assertFalse(result['continuous_capture_callback_executed'])
+            self.assertFalse(result['saved_off_setting_executed'])
+
+    def test_native_waiter_retains_context_errors_before_timer_cancel(self):
+        from cp_steady_event_replay import compare_rejection
+        report=compare_rejection(self.c2,self.cr)
+        self.assertEqual(report['paired_cases'],2)
+        for case in report['cases']:
+            result=case['target']
+            self.assertEqual(result,case['reference'])
+            self.assertEqual(result['native_timed_wait_status'],-25)
+            self.assertEqual(result['native_clear_status'],-25)
+            self.assertTrue(result['event_and_frame_unchanged'])
+            self.assertFalse(result['outer_waiter_checks_wait_status_before_cancel'])
+            for field in ('api_results_replaced','timeout_expiry_executed',
+                          'timer_cancel_or_exposure_executed','position_acknowledgement_verified','camera_io'):
+                self.assertFalse(result[field],field)
 
     def test_native_sampling_counts_and_stages_do_not_imply_valid_calibration(self):
         from cp_sample_stage_replay import compare

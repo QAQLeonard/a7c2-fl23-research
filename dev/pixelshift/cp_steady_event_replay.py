@@ -295,14 +295,84 @@ def compare_delivery(c2, reference):
         camera_io=False, physical_shift_verified=False, installable=False)
 
 
+def reject_context(directory,*,interrupt_context=1,masked=False):
+    """Preserve native event API rejections and inspect the original caller.
+
+An invalid TASK-call context is an independent OS input. Original APIs return
+their own errors; the outer waiter still advances to timer cancellation.
+This is neither an injected timeout nor a physical exposure/position result.
+"""
+    from unicorn import UC_HOOK_CODE,UC_HOOK_MEM_WRITE
+    import unicorn.arm_const as arm
+    from cp_completion_replay import profile as completion_profile
+    from cp_native_mutex_replay import setup as setup_kernel
+    from capstone import Cs,CS_ARCH_ARM,CS_MODE_THUMB
+    data,p=profile(directory)
+    _,ep=completion_profile(directory)
+    cpu=machine(data,[])
+    kernel=setup_kernel(cpu,directory,context=interrupt_context,masked=masked)
+    frame,event,attrs,stack,finish=0x34000000,0x30015000,0x30003400,0x3001f000,0x3001e000
+    cpu.mem_map(frame,0x8000)
+    slot=ep['table']+4*(0x2e-1)
+    for address in (slot,p['debug']):
+        if not any(lo<=address<=hi for lo,hi,_ in cpu.mem_regions()):cpu.mem_map(address&~4095,4096)
+    cpu.mem_write(slot,struct.pack('<I',event))
+    event_before=struct.pack('<4I',event,event,attrs,0x204)
+    cpu.mem_write(event,event_before);cpu.mem_write(attrs,bytes(8));cpu.mem_write(p['debug'],b'\0')
+    before=bytes(cpu.mem_read(frame,0x7000))
+    at=p['wait_helper']+0x3e
+    clear=int(next(Cs(CS_ARCH_ARM,CS_MODE_THUMB).disasm(data[at-0x108000:at-0x108000+4],at)).op_str.lstrip('#'),0)
+    regions=p['regions']+[(p['timed_wait'],p['timed_wait']+0x34c),(clear,clear+0x248)]
+    statuses=[];boundary=None;diagnostics=0
+    def hook(uc,at,n,_):
+        nonlocal boundary,diagnostics
+        if at==p['cancel_timer']:
+            boundary='before_original_timer_cancel_after_rejected_wait';uc.emu_stop();return
+        if at in p['traces']:
+            diagnostics+=1;uc.reg_write(arm.UC_ARM_REG_PC,uc.reg_read(arm.UC_ARM_REG_LR)|1);return
+        if at in (p['wait_helper']+0x38,p['wait_helper']+0x42):
+            value=uc.reg_read(arm.UC_ARM_REG_R0)
+            statuses.append(value if value<0x80000000 else value-0x100000000)
+        if not any(lo<=at and at+n<=hi for lo,hi in regions):
+            raise ValueError('Rejected native wait reached an unresolved dependency: '+hex(at))
+    def write(uc,access,at,n,value,_):
+        if not stack-4096<=at or at+n>stack:
+            raise ValueError('Native event-context rejection changed non-stack state: '+hex(at))
+    ch,wh=cpu.hook_add(UC_HOOK_CODE,hook),cpu.hook_add(UC_HOOK_MEM_WRITE,write)
+    cpu.reg_write(arm.UC_ARM_REG_R0,frame);cpu.reg_write(arm.UC_ARM_REG_SP,stack)
+    cpu.reg_write(arm.UC_ARM_REG_LR,finish|1)
+    try:cpu.emu_start(p['waiter']|1,finish,count=10000)
+    finally:cpu.hook_del(ch);cpu.hook_del(wh)
+    if (statuses!=[-25,-25] or boundary is None or diagnostics!=1
+            or bytes(cpu.mem_read(event,16))!=event_before or bytes(cpu.mem_read(frame,0x7000))!=before):
+        raise ValueError('Native rejected-wait/clear/caller contract differs')
+    return dict(native_timed_wait_status=statuses[0],native_clear_status=statuses[1],
+        outer_waiter_checks_wait_status_before_cancel=False,boundary=boundary,
+        native_api_rejection_preserved=True,event_and_frame_unchanged=True,
+        api_results_replaced=False,timeout_expiry_executed=False,
+        timer_cancel_or_exposure_executed=False,position_acknowledgement_verified=False,
+        os_context_is_fixture=True,camera_io=False,installable=False)
+
+
+def compare_rejection(c2,reference):
+    cases=[]
+    for context,masked in ((1,False),(0,True)):
+        values=dict(interrupt_context=context,masked=masked)
+        x,y=reject_context(c2,**values),reject_context(reference,**values)
+        if x!=y:raise ValueError('Native C2/CR rejected-wait handling differs')
+        cases.append(dict(input=values,target=x,reference=y))
+    return dict(paired_cases=len(cases),cases=cases,camera_io=False,physical_shift_verified=False,installable=False)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--c2', type=Path, required=True)
     parser.add_argument('--reference', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--deliver-event', action='store_true', help='Execute actual task-context event set/wait/clear')
+    parser.add_argument('--reject-context',action='store_true',help='Retain actual OS-context rejections and inspect the outer waiter')
     args = parser.parse_args(argv)
-    report = (compare_delivery if args.deliver_event else compare)(args.c2, args.reference)
+    report = (compare_rejection if args.reject_context else compare_delivery if args.deliver_event else compare)(args.c2, args.reference)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open('x', encoding='utf-8') as handle:
         json.dump(report, handle, indent=2)

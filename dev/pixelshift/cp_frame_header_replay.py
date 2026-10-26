@@ -81,11 +81,21 @@ def profile(directory):
 
 def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_count=4,
            continue_header=False, queue_start=0, bank_gate=0, aux_flag=0, clear_after_header=False,
-           disable_runtime_mode=False, initialize_population=False):
+           disable_runtime_mode=False, initialize_population=False, native_count_inputs=None):
     from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     import unicorn.arm_const as arm
     _, p = profile(directory)
     image = p['image']
+    native_count_prefix=None
+    count_evidence=None
+    capture_mode=2
+    if native_count_inputs is not None:
+        from cp_capture_count_replay import produce
+        native_count_prefix=produce(directory,**native_count_inputs)
+        source_count=struct.unpack_from('<I',native_count_prefix,12)[0]
+        capture_mode=native_count_prefix[8]
+        if capture_mode!=23:
+            raise ValueError('This group-header experiment requires an original Pixel Shift mode prefix')
 
     def continue_frame(cpu, snapshot, capture):
         live = snapshot['root']+8
@@ -377,14 +387,24 @@ def replay(directory, *, initial_ordinal=0, dirty=0x6b, debug_count=0, source_co
             camera_io=False, installable=False)
 
     def initialize_count(cpu, snapshot, dispatch, source):
+        nonlocal count_evidence
         # The independent upstream capture configuration count, before native
         # snapshot copy. This is not inferred from the selected TRINITY mode.
-        cpu.mem_write(source+0x120, struct.pack('<I', source_count))
+        if native_count_prefix is None:
+            cpu.mem_write(source+0x120, struct.pack('<I', source_count))
+        else:
+            from cp_capture_count_replay import publish,profile as count_profile
+            if count_profile(directory)[2]['cp_source']!=source:
+                raise ValueError('Native capture-count storage and snapshot use different source objects')
+            count_evidence=publish(cpu,directory,native_count_prefix)
 
-    result = capture_replay(directory, trinity=1, pipeline=1, capture_mode=2, native_context=True,
+    result = capture_replay(directory, trinity=1, pipeline=1, capture_mode=capture_mode, native_context=True,
         guard_actions=('exit',),
         pipeline_source=dict(gpio_bit=1, capture_mode=2), continuation=continue_frame,
         source_initializer=initialize_count)
+    if count_evidence is not None:
+        result['native_capture_count_production']=count_evidence
+        result['native_continuation']['upstream_group_count_is_fixture']=False
     return result
 
 
