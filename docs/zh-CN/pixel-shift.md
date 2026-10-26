@@ -161,6 +161,12 @@
 
 基于 [a7c2-re](https://github.com/chocotan/a7c2-re) 的实验运行原厂 AP，底层虚拟服务仍有限。原生菜单能显示“关／四张”，选择四张时被 Intelligent Auto 限制挡下，模式与虚拟 Backup 仍为 OFF。提前强制进菜单的配置缺少 `0x4bd` 序列，后来在 `sequence_still_record::suspend(NULL)` 异常；另一次正常启动则确实创建了 `0x4bd`，已沿缓存指针读取元数据核对编号和原生虚表，而不是只看指针非零。此时界面仍黑，MENU 输入没有推进画面。因此，提前进菜单配置的失败不能证明 C2 缺少实现，也不能解释先前的真机故障。完整启动、P/M 输入、选择四张、保存开启后入口隐藏的恢复以及拍摄仍未验证，现有模型不包含传感器／防抖行为。
 
+后续测试已在正常初始化的原厂 AP 虚拟机进程中执行完整 C2 2.01 OFF 设置器，并使用原厂客体 IPC 分配。[仅限虚拟机的探针源码](../../dev/pixelshift/vm_off_probe.c)没有替换固件 API。原生 ON／OFF 调用返回，两个运行字段均清零，但另行准备的备份项仍为开启。再执行原厂 `Backup_write(0x02cf, 0x02cf02cf, &zero)` 及 `Backup_sync_subsystem(0x02cf)` 后，OFF 保存成功。两个文件轮换写入：旧主文件计数 2／值 1，新副文件计数 3／值 0；已导出并解析两份完整 BK4 文件，仅检查 `Backup.bin` 会误判结果。另一台全新客体在原厂备份驱动加载前取得两份文件，随后读回 OFF；使用相反保存输入的对照读回 ON，排除了无条件采用默认 OFF。对照客体的 AP 运行值本身仍为 OFF，因此这不等于复现或修复此前真实相机保存开启后的启动故障。物理归位、启动早期关闭保护、曝光及四帧调度仍未验证。
+
+复现这个隔离的 C2 2.01 实验时，用 AArch64 交叉编译器和客体原厂 libc／pthread／dl 库编译共享探针；将它加入客体 AP 的预加载列表，设置 `PIXELSHIFT_NATIVE_OFF_PROBE=1`，并在客体建立 `/simulation/PIXELSHIFT_VM_ONLY` 标记。使用正常启动配置。在客体创建 `/tmp/pixelshift-off.seed-backup`、`/tmp/pixelshift-off.native-on`、`/tmp/pixelshift-off.sync`，最后创建 `/tmp/pixelshift-off.request`。收集 `/tmp/pixelshift-off.result` 和完整的 `/setting/Backup.bin`、`/setting/Backup.bak`；另开全新客体，在备份驱动加载前放入两份文件，收集原厂备份读取及 AP 模式／伴随字段读取结果。再以较旧的开启主文件和原厂关闭副文件作为输入对照。[产物核对工具](../../dev/pixelshift/vm_off_evidence.py)检查阶段顺序、两份文件、重新加载和相反输入对照，不连接相机，也不安装恢复代码。
+
+继续追踪实际排队的 CP 调用者，现已到达原始 D009 资源查询，并由原生代码创建临时回复端点 `0x9005601f`；其张数来自此前的原生拍摄配置路径。回复服务及任务生命周期尚未接通，这条连续调用路径还没有构造出首帧。独立的帧构造／帧头重放通过，不能证明这段调用连接已完成。
+
 另一轮虚拟机 RAM 开启／还原循环已确认八处字段回到原值，模式和虚拟 Backup 全程 OFF。只移除／补回四个“参数未定义”计数，保留 AUTO 禁止计数。这验证的是 RAM 逆操作，不代表保存开启后的恢复、闪存持久化或实机还原。
 
 ## 离线复现
@@ -223,7 +229,7 @@ python dev/pixelshift/displacement.py 1.ARW 2.ARW 3.ARW 4.ARW --output private/d
 python -m unittest discover -s dev/pixelshift/tests -v
 ```
 
-macOS 改用 `python3`，尚未在 Mac 执行验证。未提供私人固件时，八十八项原始固件测试跳过。要运行这些测试，将环境变量 `A7C2_PIXELSHIFT_FIRMWARE_ROOT` 指向含 `a7c2-2.01/components` 和 `a7cr-support/components` 的私人目录。默认参数／替代分支／向量／完整控制／封包／反馈／CAIF 重放还需要将各机型官方的 `CX*00_ALLLANG.bin`、`CX*01_ALLLANG.bin` 放在对应 components 目录；Darwin 测试需要将私人提取的 `0640_darwin/darwin_core.bin` 放在那里。一百项测试方法涵盖 2941 组配对原生指令案例、26 组参数资格案例、合成元数据异常及位移量测。已有一张真实 C2 普通 RAW 被正确识别为没有像素位移分组。位移量测使用 `rawpy` 保留原 Bayer 采样，四张源 RAW 必须先通过元数据检查。
+macOS 改用 `python3`，尚未在 Mac 执行验证。未提供私人固件时，八十八项原始固件测试跳过。要运行这些测试，将环境变量 `A7C2_PIXELSHIFT_FIRMWARE_ROOT` 指向含 `a7c2-2.01/components` 和 `a7cr-support/components` 的私人目录。默认参数／替代分支／向量／完整控制／封包／反馈／CAIF 重放还需要将各机型官方的 `CX*00_ALLLANG.bin`、`CX*01_ALLLANG.bin` 放在对应 components 目录；Darwin 测试需要将私人提取的 `0640_darwin/darwin_core.bin` 放在那里。一百零五项测试方法涵盖 2941 组配对原生指令案例、26 组参数资格案例、合成元数据异常及位移量测。已有一张真实 C2 普通 RAW 被正确识别为没有像素位移分组。位移量测使用 `rawpy` 保留原 Bayer 采样，四张源 RAW 必须先通过元数据检查。
 
 可选控制器实验需要 Ghidra 11.4.2 和 [H8/300H 语言模块](https://github.com/carllom/sleigh-h8/tree/6eb7c6f8f523ab23ff1aa8076ed5f9d0ac1576cc)。将其 `data`、`Module.manifest` 安装为本地 Ghidra 处理器模块，把[已测试的指令扩展](../../dev/pixelshift/bonobo_h8_extensions.sinc)复制到语言目录，在 `h8300h.slaspec` 末尾加入 `@include "bonobo_h8_extensions.sinc"`，并用 Ghidra 的 SLEIGH 编译器编译。这是有限范围的研究解码器，不是完整 H8/SX 支持。
 
@@ -275,6 +281,7 @@ python dev/pixelshift/cp_yc_context_replay.py --c2 private/c2/components --refer
 python dev/pixelshift/cp_capture_count_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/capture-count.private.json
 python dev/pixelshift/cp_capture_count_replay.py --c2 private/c2/components --reference private/a7cr/components --frame-header --output private/count-frame-header.private.json
 python dev/pixelshift/cp_steady_event_replay.py --c2 private/c2/components --reference private/a7cr/components --reject-context --output private/rejected-wait.private.json
+python dev/pixelshift/vm_off_evidence.py --native-log private/native-off.serial.txt --primary private/Backup.bin --secondary private/Backup.bak --reload-log private/fresh-off.serial.txt --control-log private/fresh-on-control.serial.txt --output private/off-evidence.private.json
 python dev/pixelshift/cp_startup_config_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/startup-config.private.json
 python dev/pixelshift/cp_startup_binding_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/startup-binding.private.json
 python dev/pixelshift/cp_startup_binding_replay.py --c2 private/c2/components --reference private/a7cr/components --continue-dma --output private/startup-dma.private.json

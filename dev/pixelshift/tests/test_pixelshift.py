@@ -2269,5 +2269,72 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['installable'])
 
 
+class VmOffEvidenceTests(unittest.TestCase):
+    def fixtures(self):
+        from vm_off_evidence import SavedCopy
+        log='''LIVE_BASELINE mode=0 companion=0 enqueue=1
+VIRTUAL_BACKUP_INPUT write=1 read=1 value=1
+VIRTUAL_BACKUP_INPUT_SYNC status=0 file_byte=1
+LIVE_NATIVE_ON_RETURN mode=1 companion=0
+VIRTUAL_BACKUP_AFTER_NATIVE_ON read=1 value=1
+LIVE_NATIVE_OFF_RETURN mode=0 companion=0
+LIVE_NATIVE_OFF_LATER mode=0 companion=0
+VIRTUAL_BACKUP_AFTER_OFF read=1 value=1 flash_sync_tested=0
+VIRTUAL_EXPLICIT_OFF write=1 sync=0 read=1 value=0 file_byte=1
+FILE_STATE stage=off path=/setting/Backup.bin cookie=2863311530 writecomp=257 id1=0 count=2 ptr=609678 value=1
+FILE_STATE stage=off path=/setting/Backup.bak cookie=2863311530 writecomp=257 id1=0 count=3 ptr=609678 value=0
+LIVE_PROBE_DONE
+'''
+        loaded='''BACKUP_DUMP id=0x2cf02cf datasize=1
+BACKUP_DUMP read=1
+00000000: 00
+BACKUP_DUMP_DONE shown=1
+FRESH_AP_MODE
+READMEM /proc/206/mem address=1000000000000000 bytes=4
+1000000000000000: 00 00 00 00
+FRESH_AP_COMPANION
+READMEM /proc/206/mem address=1000000000000010 bytes=4
+1000000000000010: 00 00 00 00
+'''
+        control=loaded.replace('00000000: 00','00000000: 01')
+        return [log,SavedCopy(2,1),SavedCopy(3,0),loaded,control]
+
+    def test_validated_vm_save_reload_is_not_physical_recovery(self):
+        from vm_off_evidence import validate
+        result=validate(*self.fixtures())
+        self.assertTrue(result['native_saved_store_roundtrip_in_vm_verified'])
+        self.assertTrue(result['setting_only_left_backup_on'])
+        self.assertFalse(result['sensor_centering_or_physical_camera_recovery_verified'])
+        self.assertFalse(result['four_frame_scheduler_or_exposure_verified'])
+
+    def test_runtime_off_with_saved_on_cannot_pass(self):
+        from vm_off_evidence import validate,SavedCopy
+        values=self.fixtures();values[2]=SavedCopy(3,1)
+        with self.assertRaises(ValueError):validate(*values)
+
+    def test_missing_or_reordered_transaction_cannot_pass(self):
+        from vm_off_evidence import validate
+        values=self.fixtures();values[0]=values[0].replace('VIRTUAL_EXPLICIT_OFF','MISSING_EXPLICIT_OFF')
+        with self.assertRaises(ValueError):validate(*values)
+        values=self.fixtures()
+        values[0]=values[0].replace('LIVE_PROBE_DONE\n','')
+        values[0]='LIVE_PROBE_DONE\n'+values[0]
+        with self.assertRaises(ValueError):validate(*values)
+
+    def test_fresh_loader_and_opposite_control_are_both_required(self):
+        from vm_off_evidence import validate
+        values=self.fixtures();values[3]=values[4]
+        with self.assertRaises(ValueError):validate(*values)
+        values=self.fixtures();values[4]=values[3]
+        with self.assertRaises(ValueError):validate(*values)
+
+    def test_stale_or_wrong_exported_copy_cannot_pass(self):
+        from vm_off_evidence import validate,SavedCopy
+        values=self.fixtures();values[2]=SavedCopy(1,0)
+        with self.assertRaises(ValueError):validate(*values)
+        values=self.fixtures();values[2]=SavedCopy(4,0)
+        with self.assertRaises(ValueError):validate(*values)
+
+
 if __name__ == '__main__':
     unittest.main()
