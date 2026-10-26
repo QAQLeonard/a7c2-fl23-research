@@ -12,11 +12,12 @@ from verify_probe import execute
 
 
 class Disk:
-    def __init__(self,kind='voice'):
+    def __init__(self,kind='voice',*,uid=0,gid=0,nlink=1,file_mode=0o100644):
         self.kind=kind;self.directory,self.names=resourceworker.layout(kind)
         self.data={self.directory+'/'+n:(n+' original').encode() for n in self.names}
         self.data[self.directory+'/unrelated.bin']=b'untouched'
         self.readonly=True;self.events=[];self.fault=None
+        self.uid,self.gid,self.nlink,self.file_mode=uid,gid,nlink,file_mode
     def run(self,worker,mode=0,index=0,offset=0,payload=None,prefix=None,loaded=True,menu_loaded=True,vertical_off=True):
         request=resourceworker.REQUEST.pack(b'A7RSQ001',mode,index,offset,len(payload or b''),0,prefix or bytes(32))
         chunk='/tmp/jiritsu/resource.chunk'
@@ -27,7 +28,13 @@ class Disk:
             if no==56:
                 path,flags=string(cpu,a[1]),a[2]
                 if not (path.startswith(self.directory+'/') or path in (self.directory,'/tmp/jiritsu/a7c2.install.request',chunk,'/proc/mounts')):return None
-                if flags==0x200c1:
+                if path==self.directory:
+                    assert flags==0x8c000,'AArch64 directory open must not use O_DIRECT'
+                    self.events.append(('open_directory',flags))
+                elif path.startswith(self.directory+'/') or path==chunk:
+                    assert flags&0x88000==0x88000,'Resources require AArch64 NOFOLLOW/CLOEXEC'
+                    assert not flags&0x10000,'O_DIRECT is not O_DIRECTORY on AArch64'
+                if flags==0x880c1:
                     assert not self.readonly
                     if path in self.data:return -17
                     self.data[path]=b'';self.events.append(('create',path))
@@ -55,7 +62,7 @@ class Disk:
             path,pos,closed,flags=handles[a[0]];assert not closed
             if no==57:handles[a[0]][2]=True;return 0
             if no==80:
-                st=bytearray(128);struct.pack_into('<QQII',st,0,15,99,0o100644,1)
+                st=bytearray(128);struct.pack_into('<QQIIII',st,0,15,99,self.file_mode,self.nlink,self.uid,self.gid)
                 struct.pack_into('<q',st,48,len(self.data[path]));struct.pack_into('<Q',st,64,8)
                 cpu.mem_write(a[1],bytes(st));return 0
             if no in (63,67):
@@ -101,6 +108,24 @@ def test_delete_audio_preserves_all_indices_and_unrelated_files(tmp_path):
     result=disk.run(reader)
     assert all(r['status']==(-2 if r['name'].endswith('.bin') else 0) for r in result['files'])
     assert disk.readonly
+
+
+def test_factory_owned_audio_and_indices_use_real_target_flags(tmp_path):
+    disk=Disk(uid=57285,gid=1000);reader,writer,_=workers(tmp_path,disk)
+    for i,name in enumerate(disk.names):
+        if name.endswith('.bin'):disk.run(writer,1,i)
+    result=disk.run(reader)
+    assert all(r['status']==(-2 if r['name'].endswith('.bin') else 0) for r in result['files'])
+    assert sum(event[0]=='open_directory' for event in disk.events)==10
+    assert disk.readonly
+
+
+@pytest.mark.parametrize('options',[dict(nlink=2),dict(file_mode=0o040755)])
+def test_unexpected_resource_type_or_hardlinks_still_refuse(tmp_path,options):
+    disk=Disk(uid=57285,gid=1000,**options)
+    reader=resourceworker.build('voice',tmp_path/'inspect');before=dict(disk.data)
+    with pytest.raises(ValueError,match='status=-22'):disk.run(reader)
+    assert disk.data==before and not disk.events
 
 
 def test_loaded_disable_guard_is_mandatory_before_deletion(tmp_path):

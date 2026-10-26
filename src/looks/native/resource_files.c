@@ -15,15 +15,23 @@ struct ResourceReport {u8 magic[8];u32 version,mode; i64 status,readonly,cleanup
 static struct Request req;
 static struct ResourceReport out;
 static u8 buffer[65536];
+/* Linux AArch64: NOFOLLOW=0x8000,DIRECTORY=0x4000,CLOEXEC=0x80000.
+ * 0x10000 is O_DIRECT on this target,not O_DIRECTORY.
+ */
+enum {RESOURCE_READ=0x88000,RESOURCE_WRITE=0x88001,
+      RESOURCE_CREATE=0x880c1,RESOURCE_DIRECTORY=0x8c000};
 static int equal(const void*a,const void*b,u32 n) {const u8*x=a,*y=b;for(u32 i=0;i<n;i++)if(x[i]!=y[i])return 0;return 1;}
 static i64 close_fd(i64 *fd) {if(*fd<0)return 0;i64 v=sc(57,*fd,0,0,0,0,0);*fd=-1;return v;}
 static i64 regular(i64 fd,u64 *st) {
     i64 v=sc(80,fd,(i64)st,0,0,0,0);if(v)return v;
+    /* Original Sony resources can be owned by57285:1000. Retain the
+     * fixed paths,type/link/size and fresh per-file digest requirements.
+     */
     return (((u32*)st)[4]&0170000)==0100000&&((u32*)st)[5]==1&&
-        !((u32*)st)[6]&&!((u32*)st)[7]&&st[6]<=41943040?0:-22;
+        st[6]<=41943040?0:-22;
 }
 static i64 inspect(const char*path,struct Info *info) {
-    i64 fd=op(path,0x20000);info->status=fd<0?fd:0;if(fd<0)return fd;
+    i64 fd=op(path,RESOURCE_READ);info->status=fd<0?fd:0;if(fd<0)return fd;
     u64 st[16];i64 v=regular(fd,st);SHA256 hash;sha_init(&hash);u64 at=0;
     if(!v){info->size=st[6];info->allocated=st[8]*512;}
     while(!v&&at<info->size) {
@@ -65,7 +73,7 @@ static i64 check_guards(void) {
     close_fd(&fd);return v;
 }
 static i64 sync_dir(void) {
-    i64 fd=op(resource_directory,0x10000);if(fd<0)return fd;
+    i64 fd=op(resource_directory,RESOURCE_DIRECTORY);if(fd<0)return fd;
     i64 v=sc(82,fd,0,0,0,0,0),c=close_fd(&fd);return v?v:c;
 }
 static i64 current(u32 i,int stage,struct Info *value) {
@@ -75,7 +83,7 @@ static i64 current(u32 i,int stage,struct Info *value) {
 }
 static i64 append_chunk(u32 i) {
     if(!target_sizes[i]||!req.count||req.count>1048576||req.offset>target_sizes[i]||req.count>target_sizes[i]-req.offset)return -22;
-    i64 input=op("/tmp/jiritsu/resource.chunk",0x20000);if(input<0)return input;
+    i64 input=op("/tmp/jiritsu/resource.chunk",RESOURCE_READ);if(input<0)return input;
     u64 st[16];i64 v=regular(input,st);if(!v&&st[6]!=req.count)v=-22;
     struct Info previous;if(!v){v=inspect(staging[i],&previous);if(v==-2)v=0;}
     if(!v&&((!req.offset&&previous.status!=-2)||(req.offset&&(previous.status||previous.size!=req.offset))))v=-116;
@@ -85,7 +93,7 @@ static i64 append_chunk(u32 i) {
         if(!v&&(!fs[1]||fs[4]*fs[1]<target_sizes[i]+fs[1]||!fs[6]))v=-28;
     }
     i64 output=-1;
-    if(!v)output=op(staging[i],req.offset?0x20001:0x200c1);
+    if(!v)output=op(staging[i],req.offset?RESOURCE_WRITE:RESOURCE_CREATE);
     if(output<0&&!v)v=output;
     u64 at=0;
     while(!v&&at<req.count) {

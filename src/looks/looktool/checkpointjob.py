@@ -8,7 +8,8 @@ from .devicesession import Camera, invoke
 from .backupstore import write_json
 
 TEMPS={'checkpoint.staged.so','checkpoint.program.request','checkpoint.program.result',
-       'checkpoint.names.request','checkpoint.names.result','shutter.staged.so','shutter.probe.result'}
+       'checkpoint.names.request','checkpoint.names.result','shutter.staged.so','shutter.probe.result',
+       'a7c2-preview-staged.so'}
 
 
 def program_difference(expected, actual):
