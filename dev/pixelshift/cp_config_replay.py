@@ -58,7 +58,9 @@ def _snapshot(directory, *, mode, test=0, seed=0, source_initializer=None, snaps
         source_initializer(cpu, p, d, source)
     before = bytes(cpu.mem_read(source, 0xd64))
     capture_id = 0x12345678
-    cpu.mem_write(root, b'\xa5' * 0xe00)
+    # Original initialization/snapshot owns fields only through +D9C.
+    # The old E00 fill also poisoned the adjacent coordinator records.
+    cpu.mem_write(root, b'\xa5' * 0xda0)
     cpu.mem_write(root, struct.pack('<I', capture_id))
     stack, finish = 0x3000f000, 0x30002000
     cpu.mem_write(stack, struct.pack('<II', 4, 0x87654321))

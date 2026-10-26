@@ -77,7 +77,10 @@ def initialize(cpu, directory, capture, pipeline, actions, *, pipeline_source=No
     cpu.mem_write(root, b'\x6b'*0x4e64)
     cpu.mem_write(root+0x4e38, struct.pack('<9I', *(0x30007000+0x100*n for n in range(9))))
     cpu.mem_write(context-4, b'\xa5'*0xd0)
-    cpu.mem_write(p['guard']-4, b'\xa5'*9)
+    # Neighboring bytes include the native capture-format selector. They are
+    # independent globals, not padding available for sentinel initialization.
+    guard_neighbors=(bytes(cpu.mem_read(p['guard']-4,4)),bytes(cpu.mem_read(p['guard']+1,4)))
+    cpu.mem_write(p['guard'], b'\xa5')
     cpu.mem_write(p['debug'], b'\0')  # Native no-log path, not a supplied API result.
     root_before = bytes(cpu.mem_read(root, 0x4e64))
     phase, pointer_writes, guard_writes = 'bind', [], []
@@ -136,8 +139,8 @@ def initialize(cpu, directory, capture, pipeline, actions, *, pipeline_source=No
             raise ValueError('Original CapturingLv transitions differ from their native writes')
         if (bytes(cpu.mem_read(root, 0x4e64)) != root_before
                 or bytes(cpu.mem_read(context-4, 0xd0)) != bound_context
-                or bytes(cpu.mem_read(p['guard']-4, 4)) != b'\xa5'*4
-                or bytes(cpu.mem_read(p['guard']+1, 4)) != b'\xa5'*4):
+                or bytes(cpu.mem_read(p['guard']-4, 4)) != guard_neighbors[0]
+                or bytes(cpu.mem_read(p['guard']+1, 4)) != guard_neighbors[1]):
             raise ValueError('Native publication changed its source or adjacent fields')
     finally:
         cpu.hook_del(ch)

@@ -10,9 +10,11 @@
 
 当前连续调用探索已执行 A7CR 原生 CapID 查询的请求、工作线程处理、回复及临时队列回收。这里查询的是采集编号表的可用项，不是 RAW 图像缓冲区剩余数量。冷启动配置、共享内存与操作系统对象仍包含测试输入，AP 向共享表生产编号的路径尚未接通。
 
-已修复[缓冲池测试](../../dev/pixelshift/cp_image_parameter_replay.py)把哨兵字节填入相邻原生回调记录的问题；两机回归新增相邻记录保留检查。修正后，私人连续调用探索可运行第一帧参数构造及序列对象绑定，但进一步检查发现异步工作线程入队失败。后续探索中出现的多个对象不能当作四帧调度成功，当前需接通该工作线程的原生初始化、消息消费和对象回收。
+已修复[缓冲池测试](../../dev/pixelshift/cp_image_parameter_replay.py)、[快照测试](../../dev/pixelshift/cp_config_replay.py)及[状态保护测试](../../dev/pixelshift/cp_capture_context_replay.py)越界填充相邻记录的问题。最后一处错误曾把格式选择标志写成 `A5`，使原生代码选错缓冲类型。连续调用探索现已执行协调线程原生初始化、完整消息消费和完成回调；原先的入队失败已越过。下一处等待涉及 DMM 缓冲区取得及同步传输，尚未自然完成四帧和回收。先前探索中出现的多个对象不能当作调度成功。
 
-随后仍须验证位移参数来源、真正到位后才曝光，以及超时、取消、回中和启动早期关闭。先前虚拟机保存 OFF 的成功仅证明保存及重新读取路径，不代表真实相机故障恢复已完成。本轮没有连接或修改相机。
+新增[原厂 DMM 规则处理](../../dev/pixelshift/dmm_rule_replay.py)：原始内核模块读取各机型完整官方配置、初始化并处理规则请求，内存复制由原厂 libc 执行；嵌套规则及错误分支保留原生行为。它尚不执行完整 DMM 分发器或图像缓冲区分配。异步规则请求 `0x14` 若误送同步入口，原厂会固定返回 `-7`，不能据此认定硬件或标定缺失。
+
+启动早期关闭已有[仅限虚拟机的实现](../../dev/pixelshift/vm_boot_off.c)：原厂备份驱动加载后、AP 启动前，读取已保存的 ON，调用原厂备份接口写入并同步 OFF。两份完整保存文件已导出；另一台全新客体不再运行关闭程序，仍由原厂读取 OFF。`vm_off_evidence.py --boot-log` 核对顺序、保存文件和全新加载。物理位移到位后曝光、取消回中及真实机身故障恢复仍未验证。本轮没有连接或修改相机。
 
 ## 全量固件分析与外部线索
 
@@ -290,6 +292,8 @@ python dev/pixelshift/cp_capture_count_replay.py --c2 private/c2/components --re
 python dev/pixelshift/cp_capture_count_replay.py --c2 private/c2/components --reference private/a7cr/components --frame-header --output private/count-frame-header.private.json
 python dev/pixelshift/cp_steady_event_replay.py --c2 private/c2/components --reference private/a7cr/components --reject-context --output private/rejected-wait.private.json
 python dev/pixelshift/vm_off_evidence.py --native-log private/native-off.serial.txt --primary private/Backup.bin --secondary private/Backup.bak --reload-log private/fresh-off.serial.txt --control-log private/fresh-on-control.serial.txt --output private/off-evidence.private.json
+python dev/pixelshift/vm_off_evidence.py --boot-log private/boot-off.console.txt --primary private/boot-Backup.bin --secondary private/boot-Backup.bak --reload-log private/unguarded-fresh-off.serial.txt --control-log private/fresh-on-control.serial.txt --output private/boot-off-evidence.private.json
+python dev/pixelshift/dmm_rule_replay.py --corpus private/corpus-c2/files --config private/DmmCfg.bin --rule 1 --output private/dmm-rule.private.json
 python dev/pixelshift/cp_startup_config_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/startup-config.private.json
 python dev/pixelshift/cp_startup_binding_replay.py --c2 private/c2/components --reference private/a7cr/components --output private/startup-binding.private.json
 python dev/pixelshift/cp_startup_binding_replay.py --c2 private/c2/components --reference private/a7cr/components --continue-dma --output private/startup-dma.private.json

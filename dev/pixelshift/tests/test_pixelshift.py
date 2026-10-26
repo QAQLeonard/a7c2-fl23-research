@@ -1875,6 +1875,33 @@ class NativeTests(unittest.TestCase):
                 self.assertEqual(bytes(cpu.mem_read(neighbor, 20)),
                                  data[neighbor-0x108000:neighbor-0x108000+20])
 
+    def test_capture_snapshot_fixture_preserves_adjacent_coordinator_input(self):
+        from cp_config_replay import _snapshot
+        neighbors=bytes(range(0x60))
+        def source_input(cpu, snapshot, dispatch, source):
+            cpu.mem_write(snapshot['root']+0xda0,neighbors)
+        for directory in (self.c2,self.cr):
+            with self.subTest(model=directory.parent.name):
+                cpu,snapshot,_,_= _snapshot(directory,mode=1,source_initializer=source_input)
+                self.assertEqual(bytes(cpu.mem_read(snapshot['root']+0xda0,0x60)),neighbors)
+
+    def test_capture_guard_fixture_preserves_neighboring_format_selector(self):
+        from cp_capture_context_replay import initialize,profile
+        from cp_capture_gate_replay import profile as capture_profile
+        from cp_sequence_replay import machine
+        neighbors=bytes([21,34,55,89,0xfe,144,233,13,7])
+        for directory in (self.c2,self.cr):
+            with self.subTest(model=directory.parent.name):
+                data,p=profile(directory)
+                cpu=machine(data,[])
+                cpu.mem_map(p['guard']&~4095,4096)
+                cpu.mem_write(p['guard']-4,neighbors)
+                initialize(cpu,directory,capture_profile(directory)[2],0,('enter','exit'))
+                actual=bytes(cpu.mem_read(p['guard']-4,9))
+                self.assertEqual(actual[:4],neighbors[:4])
+                self.assertEqual(actual[4],0)
+                self.assertEqual(actual[5:],neighbors[5:])
+
     def test_native_image_parameter_acquisition_initializes_and_reaches_population_callback(self):
         from cp_image_parameter_replay import compare
         report = compare(self.c2, self.cr)
@@ -2290,7 +2317,102 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(report['installable'])
 
 
+CORPUS_ROOT = os.environ.get('A7C2_PIXELSHIFT_CORPUS_ROOT')
+
+
+@unittest.skipUnless(CORPUS_ROOT, 'Needs private original corpus, never USB')
+class NativeDmmTests(unittest.TestCase):
+    def receiver(self, model):
+        import json
+        from dmm_rule_replay import RuleReceiver
+        base = Path(CORPUS_ROOT) / ('corpus-' + model)
+        inventory = json.loads((base / 'inventory.private.json').read_text(encoding='utf-8'))
+        config = next(base / row['file'] for row in inventory['entries']
+                      if row.get('source') == '0800_appli/setting/DmmCfg.bin')
+        return RuleReceiver(base / 'files', config), config
+
+    def test_original_dmm_consumes_complete_model_configuration_and_returns_its_own_reply(self):
+        for model in ('c2', 'cr'):
+            with self.subTest(model=model):
+                receiver, config = self.receiver(model)
+                self.assertEqual(receiver.report['config_consumed'], config.stat().st_size)
+                self.assertEqual(receiver.current_rule(), 0)
+                result = receiver.transact(1, component=0x1234)
+                self.assertEqual((result['response'], result['disposition']), (0x8014, 2))
+                self.assertEqual((result['component'], result['status'], result['raw_status']), (0x1234, 0, 0))
+                self.assertEqual(result['current_rule'], 1)
+                self.assertFalse(receiver.report['api_results_replaced'])
+                self.assertEqual(receiver.report['invalid'], [])
+
+    def test_native_dmm_invalid_rule_and_option_preserve_active_rule(self):
+        for model in ('c2', 'cr'):
+            receiver, _ = self.receiver(model)
+            self.assertEqual(receiver.transact(3)['current_rule'], 3)
+            for rule, option, expected in ((64, 0, -1), (255, 0, -1), (1, 2, -4)):
+                with self.subTest(model=model, rule=rule, option=option):
+                    result = receiver.transact(rule, option)
+                    self.assertEqual((result['status'], result['raw_status']), (expected, expected))
+                    self.assertEqual(result['current_rule'], 3)
+
+    def test_native_dmm_rule_stack_nests_restores_and_rejects_overflow_underflow(self):
+        for model in ('c2', 'cr'):
+            receiver, _ = self.receiver(model)
+            self.assertEqual(receiver.transact(3)['current_rule'], 3)
+            self.assertEqual(receiver.transact(0, 0x101)['status'], -1)
+            for rule in range(4, 11):
+                result = receiver.transact(rule, 0x100)
+                self.assertEqual((result['status'], result['current_rule']), (0, rule))
+            result = receiver.transact(11, 0x100)
+            self.assertEqual((result['status'], result['current_rule']), (-1, 10))
+            for expected in range(9, 2, -1):
+                result = receiver.transact(0, 0x101)
+                self.assertEqual((result['status'], result['current_rule']), (0, expected))
+            self.assertEqual(receiver.transact(0, 0x101)['status'], -1)
+            self.assertEqual(receiver.current_rule(), 3)
+
+
 class VmOffEvidenceTests(unittest.TestCase):
+    def boot_fixtures(self):
+        from vm_off_evidence import SavedCopy
+        boot='''BOOT_OFF_AP_BEFORE
+BOOT_OFF_IPC_INIT status=0
+BOOT_OFF_BEFORE read=1 value=1
+BOOT_OFF_WRITE status=1
+BOOT_OFF_AFTER sync=0 read=1 value=0
+BOOT_OFF_DONE before_ap_start=1
+IM_LAUNCH_PID=200
+'''
+        fresh='''BACKUP_DUMP id=0x2cf02cf datasize=1
+BACKUP_DUMP read=1
+00000000: 00
+BACKUP_DUMP_DONE shown=1
+READMEM /proc/205/mem address=7f509db070 bytes=4
+0000007f509db070: 00 00 00 00
+READMEM /proc/205/mem address=7f509ee358 bytes=4
+0000007f509ee358: 00 00 00 00
+'''
+        return [boot,SavedCopy(4,0),SavedCopy(3,0),fresh,fresh.replace('00000000: 00','00000000: 01')]
+
+    def test_boot_guard_and_unguarded_reload_do_not_establish_physical_recovery(self):
+        from vm_off_evidence import validate_boot
+        result=validate_boot(*self.boot_fixtures())
+        self.assertTrue(result['pre_ap_saved_off_guard_in_vm_verified'])
+        self.assertTrue(result['fresh_reload_without_guard_verified'])
+        self.assertFalse(result['sensor_centering_or_physical_camera_recovery_verified'])
+        self.assertFalse(result['four_frame_scheduler_or_exposure_verified'])
+
+    def test_boot_guard_rejects_late_guard_failed_sync_newest_on_or_guarded_reload(self):
+        from vm_off_evidence import validate_boot,SavedCopy
+        cases=[]
+        values=self.boot_fixtures();values[0]='IM_LAUNCH_PID=199\n'+values[0];cases.append(values)
+        values=self.boot_fixtures();values[0]=values[0].replace('sync=0','sync=-1');cases.append(values)
+        values=self.boot_fixtures();values[1]=SavedCopy(4,1);cases.append(values)
+        values=self.boot_fixtures();values[3]='BOOT_OFF_WRITE status=1\n'+values[3];cases.append(values)
+        values=self.boot_fixtures();values[3]=values[3].replace('00000000: 00','00000000: 01');cases.append(values)
+        values=self.boot_fixtures();values[4]=values[3];cases.append(values)
+        for values in cases:
+            with self.assertRaises(ValueError):validate_boot(*values)
+
     def fixtures(self):
         from vm_off_evidence import SavedCopy
         log='''LIVE_BASELINE mode=0 companion=0 enqueue=1

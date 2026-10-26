@@ -87,12 +87,58 @@ def validate(native_log,primary,secondary,reload_log,control_log):
         validation_camera_io=False)
 
 
+def validate_boot(boot_log,primary,secondary,reload_log,control_log):
+    """Require an ON input, original OFF before AP launch and a fresh reload."""
+    text=clean(boot_log)
+    start=re.search(r'^BOOT_OFF_AP_BEFORE$',text,re.M)
+    launch=re.search(r'^IM_LAUNCH_PID=\d+$',text,re.M)
+    if not start or not launch or start.end()>=launch.start():
+        raise ValueError('Missing original pre-AP launch boundary')
+    stages=['BOOT_OFF_IPC_INIT status=0','BOOT_OFF_BEFORE read=1 value=1',
+            'BOOT_OFF_WRITE status=1','BOOT_OFF_AFTER sync=0 read=1 value=0',
+            'BOOT_OFF_DONE before_ap_start=1']
+    window=text[start.end():launch.start()]
+    previous=-1
+    for stage in stages:
+        matches=list(re.finditer('^'+re.escape(stage)+'$',window,re.M))
+        if len(matches)!=1 or matches[0].start()<=previous:
+            raise ValueError('Missing or late native boot stage: '+stage.split()[0])
+        previous=matches[0].start()
+    # The original AP may save OFF again after the guard, replacing the old
+    # ON copy too. Validate the newest stored value, without assuming a fixed
+    # filename rotation or requiring the obsolete ON value to survive.
+    if (primary.count==secondary.count or primary.value not in (0,1) or secondary.value not in (0,1)
+            or max((primary,secondary),key=lambda copy:copy.count).value!=0):
+        raise ValueError('The newest native saved copy must contain OFF')
+    if loaded_value(reload_log)!=0 or loaded_value(control_log)!=1:
+        raise ValueError('Fresh OFF reload or opposite saved-input control failed')
+    fresh=clean(reload_log)
+    if re.search(r'^BOOT_OFF_(?:BEFORE|WRITE|AFTER|DONE)',fresh,re.M):
+        raise ValueError('Fresh reload must not execute the guard again')
+    reads=re.findall(r'^READMEM [^\n]+ address=([0-9a-f]+) bytes=4\n([0-9a-f]{16}): 00 00 00 00$',fresh,re.M)
+    if (len(reads)!=2 or any(int(a,16)!=int(b,16) for a,b in reads)
+            or int(reads[1][0],16)-int(reads[0][0],16)!=0x132e8):
+        raise ValueError('Fresh AP mode/companion OFF readback is incomplete')
+    return dict(schema='a7c2-vm-boot-off-evidence/1',
+        native_saved_on_observed_before_guard=True,pre_ap_saved_off_guard_in_vm_verified=True,
+        fresh_reload_without_guard_verified=True,opposite_saved_input_control_verified=True,
+        primary_saved_copy=dict(count=primary.count,value=primary.value),
+        secondary_saved_copy=dict(count=secondary.count,value=secondary.value),
+        physical_saved_on_fault_reproduced=False,sensor_centering_or_physical_camera_recovery_verified=False,
+        four_frame_scheduler_or_exposure_verified=False,camera_installer=False,validation_camera_io=False)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    for arg in ('native-log','primary','secondary','reload-log','control-log','output'):
+    mode=parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--native-log',type=Path)
+    mode.add_argument('--boot-log',type=Path,help='Complete guest boot console including the AP launch boundary')
+    for arg in ('primary','secondary','reload-log','control-log','output'):
         parser.add_argument('--'+arg,type=Path,required=True)
     args=parser.parse_args()
-    result=validate(args.native_log.read_bytes(),read_saved_copy(args.primary),
+    check=validate_boot if args.boot_log else validate
+    log=args.boot_log if args.boot_log else args.native_log
+    result=check(log.read_bytes(),read_saved_copy(args.primary),
         read_saved_copy(args.secondary),args.reload_log.read_bytes(),args.control_log.read_bytes())
     with args.output.open('x',encoding='utf-8') as handle:json.dump(result,handle,indent=2)
     print(json.dumps(result,indent=2))
