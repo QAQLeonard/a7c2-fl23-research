@@ -24,6 +24,8 @@ def run_trial(helper, core, directory, session_factory, *, prompt=input, emit=pr
             try:
                 identity = session.identity
                 driver = DeviceDriver(session, directory, helper, core)
+                driver.state['body_identity'] = identity
+                driver._save()  # retain the same-body binding before the first upload
                 driver.stage()
                 driver.arm(epoch=1, generation=1)
                 poll(driver, lambda r: r['arm_accepted'], poll_limit, pause)

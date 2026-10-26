@@ -345,7 +345,24 @@ static int assemble(struct stage *s, const u8 *request)
     if (result) return result;
     if ((result = sync_dir(s))) return result;
     STEP("assembly-data");
-    if (linkat(s->dir, "assembling.tmp", s->dir, "core.so", 0)) return io_failure(s);
+    /* Jiritsu staging is FAT on the camera: hard links are unsupported.
+     * Exclusively create the final name, then copy acknowledged chunks. A
+     * partial final file is evidence only: the loader requires assemble.done
+     * and a fresh full digest check before it can load anything. */
+    fd = openat(s->dir, "core.so", O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+    if (fd < 0) return io_failure(s);
+    STEP("core-created");
+    for (u32 i = 0; !result && i < s->count; ++i) {
+        result = read_chunk(s, i, data);
+        if (!result) result = write_all(s, fd, data, chunk_size(s, i));
+        if (!result) STEP("core-copy-data");
+    }
+    if (!result && STAGE_FSYNC(fd)) result = io_failure(s);
+    closing = close_file(s, fd);
+    if (closing) result = closing;
+    if (result) return result;
+    if ((result = sync_dir(s))) return result;
+    if ((result = check_core(s, data))) return result;
     s->out->published = 1;
     if ((result = sync_dir(s))) return result;
     STEP("published");

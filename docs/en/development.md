@@ -215,8 +215,13 @@ rechecks the immutable plan, intent/data/confirmation records and file contents.
 An unfinished intent stops without replay. A lost reply can be reconciled by
 QUERY when durable confirmation and matching bytes exist; duplicate PUT and
 ASSEMBLE requests still fail. Directory `flock` serializes cooperating callers.
-Descriptor-relative no-follow/exclusive opens preserve foreign files; only a
-successfully published assembly's temporary link is removed. The report is
+Descriptor-relative no-follow/exclusive opens preserve foreign files. The
+camera's FAT staging filesystem cannot make hard links: the receiver exclusively
+creates core.so and copies acknowledged chunks into it, flushes/closes it and
+checks its complete digest before removing the assembly temporary file. Only
+assemble.done plus fresh plan/chunk/core verification permits READY or loading;
+a partial final file or an interrupted intent is retained and never resumed.
+This is exclusive creation with a checked completion record, not atomic rename. The report is
 112 bytes; `pending_fd` is diagnostic evidence, never a request to retry close.
 
 Build `build_bootstrap.py --component staging --output <dir> --harness` for the

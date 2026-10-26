@@ -171,6 +171,18 @@ class LocalStage:
         self.state['intent'] = None
         self._save()
 
+    def _publish_core(self):
+        destination = self.root / 'core.so'
+        with destination.open('xb') as stream:
+            for index in range(len(self.plan.chunks)):
+                data = self._read_chunk(index)
+                if stream.write(data) != len(data):
+                    raise ReviewRequired('Short core publication write')
+            stream.flush()
+            os.fsync(stream.fileno())
+        if digest(destination.read_bytes()) != self.plan.sha256:
+            raise ReviewRequired('Published core readback differs')
+
     def assemble(self):
         self.verify()
         if self.state['phase'] != 'RECEIVING' or self.state['completed'] != len(self.plan.chunks):
@@ -190,8 +202,9 @@ class LocalStage:
             os.fsync(stream.fileno())
         if total != self.plan.size or checksum.hexdigest() != self.plan.sha256:
             raise ReviewRequired('Whole-core digest differs')
-        # Local no-replace publication. This is not a camera Fsys_Move claim.
-        os.link(temporary, self.root / 'core.so')
+        # Exclusive final creation works on FAT. READY is committed only after
+        # complete readback; a partial final name never permits loading.
+        self._publish_core()
         temporary.unlink()
         self.state['phase'], self.state['intent'] = 'READY', None
         self._save()

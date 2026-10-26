@@ -40,7 +40,7 @@ struct a7_stage_report {
  * unfinished intent, malformed journal or foreign file stops without replay.
  * Only QUERY can reconcile a lost acknowledgement; PUT is never idempotent.
  * No directory, chunk or evidence is deleted. Successful local publication
- * removes only this operation's assembly temporary link. Camera filesystem,
+ * removes only this operation's assembly temporary file. Camera filesystem,
  * directory fsync and power-loss semantics require separate validation.
  */
 A7_JPEG_API int a7_stage_execute(const char *root, const void *wire, size_t wire_length,

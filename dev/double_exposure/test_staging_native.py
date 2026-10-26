@@ -263,7 +263,7 @@ class NativeStaging(unittest.TestCase):
 
     @unittest.skipUnless(os.environ.get('A7C2_STAGING_FAULT_COMMAND'), 'Set fault harness argv')
     def test_unfinished_assembly_never_replays_or_discards_evidence(self):
-        for point in ('assemble-intent', 'assembly-data', 'published', 'temp-removed'):
+        for point in ('assemble-intent', 'assembly-data', 'core-created', 'core-copy-data', 'published', 'temp-removed'):
             with self.subTest(point=point):
                 self.root = self.base / point
                 self.create()
@@ -357,6 +357,28 @@ class NativeStaging(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
         self.assertTrue(json.loads(result.stdout)['control_verified'])
         self.assertEqual((self.root / 'core.so').read_bytes(), self.data)
+
+    @unittest.skipUnless(os.environ.get('A7C2_STAGING_FAULT_COMMAND'), 'Set fault harness argv')
+    def test_filesystem_without_hardlinks_can_publish_verified_core(self):
+        self.create()
+        self.put_all()
+        report = self.call(ASSEMBLE, fault='no-hardlinks')
+        self.assertEqual((report['status'], report['phase'], report['published']), (0, 2, 1))
+        self.assertEqual((self.root/'core.so').read_bytes(), self.data)
+        self.assertEqual(self.call(QUERY)['phase'], 2)
+
+
+    @unittest.skipUnless(os.environ.get('A7C2_STAGING_FAULT_COMMAND'), 'Set fault harness argv')
+    def test_partial_exclusive_publication_is_retained_and_never_loadable(self):
+        self.create()
+        self.put_all()
+        report = self.call(ASSEMBLE, fault='publish-write-error')
+        self.assertEqual((report['status'], report['phase'], report['io_error']), (-13003, 3, 5))
+        self.assertEqual((self.root/'core.so').read_bytes(), self.data[:7])
+        self.assertEqual((self.root/'assembling.tmp').read_bytes(), self.data)
+        self.assertFalse((self.root/'assemble.done').exists())
+        self.assert_review_unchanged()
+        self.assert_review_unchanged(ASSEMBLE)
 
 
 if __name__ == '__main__':

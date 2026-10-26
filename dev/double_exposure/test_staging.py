@@ -112,7 +112,7 @@ class Staging(unittest.TestCase):
     def test_publication_error_retains_intent_and_assembly(self):
         stage = LocalStage.create(self.root, self.plan)
         self.complete_chunks(stage)
-        with patch('staging_model.os.link', side_effect=OSError('unknown publication outcome')):
+        with patch.object(stage, '_publish_core', side_effect=OSError('unknown publication outcome')):
             with self.assertRaises(OSError): stage.assemble()
         self.assertTrue((self.root / 'assembling.tmp').exists())
         with self.assertRaises(ReviewRequired): LocalStage.reopen(self.root, self.plan)
@@ -121,11 +121,11 @@ class Staging(unittest.TestCase):
         import os
         stage = LocalStage.create(self.root, self.plan)
         self.complete_chunks(stage)
-        original = os.link
-        def collide(source, destination):
-            destination.write_bytes(b'new user output')
-            original(source, destination)
-        with patch('staging_model.os.link', side_effect=collide):
+        original = stage._publish_core
+        def collide():
+            (self.root/'core.so').write_bytes(b'new user output')
+            original()
+        with patch.object(stage, '_publish_core', side_effect=collide):
             with self.assertRaises(FileExistsError): stage.assemble()
         self.assertEqual((self.root / 'core.so').read_bytes(), b'new user output')
         with self.assertRaises(ReviewRequired): LocalStage.reopen(self.root, self.plan)
@@ -149,6 +149,14 @@ class Staging(unittest.TestCase):
             with self.assertRaises(ValueError): Plan.from_bytes(data)
         with self.assertRaises(ValueError): dataclasses.replace(self.plan, size=True)
         with self.assertRaises(ValueError): dataclasses.replace(self.plan, chunks=())
+
+
+    def test_hardlink_unavailability_does_not_block_publication(self):
+        stage = LocalStage.create(self.root, self.plan)
+        self.complete_chunks(stage)
+        with patch('staging_model.os.link', side_effect=PermissionError('FAT does not support links')):
+            self.assertEqual(stage.assemble().read_bytes(), self.data)
+        self.assertEqual(LocalStage.reopen(self.root, self.plan).state['phase'], 'READY')
 
 
 if __name__ == '__main__':

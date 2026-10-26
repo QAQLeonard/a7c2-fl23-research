@@ -6,15 +6,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 #ifdef A7_STAGE_TESTING
 static const char *test_root;
 static int armed, writes, failed_fd = -1, failed_sync;
 static int fault_is(const char *name)
 { const char *fault = getenv("A7_STAGE_FAULT"); return fault && !strcmp(fault, name); }
+int linkat(int olddir, const char *oldname, int newdir, const char *newname, int flags)
+{
+    if (fault_is("no-hardlinks")) { errno = EPERM; return -1; }
+    return (int)syscall(SYS_linkat, olddir, oldname, newdir, newname, flags);
+}
 ssize_t a7_stage_test_write(int fd, const void *data, size_t bytes)
 {
     if (fault_is("short-write")) return write(fd, data, bytes > 7 ? 7 : bytes);
-    if (armed && fault_is("write-prefix-error")) {
+    if (armed && (fault_is("write-prefix-error") || fault_is("publish-write-error"))) {
         if (writes++) { errno = EIO; return -1; }
         return write(fd, data, bytes > 7 ? 7 : bytes);
     }
@@ -49,6 +55,7 @@ void a7_stage_test_step(const char *name)
     const char *fault = getenv("A7_STAGE_FAULT");
     if (!strcmp(name, "chunk-intent") && !fault_is("read-error")) armed = 1;
     if (!strcmp(name, "chunk-data") && fault_is("read-error")) armed = 1;
+    if (!strcmp(name, "assembly-data") && fault_is("publish-write-error")) armed = 1;
     if (fault && !strcmp(fault, "collision") && !strcmp(name, "assembly-data")) {
         char path[4096];
         if (snprintf(path, sizeof(path), "%s/core.so", test_root) >= (int)sizeof(path)) _exit(74);
