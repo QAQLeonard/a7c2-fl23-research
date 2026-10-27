@@ -99,6 +99,29 @@ class PhotoIOTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'file/virtual mapping'):
                         self.install(bytes(source),{1:self.delta})
 
+    def with_earlier_helper(self,cp):
+        """The same camera as installed before the preview guard ended the native update."""
+        result=bytearray(cp);hook=cp[0xb27500:0xb27504]
+        for old in device_layout.runtime()['superseded_windows']:
+            raw=bytes.fromhex(old['after']);result[old['offset']:old['offset']+len(raw)]=raw
+        if photoio.present(cp):result[0xb27500:0xb27504]=hook
+        return bytes(result)
+
+    def test_earlier_preview_helper_is_admitted_and_replaced_by_the_next_update(self):
+        current=self.install(self.source,{1:self.delta})
+        installed=self.with_earlier_helper(current)
+        self.assertNotEqual(installed,current)
+        self.assertEqual(photoio.inspect(installed)['mask'],1)
+        self.assertEqual(self.install(installed,{2:self.delta}),self.install(current,{2:self.delta}))
+        self.assertEqual(self.install(installed,{1:None}),self.install(current,{1:None}))
+        self.assertEqual(self.install(self.with_earlier_helper(self.source),{1:self.delta}),current)
+
+    def test_modified_earlier_preview_helper_is_not_replaced(self):
+        source=bytearray(self.with_earlier_helper(self.source));source[0xb27490+0x91]^=1
+        with self.assertRaisesRegex(ValueError,'allocation conflicts'):
+            self.install(bytes(source),{1:self.delta})
+        self.assertEqual(photoio.preview_helper(bytes(source)),bytes(source))
+
     def test_field_payload_must_match_its_declared_integer_basis(self):
         delta=copy.deepcopy(self.delta);delta['matrix_coefficient_delta'][0][1][0]+=1
         with self.assertRaisesRegex(ValueError,'Full photo fields differ'):

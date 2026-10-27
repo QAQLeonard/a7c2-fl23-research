@@ -10,6 +10,8 @@
 #ifndef SOUND_AUDIO_PATH
 #define SOUND_AUDIO_PATH "/usr/share/avsystemsound/custom-shutter.bin"
 #endif
+/* Linux AArch64 open flags, matching the voice/portrait resource worker. */
+enum {SOUND_READ=0x88000,SOUND_CREATE=0x880c1,SOUND_DIRECTORY=0x8c000};
 static const char *paths[]={SOUND_AUDIO_PATH,
                            "/usr/share/avsystemsound/custom.txt"};
 static u8 scratch[65536];
@@ -43,7 +45,7 @@ static i64 remount(int ro) {
     i64 v=sc(40,0,(i64)"/usr",0,0xc30UL+(ro?1:0),0,0);return v?v:mount_state(ro);
 }
 static i64 check(u32 index,int installed) {
-    i64 fd=op(paths[index],0x20000);
+    i64 fd=op(paths[index],SOUND_READ);
     if(!installed) {if(fd==-2)return 0;if(fd<0)return fd;close_file(&fd);return -17;}
     if(fd<0)return fd;
     u64 st[16];i64 v=stat_file(fd,st);
@@ -57,11 +59,11 @@ static i64 check(u32 index,int installed) {
     i64 c=close_file(&fd);return v?v:c;
 }
 static i64 sync_directory(void) {
-    i64 fd=op("/usr/share/avsystemsound",0x10000);if(fd<0)return fd;
+    i64 fd=op("/usr/share/avsystemsound",SOUND_DIRECTORY);if(fd<0)return fd;
     i64 v=sc(82,fd,0,0,0,0,0),c=close_file(&fd);return v?v:c;
 }
 static i64 remove_owned(u32 index) {
-    i64 fd=op(paths[index],0x20000);if(fd<0)return fd;
+    i64 fd=op(paths[index],SOUND_READ);if(fd<0)return fd;
     u64 st[16];i64 v=stat_file(fd,st);
     if(!v&&(st[0]!=owned_dev[index]||st[1]!=owned_ino[index]))v=-116;
     i64 c=close_file(&fd);if(!v)v=c;
@@ -69,7 +71,7 @@ static i64 remove_owned(u32 index) {
     return v;
 }
 static i64 create(u32 index) {
-    i64 fd=op(paths[index],0x200c1);if(fd<0)return fd;
+    i64 fd=op(paths[index],SOUND_CREATE);if(fd<0)return fd;
     out.created|=1U<<index;
     u64 st[16];i64 v=stat_file(fd,st);
     if(!v) {owned_dev[index]=st[0];owned_ino[index]=st[1];}
@@ -82,7 +84,7 @@ static i64 create(u32 index) {
 #ifdef SOUND_UPDATE
 static const char *temporary[2]={"/usr/share/avsystemsound/.a7c2-sound-audio.tmp","/usr/share/avsystemsound/.a7c2-sound-csv.tmp"};
 static i64 old_csv(void) {
-    i64 fd=op(paths[1],0x20000);
+    i64 fd=op(paths[1],SOUND_READ);
     if(fd==-2&&!previous_csv_size)return 0;
     if(fd<0)return fd;
     u64 st[16];i64 v=stat_file(fd,st);
@@ -92,7 +94,7 @@ static i64 old_csv(void) {
     close_file(&fd);return v;
 }
 static i64 check_temporary(u32 i,int prefix) {
-    i64 fd=op(temporary[i],0x20000);if(fd<0)return fd;
+    i64 fd=op(temporary[i],SOUND_READ);if(fd<0)return fd;
     u64 st[16];i64 v=stat_file(fd,st);
     if(!v&&(st[6]>sound_sizes[i]||(!prefix&&st[6]!=sound_sizes[i])))v=-17;
     if(!v&&sc(67,fd,(i64)scratch,st[6],0,0,0)!=(i64)st[6])v=-5;
@@ -100,12 +102,12 @@ static i64 check_temporary(u32 i,int prefix) {
     close_file(&fd);return v;
 }
 static i64 replace_atomic(u32 i) {
-    i64 fd=op(temporary[i],0x200c1);
+    i64 fd=op(temporary[i],SOUND_CREATE);
     if(fd==-17) {
         i64 v;
 #ifdef REPLACE_RECORDED_TEMPORARIES
         if(previous_temporary_sizes[i]>=0) {
-            i64 old=op(temporary[i],0x20000);if(old<0)return old;
+            i64 old=op(temporary[i],SOUND_READ);if(old<0)return old;
             u64 st[16];v=stat_file(old,st);
             if(!v&&st[6]!=(u64)previous_temporary_sizes[i])v=-116;
             if(!v&&sc(67,old,(i64)scratch,st[6],0,0,0)!=(i64)st[6])v=-5;
@@ -119,7 +121,7 @@ static i64 replace_atomic(u32 i) {
 #endif
         if(v)return v;
         v=sc(35,-100,(i64)temporary[i],0,0,0,0);if(v)return v;
-        fd=op(temporary[i],0x200c1);
+        fd=op(temporary[i],SOUND_CREATE);
     }
     if(fd<0)return fd;
     i64 v=write_all(fd,sound_data[i],sound_sizes[i]);

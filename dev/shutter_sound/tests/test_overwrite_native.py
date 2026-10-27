@@ -36,6 +36,8 @@ def test_atomic_sound_publication(tmp_path,old_name,new_name,fault):
         if no==56:
             name,flags=string(cpu,a[1]),a[2]
             if name not in allowed:return None
+            if name==DIRECTORY:assert flags==0x8c000
+            elif name in (path,CSV_PATH,*TMP):assert flags in (0x88000,0x880c1)
             if flags&0x40:
                 if name in files:return -17
                 files[name]=b''

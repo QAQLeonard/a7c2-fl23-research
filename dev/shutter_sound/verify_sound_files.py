@@ -39,7 +39,7 @@ def case(worker, ap, audio, csv, mode, fault='none'):
             path, flags = string(cpu, a[1]), a[2]
             if path not in (*PATHS, DIRECTORY, REQUEST, '/proc/mounts'):
                 return None
-            if path in PATHS and flags == 0x200c1:
+            if path in PATHS and flags == 0x880c1:
                 assert not readonly[0]
                 if fault in ('create_second', 'rollback_unlink', 'foreign_inode') and path == PATHS[1]:
                     if fault == 'foreign_inode':
@@ -51,11 +51,11 @@ def case(worker, ap, audio, csv, mode, fault='none'):
                 inodes[path] = 500 + len(inodes)
                 events.append(['create', path])
             elif path in PATHS:
-                assert flags == 0x20000
+                assert flags == 0x88000
                 if path not in data:
                     return -2
             elif path == DIRECTORY:
-                assert flags == 0x10000
+                assert flags == 0x8c000
             else:
                 assert not flags
             fd = 1000 + len(handles)
@@ -112,7 +112,7 @@ def case(worker, ap, audio, csv, mode, fault='none'):
             cpu.mem_write(a[1], value)
             return len(value)
         if no == 64:
-            assert path in PATHS and not readonly[0] and h['flags'] == 0x200c1
+            assert path in PATHS and not readonly[0] and h['flags'] == 0x880c1
             count = a[2]
             if fault == 'partial_write':
                 if 'short' in injected:

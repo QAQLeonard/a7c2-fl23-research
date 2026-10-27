@@ -380,7 +380,7 @@ A diagnostic bundle contains device information and local paths, so review it be
 | --- | --- |
 | Historical FL2/FL3, look import, recovery and temporary audition | Tested on the author's single Windows + A7C II; this does not establish acceptance of the current combined installation |
 | Complete current development install/recovery lifecycle | Offline validation exists; the combination of new features has not completed physical camera acceptance |
-| New voice cleanup/restoration and greyed menus | Offline validation; physical acceptance pending |
+| New voice cleanup/restoration and greyed menus | Voice-audio removal and freed space verified on one body; voice restoration and the full new combination await physical acceptance |
 | Independent mechanical/electronic speaker controls and persistent custom audio | Offline validation; physical acceptance of the current combination pending |
 | Native portrait image resources | Offline validation; physical acceptance pending |
 | Custom names, fonts and display paths | Resource-format and length checks exist; arbitrary-character glyph coverage and all language/capture/playback paths remain unverified |

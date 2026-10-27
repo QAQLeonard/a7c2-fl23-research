@@ -25,7 +25,7 @@ def checker(asm):
  if len(code)>160:raise ValueError('Checker exceeds existing metadata tail mapping')
  return code
 
-def helper(asm):
+def helper(asm,settle=False):
  gate=HELPER+0xc8
  lines=['push {r0,r1,r2,lr}','ldrb.w r3,[sl,#1]','cmp r3,#1',f'bne 0x{gate:x}',
  'ldrb.w r3,[sl,#0x2e]','sub.w r3,r3,#249','cmp r3,#5',f'bhi 0x{LEGACY:x}',
@@ -41,10 +41,22 @@ def helper(asm):
  blob=bytearray(256);blob[:len(code)]=code
  gamma=asm('subw r1,r0,#249;cmp r1,#5;it ls;movls r0,#0;b.w 0x240832',HELPER+0x70)
  blob[0x70:0x70+len(gamma)]=gamma
- guard=asm('\n'.join(['cmp r4,#0','bne build','ldrb.w r0,[sl,#0x2e]',
- 'sub.w r0,r0,#249','cmp r0,#5','bhi skip','ldr.w r0,[sb,#4]','ldrb r0,[r0,#6]',
- 'cmp r0,#1','beq build','bhi skip','ldr.w r0,[r8,#0xc]','ldr.w r0,[r0,#0x6b0]',
- 'cmp r0,#0','beq skip','build:','mov r0,sb','b.w 0x23d4e8','skip:','b.w 0x23d516']),HELPER+0x90)
+ if settle:
+  # A custom marker that takes over from the native counter state machine ends
+  # that machine first: LUT-update flag (desc+0x28) and counter (ctx+0x27) to
+  # idle, like the native completion step. r1-r3 are dead at both exits.
+  skip=HELPER+0x64
+  blob[0x64:0x68]=asm('b.w 0x23d516',skip)
+  guard=asm('\n'.join(['cbnz r4,build','ldrb.w r0,[sl,#0x2e]',
+  'subs r0,#249','cmp r0,#5',f'bhi 0x{skip:x}','ldr.w r0,[sb,#4]','ldrb r0,[r0,#6]',
+  'cmp r0,#1','beq take',f'bhi 0x{skip:x}','ldr.w r0,[r8,#0xc]','ldr.w r0,[r0,#0x6b0]',
+  'cmp r0,#0',f'beq 0x{skip:x}','take:','ldrd r0,r1,[r8,#8]','movs r2,#0',
+  'strb.w r2,[r0,#0x28]','strb.w r2,[r1,#0x27]','build:','mov r0,sb','b.w 0x23d4e8']),HELPER+0x90)
+ else:
+  guard=asm('\n'.join(['cmp r4,#0','bne build','ldrb.w r0,[sl,#0x2e]',
+  'sub.w r0,r0,#249','cmp r0,#5','bhi skip','ldr.w r0,[sb,#4]','ldrb r0,[r0,#6]',
+  'cmp r0,#1','beq build','bhi skip','ldr.w r0,[r8,#0xc]','ldr.w r0,[r0,#0x6b0]',
+  'cmp r0,#0','beq skip','build:','mov r0,sb','b.w 0x23d4e8','skip:','b.w 0x23d516']),HELPER+0x90)
  if len(guard)>0x38:raise ValueError('Preview guard overlaps helper gate')
  blob[0x90:0x90+len(guard)]=guard
  availability=asm('\n'.join(['cmp r3,#0',f'bne 0x{LEGACY:x}',

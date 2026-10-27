@@ -12,7 +12,7 @@ def test_sound_page_dispatches_four_independent_switches(tmp_path,monkeypatch):
         view=window.Window()
         try:
             for title,action in (
-                ('打开／恢复机械快门自带音效','sound_mechanical_on'),
+                ('开启机械快门音效','sound_mechanical_on'),
                 ('关闭机械快门音效','sound_mechanical_off'),
                 ('开启电子快门专属音效','sound_on'),
                 ('关闭电子快门专属音效','sound_off')):

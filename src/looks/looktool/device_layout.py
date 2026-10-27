@@ -184,7 +184,7 @@ def identify(ap,cp):
             at=w['offset'];old=bytes.fromhex(w['before'])
             if cp[at:at+len(old)]!=old:raise ValueError('First-import CP window conflicts at '+hex(at))
     else:
-        if code_hash(cp)!=asset['cp_code_sha256']:raise ValueError('Unsupported standalone CP code identity')
+        if code_hash(cp) not in (asset['cp_code_sha256'],*asset.get('superseded_cp_code_sha256',())):raise ValueError('Unsupported standalone CP code identity')
         six.read_tables(cp)
     return dict(a,layout='full7-v4' if a['kind']=='legacy-six' else 'standalone-v1',AP=firmware.sha(ap),CP=c,
         physical_first_install_tested=False if a['kind']!='legacy-six' else None)
@@ -229,6 +229,10 @@ def replace(ap,cp,replacements,*,hash_checks=True,native_photo=None,native_bank=
                 last=at
         if start is not None:spans.append((start,last-start+1))
     from . import photoio
+    if identity['kind']!='legacy-six' and not identity.get('first_install'):
+        # A reviewed earlier preview helper moves to the current image with the slot update.
+        current=photoio.preview_helper(bytes(result))
+        if current!=bytes(result):result=bytearray(current);spans.append((0xb27490,254))
     stages={slot:(native_photo or {}).get(slot) for slot in replacements}
     if photoio.present(cp) or any(value is not None for value in stages.values()):
         result=photoio.update(bytes(result),stages,native_bank,allocation_proved=True)

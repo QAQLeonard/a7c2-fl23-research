@@ -2,6 +2,19 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Dev integration — 2026-10-28
+
+- Integrate PR #56 with the existing pending-upload route: compare an exactly validated underlying helper, update only the guard/skip differences, and preserve every installed acknowledgment instruction. Both current and earlier pending layouts migrate, including cameras with native-photo stages; partial/unknown helpers remain rejected. Add migration, idempotence and preservation regressions.
+- Synchronize independent mechanical/electronic custom speaker audio, startup warnings, loaded file-to-address admission and shared-knowledge instructions. Include the previously committed original-owner/AArch64 voice-resource fix. Align the custom sound-file worker's open/create/directory flags with the same target ABI and verify them in native file-publication fault cases.
+- These are development changes. PR #56 has a one-body tester report; the new combined package and mechanical custom audio still require physical acceptance. This integration and its tests do not operate a camera.
+
+## Viewfinder freeze after fast look switching — 2026-10-27
+
+- Report #34 (supplement): switching quickly from an original look to a freshly installed custom look could freeze the whole live view while focus and capture kept working; switching through a few looks recovered it. Offline analysis points to the preview guard: for markers 249–254 it bypasses Sony's counter state machine (`ctx+0x27`) and leaves the LUT-update flag `desc+0x28` set by an original look still in flight. The guard now ends that machine when a custom marker takes over: flag and counter go back to idle, as the native completion step leaves them. Flag-set (`r4 != 0`) frames, original markers and every build/skip decision are unchanged.
+- Preview helper image `0xb27490` is replaced (it was the upload-retry-v4 image); the earlier image stays admitted as a reviewed superseded revision. New installs write the current image. An installed camera moves to it with its next table or native-stage update, which changes bytes only inside the 4-byte skip stub and the 56-byte guard of that window; the inverse restores the earlier bytes. Legacy `full7-v4` programs and `sixbuild.build` are unchanged.
+- Physical result: a tester (not the project owner) reports the freeze no longer occurs after this update (one A7C II, firmware 2.01, installed through a slot 4 re-import). One body, one tester; no second-body or long-run coverage.
+- Offline evidence. In instruction emulation of Sony's `0x23d380` on an installed CP image, a custom marker arriving mid-update (steps 1–4, both `root+3` values) now leaves the flag and counter at 0, and a following original look runs the native steps 1–4 to completion, where the earlier guard left the flag at 1. The mechanism is still an inference: no code reading `desc+0x28` was found, so the test shows the change removes the symptom, not that this flag is what the hardware reads. The suspected `0x179d950` flag (#13) is not touched.
+
 ## Unreleased — independent custom shutter speaker audio — 2026-10-26
 
 - Keep separate mechanical/electronic on/off buttons and add one custom-audio entry with mechanical-only, electronic-only and both targets. Saving enables only the selected paths and retains the other switch and clip. Mechanical custom audio uses native kind1 with a silent kind2 closing segment; electronic remains kind3. Preserve native capture policies/counters, shutter settings and AF audio.
