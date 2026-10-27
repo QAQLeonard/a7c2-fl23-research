@@ -2,6 +2,20 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Unreleased — independent custom shutter speaker audio — 2026-10-26
+
+- Keep separate mechanical/electronic on/off buttons and add one custom-audio entry with mechanical-only, electronic-only and both targets. Saving enables only the selected paths and retains the other switch and clip. Mechanical custom audio uses native kind1 with a silent kind2 closing segment; electronic remains kind3. Preserve native capture policies/counters, shutter settings and AF audio.
+- Reuse the native reader's existing instruction extent with bounded kind-based row selection; no code cave. Read full loaded descriptor filenames so replacements avoid both disk-referenced and still-loaded files. Publish an inactive complete file and merged CSV before enabling the new call. Migration disarms the old offset-based call before publishing multi-row configuration. Unknown results stop; factory recovery includes the additional inverse-region digests. Native instruction replay and transaction fault tests are offline evidence; physical audio, timing and boot acceptance remain pending.
+
+## Unreleased — boot-risk review — 2026-10-26
+
+- Fix voice-resource operations on the target AArch64 ABI: accept regular original resources with non-root ownership, use the correct NOFOLLOW/CLOEXEC/DIRECTORY flags, and include the fixed preview stage in checkpoint cleanup. Retain exact paths, single-link/type/size/hash guards and post-operation read-only remounting. Current native-resource/workflow tests pass; one owner-authorized ILCE-7CM2 2.01 cleanup removed ten audio files, preserved ten indexes and verified free space. This does not establish voice restoration, power-loss safety or pre-capture.
+
+- Add a shared-knowledge workflow to agent instructions and both development guides: re-read current state on resuming, check existing implementations, and maintain separate evidence-backed task entries in the owner's local workspace. Document voice cleanup/restoration as existing implementation with explicit physical-acceptance limits. Keep private state outside publication assets.
+- Native-photo admission now checks that file and virtual segment addresses have the exact relationship assumed by its compiled hooks and tables. Previously both ranges could contain the reserved windows while their mappings disagreed. A synthetic shifted-header regression reproduced that admission gap before the fix. This rejects incompatible layouts; it does not change generated firmware bytes or establish the cause of any reported camera failure.
+- Move the bricking/recovery warning ahead of commercial-use terms in the startup summary and both READMEs. Make the summary scrollable on small screens. Explain display-resource risks, unverified character coverage and incomplete physical acceptance of the current feature combination. Correct stale MIT wording and blanket physical-test claims; replace unconditional retry advice with phase-specific continuation after preserving diagnostics.
+- Resource review: name updates retain original records, bound UTF-8 lengths and indices, check capacity/inodes, publish staged files with synchronization and stop on unknown outcomes. These checks do not prove glyph availability, all runtime display paths or filesystem safety under power loss. Native font/glyph tables are not a new installation feature. Remaining work includes per-language character coverage, image/name resource lifetime and failure/power-loss coverage, and physical acceptance of each new feature before the combined lifecycle. No camera was operated for this review.
+
 ## Standard license update — 2026-10-25
 
 - Use the unmodified public PolyForm Noncommercial License 1.0.0, replacing the previous MIT/Commons Clause combination and custom preamble. README and startup notice prominently state the commercial-use/profit prohibition, separately from the false-authorization heading. Third-party and previous licenses are retained.

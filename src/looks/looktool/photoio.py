@@ -108,6 +108,10 @@ def loaded_storage(cp):
         if not (0x20000+offset<=start<end<=0x20000+offset+size and
                 va<=start+photobuild.BASE<end+photobuild.BASE<=va+size):
             raise ValueError('Native-photo storage is outside the existing allocated loaded segments')
+        # Containment in both spaces is insufficient: shifted segment headers
+        # can still contain the ranges while loading their bytes elsewhere.
+        if va-(0x20000+offset)!=photobuild.BASE:
+            raise ValueError('Native-photo segment file/virtual mapping differs')
     data_end=sum(struct.unpack_from('<2I',cp,0x20140))
     if data_end>0x120a000:raise ValueError('Native-photo storage must not extend into BSS')
 

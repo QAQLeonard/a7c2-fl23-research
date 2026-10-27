@@ -8,6 +8,14 @@
 >
 > **This is an unofficial, independent research tool for learning and technical discussion. It is not affiliated with, authorized or endorsed by Sony.**
 >
+> ### Important: the camera may be bricked, and recovery is not guaranteed
+>
+> **Modifications can cause boot failure, repeated restarts, crashes during capture or playback, malfunctions or data loss. They may affect official updates, warranty or repairs, and may require paid repair or mainboard replacement.**
+>
+> **Successful writes, complete readback and passing offline tests do not establish boot safety or stability in every mode. Name, icon and other display-resource changes also carry risks. New development-version features have not all completed physical camera acceptance.**
+>
+> **One-click recovery is not a complete system reinstallation and may not recover the camera. Backups, camera initialization and official updates do not guarantee recovery either. On an error, disconnect or unknown result, stop writing, preserve diagnostics and do not repeatedly start installation or recovery.**
+>
 > ### No commercial use or profit-making
 >
 > **All commercial use and profit-making are prohibited. The author explicitly opposes paid flashing, paid remote installation, resale or paid bundles of the tool, paid unlocking, selling activation keys/dongles, and hardware bundles for profit. This project is provided free of charge. The author offers no paid flashing service and has not authorized anyone to offer these paid services in the author's name.**
@@ -15,10 +23,6 @@
 > ### Do not impersonate Sony or claim author authorization
 >
 > **The author has never authorized anyone to offer paid services, advertise or promise warranty coverage in the author's or Sony's official name. Do not impersonate Sony, the author or an authorized service provider. Third-party fees imply no author involvement, approval, endorsement or guarantee.**
->
-> ### Use at your own risk · Recovery is not guaranteed
->
-> **Modifications can cause boot failure, repeated restarts, malfunctions or data loss, and can affect official updates, warranty or repair. Successful writes and matching readback do not establish boot safety; restoration is not guaranteed to recover the camera.**
 >
 > **Only operate a device you lawfully own or for which the owner has given explicit permission. Back up important data. Do not proceed if you cannot accept device damage and repair costs.**
 >
@@ -52,7 +56,7 @@ For other models, these independent projects may help. They are not part of this
 > [!IMPORTANT]
 > This tool modifies programs and settings in the camera firmware. Read the whole [step-by-step guide](#step-by-step-guide) before you start. If the app reports an error, **export a diagnostic bundle first. Do not keep retrying the write.**
 
-Each normal desktop launch shows a risk summary and requires manually accepting it before the interface opens. The linked [risk notice and use statement](docs/en/notices.md#risk-notice-and-use-statement) provides the full text. The tool is free and unofficial. The author opposes paid flashing and prohibits false claims of Sony/author authorization; code remains MIT-licensed.
+Each normal launch of the current development app shows a risk summary and requires manually accepting it before the interface opens. The linked [risk notice and use statement](docs/en/notices.md#risk-notice-and-use-statement) provides the full text. The tool is free and unofficial. The author opposes paid flashing and prohibits false claims of Sony/author authorization. Original project code uses the standard PolyForm Noncommercial License 1.0.0; third-party and earlier licenses are retained. Updating documentation does not update previously published packages.
 
 **Backups and recovery sources:** ordinary installation does not require a backup or a full firmware download. The recovery page offers an optional current-project backup, with voice data saved separately. To respect firmware copyright and reduce legal risks, including DMCA considerations, packages omit complete official firmware and original voice packs. All factory recovery requires a usable original same-body backup or **ILCE-7CM2 2.01 `BODYDATA.DAT`** obtained from Sony for local extraction. This policy does not establish authorization for every modification, guarantee recovery, or prevent litigation.
 
@@ -90,7 +94,7 @@ The interface is in Simplified Chinese. Button names below are given in Chinese 
 | **Custom Creative Looks** | Writes `.a7look` files into custom slots 1–6 with your own names, or resets slots to ST. Slots you don't list stay unchanged. |
 | **Look conversion** | Converts DCP or CUBE files to `.a7look` offline, without Lightroom. Ships with 15 paired DCP/A7Look profiles. |
 | **Lightroom plugin** | When you import RAW files, applies the DCP that matches the custom slot used for each shot. |
-| **Electronic shutter sound** | Turns on Sony's native electronic shutter sound, or uses a clip from any audio/video file as a custom sound. |
+| **Shutter speaker sounds** | Independent mechanical/electronic on/off controls; custom audio can target mechanical only, electronic only or both. |
 | **Vertical Display** | Rotates shooting information and icons when the camera is held vertically. The full MENU does not rotate. |
 | **Restore factory functions** | Removes every change this project makes and restores stock 2.01 behavior. **No old backup needed**; body calibration is kept. |
 
@@ -327,14 +331,16 @@ Tools on the same page:
   - A **DCP** is parsed and fitted by the app itself; Lightroom isn't needed.
 - **安装 LrC 自动识别插件… (Install Lightroom plugin)**: after installing, enable it once in Lightroom's Plug-in Manager. From then on, when you import RAW files it applies the DCP for the slot each shot used. It never alters the RAW data itself.
 
-### Electronic shutter sound
+### Shutter speaker sounds
 
-1. **开启电子快门声 (Turn on shutter sound)**: turns on Sony's native electronic shutter sound. Cold-reload after the write.
+1. Turn mechanical and electronic speaker sounds on/off separately. Each switch preserves the other side and saved custom audio; neither changes the shutter type. The mechanical mechanism still makes a physical sound.
 2. Choose an audio or video file, set the **start** and **length** (0.01–2 s), then click **转换所选片段 (Convert selected clip)**. This runs on the computer only.
 3. Optionally adjust the volume with **−3 dB / +3 dB / 还原转换时音量 (reset to converted volume)**.
-4. Click **保存当前自定义声音 (Save current custom sound)** and cold-reload after the write.
-5. **相机内临时试听 (Temporary in-camera audition)** is optional. While auditioning, **keep the camera on**, unplug USB and take a test shot; reconnect and save if you like it.
-6. To go back to the original sound, click **恢复原厂音效 (Restore factory sound)**.
+4. In the shared custom-audio entry, select **只修改机械 / 只修改电子 / 机械和电子都修改** (mechanical only / electronic only / both), then **保存到所选快门** (Save to selected shutter). Saving enables the selected sound and preserves the other side's switch/audio. Cold-reload as instructed.
+5. **相机内临时试听 (Temporary in-camera audition)** is optional and uses electronic capture. Keep the camera on, unplug USB and take a test shot, then reconnect to save. Mechanical custom audio plays in the opening phase, with a silent closing segment to avoid playing the same clip twice.
+6. **移除全部自定义音效，关闭电子快门音效** removes both custom sounds and disables electronic speaker sound, retaining the mechanical switch. The global Audio Signals setting can still suppress playback; the tool does not change it automatically.
+
+The new development-version mechanical custom-audio path has offline validation; physical acceptance remains pending. File readback does not establish sound quality, timing or boot safety.
 
 ### Vertical Display
 
@@ -360,7 +366,7 @@ See [Step 2](#step-2-installed-an-earlier-version-restore-factory-functions-firs
 | `0336` never appears | The app cools down and retries automatically, up to 3 times. If it still fails, see [Driver errors](#driver-errors-uninstall-then-reinstall) or [install with Zadig](#still-failing-install-with-zadig). |
 | After authentication the camera jumps to playback and `0336` never appears | Try a USB 2.0 port on the computer (or a USB 2.0 cable or hub). On some computers the camera won't enter service mode over a USB 3 high-speed link. |
 | `0336` appears but its interface can't be opened | A driver problem. Uninstall and reinstall the driver; don't keep clicking install. |
-| Install or restore was interrupted | Click **the same button** again. The app reads the current state and picks up where it stopped; finished parts aren't rewritten. |
+| Install or restore was interrupted | **Stop and export diagnostics first.** Continue only when the app explicitly shows a reload/verification checkpoint and follow that phase's instructions. Do not restart installation or recovery after an unknown outcome. Confirmed completed program writes are not replayed. |
 | App reports an unknown result or asks for review | **Don't retry the write.** Click **导出诊断包 (Export diagnostics)** and share it in the community group. |
 | No shutter sound | Check that Audio Signals is on in the camera menu. |
 | Look colors differ slightly from the DCP | Expected: the in-camera table is a fitted approximation. |
@@ -372,10 +378,12 @@ A diagnostic bundle contains device information and local paths, so review it be
 
 | Area | Status |
 | --- | --- |
-| FL2/FL3, six-look install, factory restore | Written, read back and verified after restart on the author's Windows + A7C II |
-| Custom look preview/photos, temporary audition | Tested on the same camera |
-| Persistent custom shutter sound | Offline tests and packaged self-test pass; long-term camera testing in progress |
-| Vertical Display (including menu frames) | Being rewritten; camera acceptance pending |
+| Historical FL2/FL3, look import, recovery and temporary audition | Tested on the author's single Windows + A7C II; this does not establish acceptance of the current combined installation |
+| Complete current development install/recovery lifecycle | Offline validation exists; the combination of new features has not completed physical camera acceptance |
+| New voice cleanup/restoration and greyed menus | Offline validation; physical acceptance pending |
+| Independent mechanical/electronic speaker controls and persistent custom audio | Offline validation; physical acceptance of the current combination pending |
+| Native portrait image resources | Offline validation; physical acceptance pending |
+| Custom names, fonts and display paths | Resource-format and length checks exist; arbitrary-character glyph coverage and all language/capture/playback paths remain unverified |
 | macOS USB | Package builds; USB on a real Mac not yet verified |
 
 Offline tests and byte readback can't prove the camera works correctly in every situation, and everything so far has been verified on a single camera. Test records for each version are in the [changelog](docs/en/changelog.md).

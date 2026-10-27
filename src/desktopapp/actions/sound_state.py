@@ -29,14 +29,21 @@ def verify(args,job):
             candidate.require_registry(loaded)
             size=0
             if custom:
-                current=boot_trial.current_sound(camera.read(boot_trial.PATHS[1],True))
-                if current is None:raise ValueError('当前自定义声音配置不存在，请重新保存或恢复原厂音效。')
-                path,size=current
-                if len(camera.read(path))!=size:raise ValueError('当前声音文件长度与配置不同。')
-                descriptor=loaded['entries'][2]
-                if (descriptor['kind']!=3 or descriptor['length']!=size or
-                        descriptor['filename_prefix']!='/usr' or not descriptor['native_handle']&0x8000):
-                    raise ValueError('当前声音尚未按磁盘配置加载，请按写入后的提示断电重开。')
+                import targeted_sound
+                rows=targeted_sound.decode(camera.read(boot_trial.PATHS[1],True))
+                if not rows:raise ValueError('当前自定义声音配置不存在，请重新保存或恢复原厂音效。')
+                for kind,value in rows.items():
+                    raw=camera.read(targeted_sound.ROOT+value['name'])
+                    size=max(size,value['size'])
+                    descriptor=loaded['entries'][kind-1]
+                    if (len(raw)<value['size']+value['offset'] or descriptor['kind']!=kind or
+                            descriptor['length']!=value['size'] or
+                            descriptor.get('offset')!=value['offset'] or
+                            descriptor.get('filename')!=targeted_sound.ROOT+value['name'] or
+                            descriptor['filename_prefix']!='/usr' or not descriptor['native_handle']&0x8000):
+                        raise ValueError('当前声音尚未按磁盘配置加载，请按写入后的提示断电重开。')
+                    if kind==2 and any(raw[value['offset']:value['offset']+value['size']]):
+                        raise ValueError('机械快门关闭段不是静音数据，请保留诊断包。')
             elif candidate.sound_state(cp) in ('muted','mechanical_only'):
                 # Finish a current-state sound reset after the original AP loader
                 # has reloaded. No old sound job or audition evidence is required.

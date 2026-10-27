@@ -28,7 +28,7 @@ def execute(worker, ap, fault='none', *, extra_headers=None, setup_native=None,
                0x5bc35b0: struct.pack('<I', 0 if fault == 'model' else 16),
                0x7e735b8: struct.pack('<I', 0)}
     for i in range(25):
-        row = bytearray(48); row[0] = 6; row[1] = i + 1 if i < 3 else 4
+        row = bytearray(176); row[0] = 6; row[1] = i + 1 if i < 3 else 4
         struct.pack_into('<Q', row, 16, 1216)
         struct.pack_into('<Q', row, 32, 0x405000000)
         headers[0x7ed2098 + 176 * i] = bytes(row)
@@ -72,7 +72,7 @@ def execute(worker, ap, fault='none', *, extra_headers=None, setup_native=None,
             if path == '/proc/self/mem':
                 assert no == 67 and a[3] >= base
                 at = a[3] - base; assert at in headers
-                data = headers[at]; assert len(data) == a[2]
+                data = headers[at]; assert 0 < a[2] <= len(data);data=data[:a[2]]
                 reads.append(at)
                 if fault == 'short' and at == 0x7e735b8: data = data[:-1]
             else:

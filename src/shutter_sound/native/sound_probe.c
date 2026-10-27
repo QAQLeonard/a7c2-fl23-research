@@ -9,10 +9,10 @@
 
 struct SoundReport {
     u8 magic[8];u32 version,index;i64 status;u64 base;
-    u32 audio,reserved;u8 entries[25][48];u8 image_mode[16];
+    u32 audio,reserved;u8 entries[25][176];u8 image_mode[16];
 };
 static struct SoundReport sound;
-_Static_assert(sizeof(struct SoundReport)==1256,"Sound preflight ABI");
+_Static_assert(sizeof(struct SoundReport)==4456,"Sound preflight ABI");
 static int equal(const u8*a,const u8*b,u32 n) {
     for(u32 i=0;i<n;i++)if(a[i]!=b[i])return 0;return 1;
 }
@@ -45,7 +45,7 @@ __attribute__((visibility("default"))) void _init(void) {
 #endif
         if(!sound.status)sound.status=get(fd,0x7e735b8,&sound.audio,4);
         for(u32 i=0;i<25&&!sound.status;i++)
-            sound.status=get(fd,0x7ed2098UL+176UL*i,sound.entries[i],48);
+            sound.status=get(fd,0x7ed2098UL+176UL*i,sound.entries[i],176);
     }
     cl(fd);
     i64 n=read_all("/sys/power/image_mode",sound.image_mode,sizeof(sound.image_mode));

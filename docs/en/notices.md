@@ -50,11 +50,13 @@ This is a free, independent project for photographic color research, interoperab
 
 Only operate a device you lawfully own or for which the lawful owner has given explicit, informed permission. Do not modify rental, display, sale-stock or another person's equipment without authorization.
 
-### Important device risks and liability
+### Important: the camera may be bricked, and recovery is not guaranteed
 
-**Modifications can cause a camera to fail to boot, repeatedly restart, malfunction or lose images/settings, and may result in repair or replacement costs. They can also affect official updates and warranty or repair eligibility.** Coverage depends on applicable law, the damage and service policies; free repairs are not guaranteed.
+**Modifications can cause boot failure, repeated restarts, crashes during capture or playback, malfunctions or data loss. They may affect official updates, warranty or repairs, and may require paid repair or mainboard replacement.** Coverage depends on applicable law, the damage and service policies; free repairs are not guaranteed.
 
-**Successful writes, complete readback and offline tests do not establish boot safety or stability in every mode. One-click restoration is not a complete system reinstallation and is not guaranteed to recover damage or an unbootable camera.** Preserve important images, same-body backups and any required official firmware. A backup does not guarantee recovery.
+**Successful writes, complete readback and passing offline tests do not establish boot safety or stability in every mode. Name, icon and other display-resource changes also carry risks. New development-version features have not all completed physical camera acceptance.** Historical success on one body does not establish acceptance of the current version, new feature combinations or other bodies. Custom-name format, byte-length and resource-index checks do not establish that the camera's fonts correctly display arbitrary characters.
+
+**One-click recovery is not a complete system reinstallation and may not recover the camera. Backups, camera initialization and official updates do not guarantee recovery either. On an error, disconnect or unknown result, stop writing, preserve diagnostics and do not repeatedly start installation or recovery.** Continue only when the app explicitly shows a reload/verification phase after completed writes, and follow that phase's instructions. Do not create a new job to bypass an unknown outcome. Preserve important images, same-body backups and any required official firmware.
 
 The software is provided as is to the extent permitted by law, without promises of correctness, fitness, safety or successful recovery. Users decide whether to proceed and bear risks that lawfully fall to them. **This statement does not exclude or limit liability that cannot lawfully be excluded**, including applicable non-excludable liability for intentional misconduct or gross negligence.
 

@@ -6,6 +6,29 @@ the user's explicit instructions override these rules.
 
 No Claude or additional agents without explicit user authorization.
 
+## Shared project knowledge and existing chats
+
+- Before starting or resuming work, after context compaction, and before changing
+  an existing feature, re-read the current-state section of the development guide
+  and inspect the actual branch, HEAD and working-tree changes. Do not rely only
+  on a previous chat summary or a version label shared by different builds.
+- In the owner's multi-checkout workspace, also read the local shared knowledge
+  index at `../../knowledge/INDEX.md` when present (relative to this checkout).
+  Search its `entries/` for the current topic. This is local context, not a
+  publication asset or authority to access a device.
+- Each chat may and should extend that knowledge base under its template:
+  use a separate dated entry for its task, cite source/transaction/test evidence,
+  distinguish implementation, package, commit/push and physical acceptance, and
+  record failures and next steps before finishing. Re-read before updating;
+  preserve other chats' changes and superseded evidence.
+- Keep reusable public decisions in the existing bilingual development guide
+  and changelog. Never copy the private workspace index or its local paths into
+  the public repository or packages. Existing chats need an explicit context
+  refresh; do not claim that editing an instruction file updates their context.
+- Voice-audio cleanup and its disable/menu guards already exist. Read the guide
+  before proposing their implementation or restoration; a cleanup policy in
+  source is not evidence that a particular body has completed deletion.
+
 ## Branches and releases
 
 - The owner approved merging the Recovery/slot-restoration fixes and the

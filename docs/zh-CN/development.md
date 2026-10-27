@@ -4,6 +4,19 @@
 
 这一篇是给维护者和 AI 的唯一总览。先读 [AGENTS.md](../../AGENTS.md)：那里是不能违反的规则。本页讲代码怎么组织、怎么协作；细节请直接看本页指向的代码。
 
+## 当前状态与共享知识
+
+更新于 2026-10-26。续接已有对话时重新读取本节。同一个应用版本号可能对应不同 checkout 和安装包，继续前须核对分支、HEAD、未提交修改及包来源。历史测试结果不能证明相机当前状态。
+
+| 主题 | 已有实现 | 验证界限 |
+| --- | --- | --- |
+| 语音指南空间 | 新一键任务固定执行 `voice_cleanup`：禁用并置灰原生入口，冷重开后核对实际加载保护，再删除十种语言音频 BIN；保留索引 TXT 和原生对焦／快门声音。见 `desktopapp/voicespace.py`、`looktool/voicelock.py`、`looktool/resourceworker.py`。 | 不是删除全部无障碍系统。仅有 `AWAITING_RELOAD` 不证明音频已删，须看具体事务完成字段；新组合流程仍待实机验收。 |
+| 语音恢复 | 用户提供官方 2.01 固件或适用同机原始来源；先完整补回、核对资源，再解除保护。见 `desktopapp/screenreader.py`、`official.py`。 | 不分发原厂语音／固件；空间可能已被竖屏占用，不盲目恢复或重复清理。 |
+| 原生竖屏与独立音效控制 | 独立同 ID 竖屏图像库，机械／电子扬声器音效分别控制。 | 有离线证据，新增组合尚未全部实机验收。 |
+| 启动风险检查 | 原生照片阶段的文件到虚拟地址映射一致性检查，以及加载范围／BSS 检查。 | 合成回归和正常候选离线验证不证明事故根因或启动安全。 |
+
+本机有共享知识库时，按 `AGENTS.md` 读取索引并搜索已有条目，再决定实现，避免重复工作。每个会话在实现、测试、诊断或用户决定有实质进展后，按索引模板写独立的带日期任务条目，注明证据、未知结果与下一步。更新前重读当前文件，保留并行修改，旧结论被替代时明确标记。本地知识库不打包、不公开；长期适用的公开决策同步到本页和更新日志。知识记录不构成相机操作、推送或向其他对话发消息的授权。
+
 ## 范围
 
 - 集成分支：`dev`（由 `develop` 改名）；发布历史保留在 `main`。
@@ -60,7 +73,7 @@
 | `setup_all` | `allinone.run` | 一键安装／继续；在同一进程内调用其他动作 |
 | `driver_scan`、`usb_prepare`、`driver_install`、`driver_uninstall`、`mac_unmount` | `platforms.usb_drivers` | 只处理 `054C:0E8A`、`054C:0336`；已有 WinUSB／libusbK／libusb0 绑定直接沿用 |
 | `connect`、`usb_stability` | `devicesession.Camera`、`usbcheck` | 只读 |
-| `direct_factory_reset`／`direct_verify` | `looktool.direct` | 内置原厂参考；每次按当前相机字节重新规划 |
+| `direct_factory_reset`／`direct_verify` | `looktool.direct` | 用户提供恢复来源；同一个主按钮开始并完成恢复核对 |
 | `direct_fl23_enable`、`direct_fl23_disable` | `looktool.direct` | |
 | `direct_looks_import`（→ `direct_resume_looks`） | `lookbatch` + `looktool.direct`（`install_all`） | `operations`：`slot`、`action=write/restore`、`path`、可选 `name` |
 | `vertical_enable`、`vertical_disable` | `looktool.direct`（持久） | 正在重写 |
@@ -78,7 +91,7 @@
 
 ## 核心流程
 
-**可选当前备份：**恢复页可生成沿用现有格式的 `checkpoint.private.zip`，保存当前 AP／CP 程序、运行／保存设置和 68 份名称资源；来源标记为 `current-project-backup`，可手动选择还原，但不参与自动寻找最早原始备份。可选 `voice-resources.private.zip` 单独保存二十份语音指南文件，在所选检查点还原需要解除语音关闭限制时作为语音恢复来源。安装和内置原厂恢复均不要求先备份。语音资源也可由 `desktopapp.screenreader` 从用户自行提供的 2.01 更新文件在本机提取，应用不内置这些数据；语音写回采用 1 MiB 分块写入固定暂存文件，完整校验哈希并逐文件发布后，才解除关闭限制。
+**可选当前备份：**恢复页可生成沿用现有格式的 `checkpoint.private.zip`，保存当前 AP／CP 程序、运行／保存设置和 68 份名称资源；来源标记为 `current-project-backup`，可手动选择还原，但不参与自动寻找最早原始备份。可选 `voice-resources.private.zip` 单独保存二十份语音指南文件，在所选检查点还原需要解除语音关闭限制时作为语音恢复来源。安装不要求先备份；原厂恢复需要用户提供官方／原始来源。语音资源也可由 `desktopapp.screenreader` 从用户自行提供的 2.01 更新文件在本机提取，应用不内置这些数据；语音写回采用 1 MiB 分块写入固定暂存文件，完整校验哈希并逐文件发布后，才解除关闭限制。
 
 **直接事务**（`looktool/direct.py` 的 `DirectJob`）：
 1. `plan()` 是纯函数：把相机当前字节转换为目标字节和要改的设置，每种模式只改自己声明的区域。`bundle.plan()` 把多个模式（FL23、外观、ST 恢复、声音、竖屏）叠成一个计划。
@@ -104,9 +117,11 @@
 
 **声音**（`src/shutter_sound/`）：`media.py`／`native_codec.py` 在电脑上转换音频；`sound_cli.py` 同时驱动桌面版和 `shutter.py` 的流程；`candidate.py`／`boot_sound.py`／`files_worker.py` 构建固定的原生修改。试听和确认记录是可选的，不影响保存。
 
+桌面统一保存入口传递 `sound_target=mechanical/electronic/both` 到 `targeted_sound.py`，独立开关保留另一侧状态。按 kind 选行的读取器限制在既有指令范围及 kind1..3；机械使用 kind1 加静音 kind2，电子保持 kind3。合并私有 CSV 时保留另一侧的记录；`sound_probe.c` 返回已加载的完整文件名，避免覆盖仍在使用的文件。无空闲位置时停止并提示先重开。旧偏移调用迁移先撤下旧调用，再发布多行配置；完整文件及读回在新调用前完成。原厂逆向清单含新增窗口。这是离线验证候选，声音、时序与启动仍待真机验收。
+
 **外观转换**：`compilelook.py` 解析 DCP 的 LookTable／色调曲线，或 ST／sRGB 的 CUBE，再用 `calibration/a7c2-2.01.virtual.npz` 拟合成机内色表，不需要 Lightroom。支持哪些输入见 [LUT 格式](lut-formats.md)。
 
-语音空间由 `voicelock.py` 限制原生支持入口和三个普通设置写入口，共四个既有指令窗口、20 字节；另将五个语音菜单各十三个模式状态从 1 改为 2，共 130 字节数据，保留原生非零可见判断，但不满足等于 1 的可选判断。设置与触发值保存为关闭。新一键安装固定先执行 `voice_cleanup`，首次写入限制后要求断电重开，后续请求必须通过实际加载指令核对，才删除十种语言的音频 BIN，保留索引。`resource_files.c` 只接受编译时固定路径和当前读取的大小／哈希，每次操作后将 `/usr` 重新挂为只读，文件完整哈希一致后才发布恢复结果。原生仿真使用合成文件系统，不证明真实掉电后的文件系统行为或启动安全。原厂恢复将快门设为机械、静音模式关闭、恢复原生声音路径，重开核对后才清理私有音效文件并完成；保留对焦提示音设置。
+语音空间由 `voicelock.py` 限制原生支持入口和三个普通设置写入口，共四个既有指令窗口、20 字节；另将五个语音菜单各十三个模式状态从 1 改为 2，共 130 字节数据，保留原生非零可见判断，但不满足等于 1 的可选判断。设置与触发值保存为关闭。新一键安装固定先执行 `voice_cleanup`，首次写入限制后要求断电重开，后续请求必须通过实际加载指令核对，才删除十种语言的音频 BIN，保留索引。`resource_files.c` 只接受编译时固定路径和当前读取的大小／哈希，每次操作后将 `/usr` 重新挂为只读，文件完整哈希一致后才发布恢复结果。原生仿真使用合成文件系统，不证明真实掉电后的文件系统行为或启动安全。原厂恢复将快门设为机械、静音模式关闭、恢复原生声音路径，重开核对后才清理私有音效文件并完成；保留对焦提示音设置。 原厂资源不要求 root 属主，仍须满足普通文件、单硬链接及绑定的大小／哈希。资源和暂存文件使用 AArch64 NOFOLLOW／CLOEXEC，目录同步使用目标 O_DIRECTORY（0x4000），不能误用 O_DIRECT（0x10000）。
 
 原生竖屏候选由 `desktopapp.vertical_native` 先沿用既有逆向撤回旧补偿并要求冷重开。`verticaltool.nativeportrait` 使用当前机身图片与既有竖屏绘图生成独立 `_23` 库，保留原图像 ID，`_32` 横屏原库与 AP 绘制代码保持原生。`resourceworker` 只接受三个固定图形库路径，复制前检查已加载的原生 AP 窗口；原生 worker 在资源修改时还要求运行中竖屏开关为 OFF。`verticalpersist.Stage` 可识别完整或部分本项目文件，用于关闭／恢复；原厂恢复语音前先回收这些文件。需要撤回旧补偿并重开的新一键安装，在程序／LUT 阶段前暂停。当前只通过离线验证，尚未真机验收。
 

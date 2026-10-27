@@ -82,6 +82,23 @@ class PhotoIOTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'allocation conflicts'):
             self.install(bytes(source),{1:self.delta})
 
+    def test_containing_segments_with_wrong_file_to_virtual_mapping_are_rejected(self):
+        # Both containment checks still pass, but the loader would place our
+        # bytes at different addresses than the compiled hooks/table pointers.
+        for header in (0x20124,0x2013c):
+            for field in ('file','virtual'):
+                with self.subTest(header=hex(header),field=field):
+                    source=bytearray(self.source)
+                    offset,size,va=struct.unpack_from('<3I',source,header)
+                    if field=='file':
+                        delta=4 if header==0x20124 else -4
+                        offset+=delta;size-=delta
+                    else:
+                        va-=4;size+=4
+                    struct.pack_into('<3I',source,header,offset,size,va)
+                    with self.assertRaisesRegex(ValueError,'file/virtual mapping'):
+                        self.install(bytes(source),{1:self.delta})
+
     def test_field_payload_must_match_its_declared_integer_basis(self):
         delta=copy.deepcopy(self.delta);delta['matrix_coefficient_delta'][0][1][0]+=1
         with self.assertRaisesRegex(ValueError,'Full photo fields differ'):

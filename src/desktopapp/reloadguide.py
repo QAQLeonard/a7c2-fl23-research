@@ -39,20 +39,20 @@ def sound_notice(action,result):
             text='相机读写已结束。当前声音只供临时试听，尚未永久保存。\n\n'
                  '1. 拔掉 USB，保持相机开机；不要关机、取下电池或更改音频信号设置。\n'
                  '2. 使用电子快门拍一张，检查声音内容、音量、音调／速度，以及拍摄和回放是否正常。\n'
-                 '3. 接回 USB 海量存储，点击“保存为电子快门专属音效”。可以直接保存，无需先恢复原声。\n'
+                 '3. 接回 USB 海量存储，选择应用范围后点击“保存到所选快门”。可以直接保存，无需先恢复原声。\n'
                  '4. 保存写入完成后，再按弹窗完整断电重开，检查是否永久生效。\n\n'
                  '“确认试听正确”只记录试听结果，是可选步骤。\n'
                  '本弹窗的“确定”只关闭说明，不代表已确认试听正确。')
     if action=='sound_confirm' and phase in ('owner_confirmed_audio_cold_reload_required',
             'owner_audio_failed_cold_reload_required','owner_requested_gain_adjustment_cold_reload_required'):
-        return dict(title='试听结果已记录',status='试听记录已保存；可直接保存为电子快门专属音效，无需先断电恢复。',
-                    text='这一步只记录试听结果。\n\n可直接点击“保存为电子快门专属音效”，无需先断电或记录恢复。'
+        return dict(title='试听结果已记录',status='试听记录已保存；可直接保存到所选快门，无需先断电恢复。',
+                    text='这一步只记录试听结果。\n\n可直接点击“保存到所选快门”，无需先断电或记录恢复。'
                     '若不满意，调整片段后重新转换；需要清除临时试听时，再按断电步骤恢复原声。')
     if action!='sound_install':return None
     if phase=='sound_conversion_required':
         return dict(title='保存尚未开始，请先转换片段',status='等待操作：选择声音文件，转换后即可直接保存。',
                     text='尚无可保存的转换片段，本次没有相机写入。\n\n选择音频或视频，设置起点和长度，'
-                    '点击“转换所选片段”；转换成功后直接点击“保存为电子快门专属音效”。试听是可选步骤。')
+                    '点击“转换所选片段”；转换成功后直接点击“保存到所选快门”。试听是可选步骤。')
     return None
 
 

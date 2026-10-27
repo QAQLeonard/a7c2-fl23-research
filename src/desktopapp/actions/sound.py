@@ -6,6 +6,9 @@ from ..paths import ROOT
 
 def run(action,args):
     sys.path.insert(0, str(ROOT / 'src/shutter_sound'))
+    if action=='sound_install' and 'sound_target' in args:
+        from targeted_sound import run as save_targeted
+        return save_targeted(args)
     from sound_cli import main
     command = action.removeprefix('sound_').replace('_', '-')
     argv = [command]

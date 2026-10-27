@@ -76,6 +76,11 @@ def windows(ap):
 
 
 def installed(ap):
+    import targeted_sound
+    if targeted_sound.sparse(ap):
+        edits=targeted_sound.windows(ap)
+        if all(ap[at:at+len(new)]==new for at,old,new in edits):return True
+        raise ValueError('Targeted sound reader contains an incomplete modification')
     edits=expected_windows()
     if all(ap[at:at+len(old)]==old for at,old,new in edits):return False
     if all(ap[at:at+len(new)]==new for at,old,new in edits):return True
@@ -95,13 +100,20 @@ def patch(ap, edits, reverse=False):
 def restore_plan(ap):
     """Restore only known boot-sound windows from CURRENT bytes, no old job."""
     edits=[]
-    for at,old,new in reversed(expected_windows()):
+    for at,old,new in reversed(current_windows(ap)):
         actual=ap[at:at+len(old)]
         if actual not in (old,new):raise ValueError('Current sound-hook bytes conflict at '+hex(at))
         if actual!=old:edits.append((at,actual,old))
     target=patch(ap,edits)
     if patch(target,edits,reverse=True)!=ap:raise ValueError('Sound restore inverse differs')
     return target,edits
+
+
+def current_windows(ap):
+    """Original/current owned windows, including either boot-hook revision."""
+    import targeted_sound
+    if targeted_sound.sparse(ap):return targeted_sound.windows(ap)
+    return expected_windows()
 
 
 def restore_priority(row):

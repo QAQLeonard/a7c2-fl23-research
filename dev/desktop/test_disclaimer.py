@@ -39,6 +39,20 @@ def test_reading_link_does_not_accept_or_check_the_parent(app):
     assert '不撤回' not in text
 
 
+def test_long_notice_stays_readable_in_a_small_window(app):
+    dialog=disclaimer.ConsentDialog()
+    dialog.resize(640,500);dialog.show();app.processEvents()
+    text=dialog.summary.toPlainText()
+    assert text.index('可能变砖')<text.index('禁止一切商用牟利行为')
+    bar=dialog.summary.verticalScrollBar()
+    assert bar.maximum()>0
+    bar.setValue(bar.maximum());app.processEvents()
+    assert bar.value()==bar.maximum()
+    assert dialog.continue_button.isVisible() and not dialog.continue_button.isEnabled()
+    assert not dialog.agreement.isChecked()
+    dialog.close()
+
+
 @pytest.mark.parametrize('exit_action',['reject','close'])
 def test_decline_or_window_close_does_not_enter_the_app(app,exit_action):
     dialog=disclaimer.ConsentDialog()

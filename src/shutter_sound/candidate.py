@@ -185,22 +185,25 @@ def build(ap, cp, out, zig=None, *, restore=False):
 
 
 def parse_probe(raw):
-    if len(raw) != 1256:
+    if len(raw) not in (1256,4456):
         raise ValueError('Incomplete sound preflight report')
     magic, version, index, status, base, audio, reserved = struct.unpack_from('<8sIIqQII', raw)
     if (magic, version, index, status, reserved) != (b'A7SND001', 1, 16, 0, 0):
         raise ValueError('Sound preflight failed: ' + repr((version, index, status)))
     entries = []
+    stride=176 if len(raw)==4456 else 48
     for i in range(25):
-        entry = raw[40 + i * 48:40 + (i + 1) * 48]
+        entry = raw[40 + i * stride:40 + (i + 1) * stride]
         entries.append({'slot': i, 'priority': entry[0], 'kind': entry[1],
                         'first_length': struct.unpack_from('<I', entry, 4)[0],
                         'loop_length': struct.unpack_from('<I', entry, 8)[0],
                         'length': struct.unpack_from('<Q', entry, 16)[0],
+                        'offset': struct.unpack_from('<Q', entry, 24)[0],
                         'address': struct.unpack_from('<Q', entry, 32)[0],
                         'native_handle': struct.unpack_from('<I', entry, 40)[0],
                         'filename_prefix': entry[44:48].split(b'\0', 1)[0].decode('ascii', errors='replace')})
-    image_mode = raw[1240:1256].split(b'\0')[0].decode('ascii').strip()
+        if stride==176:entries[-1]['filename']=entry[44:172].split(b'\0',1)[0].decode('ascii',errors='strict')
+    image_mode = raw[40+25*stride:].split(b'\0')[0].decode('ascii').strip()
     return {'model_index': index, 'audio_signals': audio, 'entries': entries,
             'image_mode': image_mode, 'camera_firmware_or_settings_written': False}
 

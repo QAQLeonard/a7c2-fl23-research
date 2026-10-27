@@ -126,7 +126,7 @@ def current_probe(ap,output,zig=None):
         lines.append('static const u8 '+name+'[]={'+','.join(map(str,ap[at:at+20]))+'};')
     lines+=['#define CHECK_EXTRA_GUARDS 1','struct ExtraGuard {u64 offset;u32 length;const u8 *bytes;};']
     rows=[]
-    for i,(at,old,new) in enumerate(boot_sound.expected_windows()):
+    for i,(at,old,new) in enumerate(boot_sound.current_windows(ap)):
         actual=ap[at:at+len(old)]
         if actual not in (old,new):raise ValueError('Current sound-hook bytes conflict at '+hex(at))
         lines.append('static const u8 guard_'+str(i)+'[]={'+','.join(map(str,actual))+'};')

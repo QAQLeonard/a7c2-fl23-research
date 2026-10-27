@@ -16,7 +16,8 @@ CSV = (b'\n/* START */\n/usr/share/avsystemsound/\n'
 
 
 def execute(ap, data=CSV, *, missing=False, boot_block=False,
-            expected_path=b'/usr/share/avsystemsound/beeplist.txt', csv_limit=0x7800):
+            expected_path=b'/usr/share/avsystemsound/beeplist.txt', csv_limit=0x7800,
+            expected_kinds=(3,)):
     from unicorn import Uc, UC_ARCH_ARM64, UC_MODE_ARM, UC_HOOK_CODE
     from unicorn.arm64_const import (UC_ARM64_REG_X0, UC_ARM64_REG_X1,
         UC_ARM64_REG_X2, UC_ARM64_REG_X3, UC_ARM64_REG_X30,
@@ -122,8 +123,9 @@ def execute(ap, data=CSV, *, missing=False, boot_block=False,
     if cpu.reg_read(UC_ARM64_REG_SP) != initial_sp:
         raise ValueError('Reader did not restore the caller stack pointer')
     after = bytes(cpu.mem_read(ram, len(before)))
-    if after[:352] != before[:352] or after[528:] != before[528:]:
-        raise ValueError('Original reader changed a neighboring descriptor')
+    for i in range(25):
+        if i+1 not in expected_kinds and after[i*176:(i+1)*176]!=before[i*176:(i+1)*176]:
+            raise ValueError('Original reader changed a neighboring descriptor')
     row = after[352:528]
     return {'returned': cpu.reg_read(UC_ARM64_REG_X0),
             'priority': row[0], 'kind': row[1],
@@ -135,6 +137,11 @@ def execute(ap, data=CSV, *, missing=False, boot_block=False,
             'neighbor_descriptors_byte_equal': True,
             'output_changed': after != before,
             'maximum_native_reader_stack_bytes': initial_sp - minimum_sp[0],
+            'descriptors': [dict(kind=after[i*176+1],
+                bytes=struct.unpack_from('<Q',after,i*176+16)[0],
+                offset=struct.unpack_from('<Q',after,i*176+24)[0],
+                filename=after[i*176+44:i*176+172].split(b'\0',1)[0].decode('ascii',errors='replace'))
+                for i in range(3)],
             'external_calls_simulated': sorted(set(hex(n) for n in external_calls)),
             'camera_io': False, 'camera_boot_verified': False}
 
