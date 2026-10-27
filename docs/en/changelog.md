@@ -2,6 +2,10 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Desktop interface redesign — 2026-10-27
+
+- Restyle the desktop GUI with a warm light theme: ivory pages, a cream sidebar that holds the title, navigation and firmware selector, serif page titles in a centered reading column, white rounded cards, buttons sized to their text, and one clay accent for primary actions and checked boxes. A status lamp next to the status line shows idle, running, done, waiting for a power cycle, or stopped. Presentation only: pages, buttons, texts, confirmations, job arguments and phase handling are unchanged, and app startup still never opens USB. Offline GUI tests and `--smoke-test` pass. The redesign has not been checked on a physical Windows or macOS display.
+
 ## Standard license update — 2026-10-25
 
 - Use the unmodified public PolyForm Noncommercial License 1.0.0, replacing the previous MIT/Commons Clause combination and custom preamble. README and startup notice prominently state the commercial-use/profit prohibition, separately from the false-authorization heading. Third-party and previous licenses are retained.
