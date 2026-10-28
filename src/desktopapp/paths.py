@@ -2,8 +2,21 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _replace_retry(temporary, path, attempts=6):
+    # Windows AV/indexers can hold the destination briefly (#44): retry
+    # access-denied instead of losing the final status/journal write.
+    for attempt in range(attempts):
+        try:
+            return temporary.replace(path)
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(.05 * 2 ** attempt)
 
 
 def data_root():
@@ -22,7 +35,7 @@ def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + '.new')
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding='utf-8')
-    temporary.replace(path)
+    _replace_retry(temporary, path)
 
 
 def load_settings():
