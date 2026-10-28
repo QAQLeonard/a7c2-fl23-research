@@ -35,7 +35,7 @@ def run(job,*,factory=None,clock=time.monotonic,min_seconds=MIN_SECONDS,min_roun
                 minimum_mb_per_second=min_rate,camera_firmware_written=False,camera_settings_written=False,
                 native_worker_executed=False,note=NOTE)
     def save():write_json(job/'usb-stability.private.json',report)
-    save();connect_begin=clock();start=None;number=0
+    save();connect_begin=clock();start=None;number=0;reading_path=None
     def elapsed():return 0.0 if start is None else clock()-start
     try:
         with factory() as camera:
@@ -50,6 +50,7 @@ def run(job,*,factory=None,clock=time.monotonic,min_seconds=MIN_SECONDS,min_roun
                       (number,min_rounds,min_seconds),flush=True)
                 reads=[]
                 for path in PATHS:
+                    reading_path=path
                     begin=clock()
                     try:
                         raw=camera.read(path)
@@ -62,9 +63,12 @@ def run(job,*,factory=None,clock=time.monotonic,min_seconds=MIN_SECONDS,min_roun
                         if rate is not None and rate<min_rate:
                             raise ValueError('读取 %s 只有 %.2f MB/s，低于 %.1f MB/s；连接可能经过 USB 1.1、扩展坞或线材质量较差'%
                                              (path,rate,min_rate))
-                    except BaseException:
-                        mark=getattr(camera,'mark_unknown',None)
-                        if mark:mark()
+                    except BaseException as exc:
+                        # A decoded negative reply accounts for this read;
+                        # transport timeouts/disconnects still have unknown outcomes.
+                        if getattr(exc,'jiritsu_status',None) is None:
+                            mark=getattr(camera,'mark_unknown',None)
+                            if mark:mark()
                         raise
                     baseline.setdefault(path,raw)
                     reads.append(dict(path=path,bytes=len(raw),seconds=round(seconds,3),
@@ -87,9 +91,23 @@ def run(job,*,factory=None,clock=time.monotonic,min_seconds=MIN_SECONDS,min_roun
         report.update(phase='INCOMPLETE' if incomplete else 'FAILED',
                       failed_stage='reading' if connected else 'connecting',
                       failed_round=number if connected and not incomplete else None,
+                      failed_path=reading_path,
                       error_type=type(exc).__name__,error=str(exc),camera_io_ended=True,seconds=round(elapsed(),3))
+        status=getattr(exc,'jiritsu_status',None)
+        if status is not None:
+            command=exc.command
+            mode=exc.request_mode
+            report.update(failure_kind='camera-file-command',jiritsu_status=hex(status),
+                          jiritsu_command=command,jiritsu_mode=mode)
+            if command==17 and mode==0 and status==0x10000004:
+                report['failure_kind']='camera-staging-mount'
+                advice='相机端 /tmp/jiritsu 暂存目录挂载准备失败，尚未读取目标文件；需要核查机身端挂载环境，不能据此判定线材故障。'
+            else:
+                advice='相机端文件命令已返回失败；请保留诊断记录，按状态码检查文件访问，不能据此判定线材故障。'
+        else:
+            advice='请换线或直连电脑 USB 接口后重测；'
         save()
         if incomplete:
             raise RuntimeError('USB 稳定性检测未完成：%s。本次没有固件或设置写入。'%str(exc)) from exc
-        raise RuntimeError('USB 稳定性检测未通过（%s）：%s。请换线或直连电脑 USB 接口后重测；本次没有固件或设置写入。'%
-                           ('第 %d 轮'%number if connected else '连接阶段',str(exc))) from exc
+        raise RuntimeError('USB 稳定性检测未通过（%s）：%s。%s本次没有固件或设置写入。'%
+                           ('第 %d 轮'%number if connected else '连接阶段',str(exc),advice)) from exc

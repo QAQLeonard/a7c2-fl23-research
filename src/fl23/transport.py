@@ -11,6 +11,15 @@ from pmca.usb.sony import (SonySenserAuthDevice, SonySenserDevice, SonySenserCam
 from pmca.usb import MscDevice
 
 
+class JiritsuError(RuntimeError):
+    """A complete file-command reply reported a camera-side failure."""
+    def __init__(self,status,command,mode=None):
+        self.jiritsu_status=status
+        self.command=command
+        self.request_mode=mode
+        super().__init__(f'Jiritsu 狀態 {status:#x}')
+
+
 class Bounded(UsbBackend):
     """给每次读写加一个总预算，避免无限等待。"""
 
@@ -157,7 +166,7 @@ class Session:
         if missing and status == 0x10000006:
             return None
         if status:
-            raise RuntimeError(f'Jiritsu 状态 {status:#x}')
+            raise JiritsuError(status,cmd,data[0] if data else None)
         return out[4:]
 
     def select(self, path):

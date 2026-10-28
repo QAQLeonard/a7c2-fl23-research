@@ -2,6 +2,11 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Issue #57: camera file errors in USB testing — 2026-10-29
+
+- Preserve Jiritsu file-command status and command number in a typed error. A mode-0 read returning `0x10000004` indicates staging-mount preparation failure before target-path access; the USB test now reports that stage and file path instead of advising cable replacement. Other decoded file errors are distinguished from transport failures as well.
+- A decoded negative file reply does not mark the read as an unknown transfer; timeouts, malformed replies and disconnections retain the existing unknown-outcome handling. No retry, directory creation or mount repair is added. Original-code emulation verifies the error branch; the reporter's actual mount failure and its underlying errno remain unreproduced on physical hardware.
+
 ## Issue #49: native focus display resizing — 2026-10-29
 
 - Stop treating Sony's recalculation of the three registered AF boxes' six OSD width/height fields (`02cf1492/1494/1496/1498/149a/149c`) as an unrelated look-install write. Account for their original 32-bit, attr-0x60 values separately; retain comparison of their setting arrays, source coordinates, other settings and protected CP data. Explicit target readback takes precedence.

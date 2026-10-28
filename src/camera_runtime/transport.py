@@ -18,6 +18,15 @@ class SenserProtocolError(RuntimeError):
     """The reply cannot be associated with the current request."""
 
 
+class JiritsuError(RuntimeError):
+    """A complete file-command reply reported a camera-side failure."""
+    def __init__(self,status,command,mode=None):
+        self.jiritsu_status=status
+        self.command=command
+        self.request_mode=mode
+        super().__init__(f'Jiritsu 狀態 {status:#x}')
+
+
 class SonySenserDevice(PmcaSenserDevice):
     """Use length-delimited reads, finishing direct CP unit reads explicitly.
 
@@ -424,7 +433,7 @@ class Session:
         if response or len(out)<4:raise RuntimeError('Jiritsu 回應格式錯誤')
         status=struct.unpack_from('<I',out)[0]
         if missing and status==0x10000006:return None
-        if status:raise RuntimeError(f'Jiritsu 狀態 {status:#x}')
+        if status:raise JiritsuError(status,cmd,data[0] if data else None)
         return out[4:]
     def select(self,path):
         if not path.startswith('/tmp/jiritsu/') or '\0' in path or len(path)>510:raise ValueError('路徑不符')
