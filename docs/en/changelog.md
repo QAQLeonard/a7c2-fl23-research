@@ -2,6 +2,11 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Issue #49: native focus display resizing — 2026-10-29
+
+- Stop treating Sony's recalculation of the three registered AF boxes' six OSD width/height fields (`02cf1492/1494/1496/1498/149a/149c`) as an unrelated look-install write. Account for their original 32-bit, attr-0x60 values separately; retain comparison of their setting arrays, source coordinates, other settings and protected CP data. Explicit target readback takes precedence.
+- Reproduced offline with original 2.01 dimension-conversion/property-store instructions and the compiled current look worker: changing display geometry produces the same preservation error even when all 18 look bindings stay unchanged and the worker makes no native setter calls. The unchanged-geometry control passes. This establishes a false-stop mechanism; the reporter's exact triggering geometry and physical acceptance remain unverified. Existing failed transactions are not automatically cleared or replayed.
+
 ## Issue #44 and two-stage USB preparation — 2026-10-28
 
 - Prepare Windows elevation and the driver installer before authentication changes USB identity. Detect service arrival through Windows PnP even before a usable libusb binding exists, install from that observed snapshot, then restart the interface wait budget. Allow up to 120 seconds for late service enumeration and log identity transitions. Authentication errors and observed-but-unopenable service sessions are not automatically re-authenticated.

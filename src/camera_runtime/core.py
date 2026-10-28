@@ -90,6 +90,15 @@ def merge_colors(unit01,unit0d):
         if m<32 and b[0x1e0+m*768:0x1e0+m*768+576]!=unit0d[0x1e0+m*768:0x1e0+m*768+576]:raise ValueError('既有矩陣被改動')
     return bytes(a),bytes(b)
 
+def native_focus_dimension_change(chip,key,a,b):
+    # Native 2.01 attributes 02b7..02bc: registered AF boxes 1..3 OSD H/W.
+    # Sony rescales these display dimensions against its current YUV area.
+    # Their adjacent 13-setting arrays and source coordinates stay compared.
+    return (chip==0 and key in (0x02cf1492,0x02cf1494,0x02cf1496,
+                               0x02cf1498,0x02cf149a,0x02cf149c)
+            and a.attr==b.attr==0x60 and len(a.data)==len(b.data)==4)
+
+
 def runtime_counter(chip,key,a,b):
     if chip or a.attr!=b.attr:return False
     # Field reports: paired session values outside the project's look writes.
@@ -102,7 +111,7 @@ def runtime_counter(chip,key,a,b):
     return False
 
 def verify_preservation(before,after,expected):
-    kept=0;telemetry=[]
+    kept=0;telemetry=[];focus_dimensions=[]
     for chip in [0,1]:
         if set(before[chip])!=set(after[chip]):raise ValueError('設定項目集合改變')
         for key,a in before[chip].items():
@@ -110,11 +119,14 @@ def verify_preservation(before,after,expected):
             if (chip,key) in expected:
                 if b.data!=expected[chip,key] or b.attr!=a.attr:raise ValueError('目標設定讀回不符')
             elif (a.data,a.attr)==(b.data,b.attr):kept+=1
+            elif native_focus_dimension_change(chip,key,a,b):
+                focus_dimensions.append(hex(key))
+                print(f'原厂对焦框显示尺寸变化：chip{chip}/{key:#x} data {a.data.hex()}->{b.data.hex()}',flush=True)
             elif runtime_counter(chip,key,a,b):
                 telemetry.append(hex(key))
                 print(f'会话字段变化：chip{chip}/{key:#x} attr {a.attr}->{b.attr} data {a.data.hex()}->{b.data.hex()}',flush=True)
             else:raise ValueError(f'發現額外設定變動：chip{chip}/{key:#x}，請保存紀錄後檢查')
-    return {'preserved_properties':kept,'runtime_counters':telemetry}
+    return {'preserved_properties':kept,'runtime_counters':telemetry,'native_focus_dimensions':focus_dimensions}
 
 def parse_native(name,raw,mode=None):
     if name=='installer':
