@@ -3,7 +3,7 @@
 Objects are immutable. Deltas reference raw foundation chunks, never other
 deltas, so a snapshot does not depend on earlier slot/job directories.
 """
-import hashlib,json,os,re,uuid,zlib
+import hashlib,json,os,re,time,uuid,zlib
 from pathlib import Path
 from .devicelock import DeviceLock
 
@@ -17,7 +17,13 @@ def write_json(path,value):
     temporary=path.with_name(path.name+'.'+uuid.uuid4().hex+'.new')
     with temporary.open('x',encoding='utf-8',newline='\n') as stream:
         json.dump(value,stream,sort_keys=True,separators=(',',':'));stream.write('\n');stream.flush();os.fsync(stream.fileno())
-    os.replace(temporary,path)
+    for attempt in range(6):
+        try:
+            os.replace(temporary,path)
+            return
+        except PermissionError:
+            if attempt==5:raise
+            time.sleep(.05*2**attempt)
 
 def body_key(identity):
     serial=identity.get('usb_serial_sha256') or identity.get('serial_sha256')

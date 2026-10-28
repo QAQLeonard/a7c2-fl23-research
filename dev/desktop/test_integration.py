@@ -65,6 +65,8 @@ class IntegrationTests(unittest.TestCase):
             yield SimpleNamespace(identity={'model': 'ILCE-7CM2'})
             events.append('end')
         with patch.object(drivers.sys, 'platform', 'win32'), \
+             patch.object(drivers,'is_admin',return_value=True), \
+             patch.object(drivers,'installer',return_value=self.root/'wdi-simple.exe'), \
              patch.object(drivers, 'install', side_effect=lambda args, job, **kw: events.append(args['pid'])), \
              patch.object(drivers, 'scan', return_value={'devices': [{'id': 'USB\\VID_054C&PID_0336'}]}), \
              patch('looktool.devicesession.modules', return_value=(transport, None)), \

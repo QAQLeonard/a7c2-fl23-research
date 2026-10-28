@@ -135,6 +135,7 @@ class SonyBusyFailure(DiagnosticUsbFailure): pass
 # Optional desktop-only driver preparation between the two enumerations.
 # CLI sessions leave it unset; it never retries authentication or firmware I/O.
 SERVICE_DRIVER_SETUP = None
+SERVICE_DRIVER_PRESENT = None
 READY_WAIT=30
 SONY_BUSY_WAIT=10
 POLL_INTERVAL=1
@@ -261,7 +262,7 @@ def service_identity(snapshot,model):
 # never as 0336 (field logs 28 and 30, 12-15 s after the previous exit).
 SERVICE_COOLDOWN=30
 SERVICE_ATTEMPTS=3
-SERVICE_WAIT=20
+SERVICE_WAIT=120
 _service_exit=None  # monotonic time the last service session ended in this process
 
 
@@ -280,17 +281,32 @@ def _sony_pids():
 
 def _wait_for(pid,seconds,seen,prepare=None):
     """Enumerate only; record every Sony identity seen while waiting."""
-    deadline=time.monotonic()+seconds
+    started=time.monotonic()
+    deadline=started+seconds
     prepared=False
+    last=None
     while True:
-        for found in _sony_pids():
+        current=_sony_pids()
+        if current!=last:
+            print('USB 身份：'+(', '.join('054C:'+p.upper() for p in current) or '未出现')+
+                  f'；正在等待 {pid:04X}；阶段经过 {time.monotonic()-started:.1f} 秒',flush=True)
+            last=current
+        for found in current:
             if found not in seen:seen.append(found)
-        if prepare is not None and not prepared and '%04x'%pid in seen:
-            prepare();prepared=True
+        if prepare is not None and not prepared:
+            present=SERVICE_DRIVER_PRESENT() if SERVICE_DRIVER_PRESENT is not None else False
+            if present or (SERVICE_DRIVER_PRESENT is None and '%04x'%pid in current):
+                if '%04x'%pid not in seen:seen.append('%04x'%pid)
+                prepare();prepared=True
+                # Driver installation/UAC must not consume the interface's
+                # re-enumeration budget. Re-open the new device, not a stale handle.
+                deadline=time.monotonic()+seconds
         try:return get_device(pid)
-        except RuntimeError:
-            if time.monotonic()>=deadline:return None
-            time.sleep(.5)
+        except usb.core.USBError as exc:
+            if getattr(exc,'backend_error_code',None)!=-4:raise
+        except RuntimeError:pass
+        if time.monotonic()>=deadline:return None
+        time.sleep(.5)
 
 
 def _rescue_service():

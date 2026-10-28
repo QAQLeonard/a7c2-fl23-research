@@ -1,7 +1,8 @@
 """No USB: busy-only service acquisition and deferred model guards."""
-import types,unittest
+import types,unittest,tempfile
+from pathlib import Path
 from unittest.mock import Mock,patch
-from looktool import usbservice,firmware
+from looktool import usbservice
 from looktool.devicesession import Camera
 
 class ReadinessFailure(RuntimeError):pass
@@ -47,7 +48,9 @@ class ServiceTests(unittest.TestCase):
     def test_unconfirmed_identity_only_allows_pinned_readonly_probe(self):
         camera=Camera();camera.identity_pending=True;camera.programs_pinned=True;camera.service_only=False
         camera.identity={'model':None};camera.link=Mock();blob=b'only-readonly-runtime'
-        camera.core=types.SimpleNamespace(MODEL='ILCE-7CM2',assets=lambda:{'files':{'runtime.so':firmware.sha(blob)}})
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
+        base=Path(temporary.name);(base/'assets').mkdir();(base/'assets/runtime.so').write_bytes(blob)
+        camera.core=types.SimpleNamespace(MODEL='ILCE-7CM2',BASE=base)
         for stage,data in [('lut-program-staged.so',blob),('lut-runtime-staged.so',b'other'),('libJit.so',b'other')]:
             with self.assertRaises(ValueError):camera.temp_write(stage,data)
         with self.assertRaises(ValueError):camera.property_write(0x02cf0001,b'\0',{0x02cf0001})

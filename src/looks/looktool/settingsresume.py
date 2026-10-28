@@ -39,7 +39,8 @@ def eligible(state):
             return False
         seen.add(key);companions.add(key+1);expected[index]=value
         if before[index]!=value:mask|=1<<index
-    return (int(error[1],16) in companions and after==expected
+    session_fields={0x02cf191c,0x02cf191d,0x02cf196f,0x02cf1970}
+    return (int(error[1],16) in companions|session_fields and after==expected
             and result.get('changed_mask')==mask and type(result.get('current')) is int)
 
 

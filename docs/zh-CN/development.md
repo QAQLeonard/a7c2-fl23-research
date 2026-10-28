@@ -115,6 +115,8 @@
 
 如果 `0336` 始终没出现、相机回到了 `0E8A`，会冷却 30 秒后重试，最多 3 次。认证没到达 `0336` 时，之后不会再向相机发送任何命令。
 
+Windows 的 `usb_prepare` 在服务认证前完成提权和安装器准备，PnP 到达可在 libusb 尚无可用绑定时触发驱动处理；安装后接口获得独立的新等待窗口，服务出现最多等待 120 秒。普通 `connect` 沿用已有绑定。JSON 发布只重试本机 PermissionError，不重放设备执行；未发布事务进入经过过滤的诊断包，不能当成未写入证明。Issue #44 四个 AP 会话字段只在 4 字节及属性一致时记为遥测，明确指定的目标写入仍优先严格核对。
+
 **声音**（`src/shutter_sound/`）：`media.py`／`native_codec.py` 在电脑上转换音频；`sound_cli.py` 同时驱动桌面版和 `shutter.py` 的流程；`candidate.py`／`boot_sound.py`／`files_worker.py` 构建固定的原生修改。试听和确认记录是可选的，不影响保存。
 
 桌面统一保存入口传递 `sound_target=mechanical/electronic/both` 到 `targeted_sound.py`，独立开关保留另一侧状态。按 kind 选行的读取器限制在既有指令范围及 kind1..3；机械使用 kind1 加静音 kind2，电子保持 kind3。合并私有 CSV 时保留另一侧的记录；`sound_probe.c` 返回已加载的完整文件名，避免覆盖仍在使用的文件。无空闲位置时停止并提示先重开。旧偏移调用迁移先撤下旧调用，再发布多行配置；完整文件及读回在新调用前完成。原厂逆向清单含新增窗口。这是离线验证候选，声音、时序与启动仍待真机验收。

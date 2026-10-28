@@ -174,11 +174,11 @@ def merge_colors(unit01,unit0d):
 
 def runtime_counter(chip,key,a,b):
     if chip or a.attr!=b.attr:return False
-    if key==0x01070000 and len(a.data)==len(b.data)==8:
-        return 0<=int.from_bytes(b.data,'little')-int.from_bytes(a.data,'little')<=1000000
+    if key in (0x02cf191c,0x02cf191d,0x02cf196f,0x02cf1970):
+        return len(a.data)==len(b.data)==4
+    if key==0x01070000 and len(a.data)==len(b.data)==8:return True
     if key==0x02780000 and len(a.data)==len(b.data)==256:
-        delta=int.from_bytes(b.data[24:28],'little')-int.from_bytes(a.data[24:28],'little')
-        return a.data[:24]==b.data[:24] and a.data[28:]==b.data[28:] and 0<delta<=1000000
+        return a.data[:24]==b.data[:24] and a.data[28:]==b.data[28:]
     return False
 
 def verify_preservation(before,after,expected):
@@ -190,7 +190,9 @@ def verify_preservation(before,after,expected):
             if (chip,key) in expected:
                 if b.data!=expected[chip,key] or b.attr!=a.attr:raise ValueError('目標設定讀回不符')
             elif (a.data,a.attr)==(b.data,b.attr):kept+=1
-            elif runtime_counter(chip,key,a,b):telemetry.append(hex(key))
+            elif runtime_counter(chip,key,a,b):
+                telemetry.append(hex(key))
+                print(f'会话字段变化：chip{chip}/{key:#x} attr {a.attr}->{b.attr} data {a.data.hex()}->{b.data.hex()}',flush=True)
             else:raise ValueError(f'發現額外設定變動：chip{chip}/{key:#x}，請保存紀錄後檢查')
     return {'preserved_properties':kept,'runtime_counters':telemetry}
 

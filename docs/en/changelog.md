@@ -2,6 +2,14 @@
 
 [Home](../../README.md) · [简体中文](../zh-CN/changelog.md)
 
+## Issue #44 and two-stage USB preparation — 2026-10-28
+
+- Prepare Windows elevation and the driver installer before authentication changes USB identity. Detect service arrival through Windows PnP even before a usable libusb binding exists, install from that observed snapshot, then restart the interface wait budget. Allow up to 120 seconds for late service enumeration and log identity transitions. Authentication errors and observed-but-unopenable service sessions are not automatically re-authenticated.
+- Account separately for the four reported 32-bit, unchanged-attribute AP session fields `02cf191c/191d/196f/1970`, logging their before/after bytes. Selected writes still require exact readback; neighboring keys and altered layouts are not exempted. This is a narrow compatibility rule based on the field report, not a claim to have established every field's native meaning.
+- Remove arbitrary delta/direction limits from already-known runtime counters: compare their declared byte ranges and attributes, retaining strict comparison of the surrounding bytes. Completed settings continuations can recognize the four reported fields while still requiring complete program/name readback, decoded settings results and cleanup evidence.
+- Retry only transient host PermissionError during atomic JSON publication, reusing the same complete temporary file. Persistent errors retain old and unpublished records; diagnostic exports include filtered unpublished journals. No camera command is retried and no failed task is cleared based only on `native_result_verified`.
+- Remove the unrelated asset-manifest prerequisite when staging the initial read-only model probe: compare only the actual probe bytes. Reuse one worker digest for provenance instead of computing it twice. Desktop program planning continues to use edited-byte checks rather than full-firmware hash whitelists. Validation is offline; real driver re-enumeration and the reported body remain pending acceptance.
+
 ## Dev integration — 2026-10-28
 
 - Integrate PR #56 with the existing pending-upload route: compare an exactly validated underlying helper, update only the guard/skip differences, and preserve every installed acknowledgment instruction. Both current and earlier pending layouts migrate, including cameras with native-photo stages; partial/unknown helpers remain rejected. Add migration, idempotence and preservation regressions.

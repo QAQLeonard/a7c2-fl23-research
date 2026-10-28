@@ -113,8 +113,10 @@ def test_only_the_completed_72_failure_can_continue(fault):
 
 @pytest.mark.parametrize('changed',['none','program','name'])
 @pytest.mark.parametrize('cleanup_pending',[False,True])
-def test_settings_continuation_cannot_invoke_program_or_name_writers(tmp_path,changed,cleanup_pending):
+@pytest.mark.parametrize('rejected_key',[0x02cf1288,0x02cf191c,0x02cf191d,0x02cf196f,0x02cf1970])
+def test_settings_continuation_cannot_invoke_program_or_name_writers(tmp_path,changed,cleanup_pending,rejected_key):
     old=tmp_path/'old';old.mkdir();state=completed_array_failure()
+    state['error']='發現額外設定變動：chip0/'+hex(rejected_key)
     if cleanup_pending:
         state.update(names_cleanup_pending=True,forward_name_build={'marker':'previous-name-transaction'})
         (old/'names').mkdir();(old/'names/names.private.h').write_bytes(b'private-native-header')

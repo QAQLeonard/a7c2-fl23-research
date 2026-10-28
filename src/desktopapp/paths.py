@@ -2,6 +2,8 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
+import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,9 +22,17 @@ def data_root():
 def write_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + '.new')
-    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding='utf-8')
-    temporary.replace(path)
+    temporary = path.with_name(path.name+'.'+uuid.uuid4().hex+'.new')
+    with temporary.open('x',encoding='utf-8',newline='\n') as stream:
+        json.dump(value,stream,ensure_ascii=False,indent=2)
+        stream.write('\n');stream.flush();os.fsync(stream.fileno())
+    for attempt in range(6):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt==5:raise
+            time.sleep(.05*2**attempt)
 
 
 def load_settings():

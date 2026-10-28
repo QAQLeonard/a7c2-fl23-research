@@ -111,8 +111,8 @@ class Camera:
         if self.service_only:raise ValueError('Service-only recovery is read-only; reconnect normal USB identity before new execution')
         if not self.programs_pinned:raise ValueError('Verify complete source programs before native execution')
         if self.identity_pending:
-            manifest=self.core.assets()
-            if name not in ['lut-runtime-staged.so','libJit.so'] or firmware.sha(data)!=manifest['files']['runtime.so']:
+            expected=(self.core.BASE/'assets/runtime.so').read_bytes()
+            if name not in ['lut-runtime-staged.so','libJit.so'] or data!=expected:
                 raise ValueError('Only the pinned read-only model/runtime probe is allowed before model confirmation')
         if name not in TEMP_NAMES or not data or len(data)>(1048576 if name=='resource.chunk' else 65536):raise ValueError('Invalid job temporary data')
         self.link.select('/tmp/jiritsu/'+name);self.link.jiritsu(16,b'\0\xff\0'+data)
@@ -163,13 +163,14 @@ def invoke(camera,blob,*,stage,request,result,contents,mode,decode,record,save_r
         if camera.temp_read(name,True) is not None:raise ValueError('Existing temporary state needs recovery: '+name)
     if camera.read('/etc/ld.so.preload',True):raise ValueError('Existing preload configuration requires inspection')
     expected={stage:blob,'libJit.so':blob}
-    record('native_stage_intent',stage=stage,result=result,mode=mode,worker_sha256=firmware.sha(blob),request=request,contents_hex=contents.hex() if contents else None)
+    worker_sha=firmware.sha(blob)
+    record('native_stage_intent',stage=stage,result=result,mode=mode,worker_sha256=worker_sha,request=request,contents_hex=contents.hex() if contents else None)
     camera.temp_write(stage,blob)
     if camera.temp_read(stage)!=blob:raise ValueError('Worker staging readback differs')
     if request is not None:
         expected[request]=contents;camera.temp_write(request,contents)
         if camera.temp_read(request)!=contents:raise ValueError('Request staging readback differs')
-    record('native_intent',stage=stage,result=result,mode=mode,worker_sha256=firmware.sha(blob))
+    record('native_intent',stage=stage,result=result,mode=mode,worker_sha256=worker_sha)
     try:
         camera.temp_write('libJit.so',blob)
         raw=camera.temp_read(result);save_raw(raw)

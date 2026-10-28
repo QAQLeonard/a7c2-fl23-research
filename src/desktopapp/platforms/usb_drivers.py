@@ -22,6 +22,10 @@ PIDS = {'0e8a': 'Sony A7C II - Mass Storage', '0336': 'Sony A7C II - Service'}
 WDI_URL = 'https://github.com/Timocop/libwdi-wdi-releases/releases/download/v1.0/x64.zip'
 
 
+def is_admin():
+    return bool(ctypes.windll.shell32.IsUserAnAdmin())
+
+
 def scan():
     report = {'platform': sys.platform, 'architecture': platform.machine(),
               'camera_io': False, 'devices': [], 'errors': []}
@@ -207,7 +211,7 @@ def install(arguments, job, *, report=None):
         result = {'driver_changed': False, 'pid': pid, 'note': '已安装可用驱动，本次沿用，未重复安装', 'report': before}
         write_json(job / ('driver-result-' + pid + '.private.json'), result)
         return result
-    if not ctypes.windll.shell32.IsUserAnAdmin():
+    if not is_admin():
         if arguments.get('elevated'):
             raise PermissionError('Windows administrator permission was not granted')
         return elevate_request(arguments, job)
@@ -231,29 +235,31 @@ def install(arguments, job, *, report=None):
     return result
 
 
-def prepare(job):
+def prepare(job,*,elevated=False):
     """Explicit two-stage setup; install only a currently present camera PID."""
     from looktool.devicesession import Camera, modules
     transport, _ = modules()
     results = []
     if sys.platform == 'win32':
+        # Request elevation before authentication changes the camera's PID.
+        if not is_admin():
+            if elevated:raise PermissionError('Windows administrator permission was not granted')
+            return elevate_request({},job,action='usb_prepare')
+        installer()  # Prepare the executable/download before the short PID window.
         results.append(install({'pid': '0e8a'}, job))
-
+        observed={}
+        def service_present():
+            from .windows_pnp import devices
+            rows=devices()
+            observed['report']=dict(platform='win32',camera_io=False,devices=rows,errors=[])
+            return any('PID_0336' in d['id'].upper() for d in rows)
         def service_driver():
-            print('正在等待服务身份 054C:0336；出现后先检测驱动，已有可用绑定则跳过安装。', flush=True)
-            deadline = time.monotonic() + 20
-            while True:
-                report = scan()
-                if any('PID_0336' in d['id'].upper() for d in report['devices']):
-                    break
-                if time.monotonic() >= deadline:
-                    write_json(job / 'service-driver-enumeration.private.json', report)
-                    raise RuntimeError('Sony service PID 0336 did not appear. Preserve this log and reconnect before another setup attempt.')
-                time.sleep(.5)
+            report=observed.get('report') or scan()
             print('服务身份已出现，检测现有驱动。', flush=True)
             results.append(install({'pid': '0336'}, job, report=report))
-
+            print('驱动准备已完成，重新等待 0336 接口连接。',flush=True)
         transport.SERVICE_DRIVER_SETUP = service_driver
+        transport.SERVICE_DRIVER_PRESENT = service_present
     try:
         print('正在建立相机服务连接（此步骤不写固件）；两种 USB 身份分别检查。', flush=True)
         with Camera() as camera:
@@ -262,6 +268,7 @@ def prepare(job):
                     'camera_firmware_written': False, 'driver_results': results}
     finally:
         transport.SERVICE_DRIVER_SETUP = None
+        transport.SERVICE_DRIVER_PRESENT = None
 
 
 def driver_inventory():

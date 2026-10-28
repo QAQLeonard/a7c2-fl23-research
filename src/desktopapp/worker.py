@@ -178,7 +178,7 @@ def run(action, args, job):
         if action == 'driver_uninstall':
             return drivers.uninstall(args, job)
         if action == 'usb_prepare':
-            return drivers.prepare(job)
+            return drivers.prepare(job,elevated=True) if args.get('elevated') else drivers.prepare(job)
         return drivers.unmount_camera_volume(args['volume'])
     if action == 'connect':
         from looktool.devicesession import Camera
