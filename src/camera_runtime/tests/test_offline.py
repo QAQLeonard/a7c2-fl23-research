@@ -66,6 +66,32 @@ class OfflineTests(unittest.TestCase):
         self.assertEqual(core.verify_preservation(before,after,{(0,1):b'new'})['preserved_properties'],1)
         after[0][2]=P(b'changed',96,None)
         with self.assertRaises(ValueError):core.verify_preservation(before,after,{(0,1):b'new'})
+    def test_session_stamps_above_managed_keys_are_telemetry(self):
+        P=namedtuple('Property','data attr resetData')
+        before=[{0x02cf1289:P(b'\0\0\0\0',0,None),0x02cf191c:P(b'\0\0\0\0',0,None),
+                 0x02cf191d:P(b'\0\0\0\0',0,None)},{}]
+        after=copy.deepcopy(before)
+        after[0][0x02cf191c]=P(struct.pack('<I',0x1a1),0,None)
+        after[0][0x02cf191d]=P(struct.pack('<I',0x0088a8bd),0,None)
+        result=core.verify_preservation(before,after,{})
+        self.assertEqual(result['session_stamps'],['0x2cf191c:00000000->a1010000','0x2cf191d:00000000->bda88800'])
+        self.assertEqual(result['preserved_properties'],1)
+        after[0][0x02cf1289]=P(b'\x01\0\0\0',0,None)
+        with self.assertRaises(ValueError):core.verify_preservation(before,after,{})
+        nonzero=[{0x02cf191c:P(b'\x01\0\0\0',0,None)},{}]
+        with self.assertRaises(ValueError):core.verify_preservation(nonzero,[{0x02cf191c:P(b'\x02\0\0\0',0,None)},{}],{})
+    def test_save_json_retries_a_locked_destination(self):
+        import os
+        original=os.replace;calls=[]
+        def flaky(source,target):
+            calls.append(target)
+            if len(calls)<2:raise PermissionError(5,'Access is denied')
+            return original(source,target)
+        with tempfile.TemporaryDirectory(dir=core.BASE) as folder:
+            target=Path(folder)/'state.json'
+            with patch('os.replace',flaky),patch('time.sleep'):
+                core.save_json(target,{'ok':True})
+            self.assertEqual(json.loads(target.read_text(encoding='utf-8'))['ok'],True)
     def test_preexisting_temp_is_not_overwritten(self):
         class S:
             def read(self,path,missing=False):return b'foreign' if path.endswith('a7c2.install.result') else None

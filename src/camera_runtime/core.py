@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import struct
 import sys
+import time
 
 BASE=Path(__file__).resolve().parent
 sys.path.insert(0,str(BASE/'vendor'))
@@ -22,6 +23,15 @@ COLOUR_SLOTS=[(55,23),(56,25)]
 NATIVE_PATHS={'libJit.so','a7c2.install.request','a7c2.install.result','a7c2.probe.result',
               'a7c2.wbi.request','a7c2.wbi.result','a7c2.runtime.result','a7c2-preview-staged.so'}
 
+def replace_retry(source,target,attempts=6):
+    # Windows AV/indexers can hold the destination briefly (#44): retry
+    # access-denied instead of losing the final journal entry.
+    for attempt in range(attempts):
+        try:return __import__('os').replace(source,target)
+        except PermissionError:
+            if attempt==attempts-1:raise
+            time.sleep(.05*2**attempt)
+
 def sha(data):return hashlib.sha256(data).hexdigest()
 def read_json(path):return json.loads(Path(path).read_text(encoding='utf-8'))
 def save_json(path,data):
@@ -30,7 +40,7 @@ def save_json(path,data):
     with temp.open('w',encoding='utf-8') as f:
         json.dump(data,f,ensure_ascii=False,indent=2);f.flush()
         __import__('os').fsync(f.fileno())
-    temp.replace(path)
+    replace_retry(temp,path)
 
 def assets():
     manifest=read_json(BASE/'assets/manifest.json')
@@ -99,8 +109,19 @@ def runtime_counter(chip,key,a,b):
         return a.data[:24]==b.data[:24] and a.data[28:]==b.data[28:] and 0<delta<=1000000
     return False
 
+MANAGED_AP_KEYS_END=0x02cf1289
+
+def session_stamp(chip,key,a,b):
+    # 2.01 bodies stamp session bookkeeping into four-byte AP fields above the
+    # managed look keys while this tool writes nothing: 0x2cf1492 and the
+    # 0x2cf19xx page flip from zero, same attr, in same-value key pairs, even
+    # on no-op sessions (field reports #44/#49). Telemetry, not a write gate.
+    return (not chip and key>MANAGED_AP_KEYS_END and a.attr==b.attr
+            and len(a.data)==len(b.data)==4
+            and not any(a.data) and any(b.data))
+
 def verify_preservation(before,after,expected):
-    kept=0;telemetry=[]
+    kept=0;telemetry=[];stamps=[]
     for chip in [0,1]:
         if set(before[chip])!=set(after[chip]):raise ValueError('設定項目集合改變')
         for key,a in before[chip].items():
@@ -109,8 +130,9 @@ def verify_preservation(before,after,expected):
                 if b.data!=expected[chip,key] or b.attr!=a.attr:raise ValueError('目標設定讀回不符')
             elif (a.data,a.attr)==(b.data,b.attr):kept+=1
             elif runtime_counter(chip,key,a,b):telemetry.append(hex(key))
+            elif session_stamp(chip,key,a,b):stamps.append('%s:%s->%s'%(hex(key),a.data.hex(),b.data.hex()))
             else:raise ValueError(f'發現額外設定變動：chip{chip}/{key:#x}，請保存紀錄後檢查')
-    return {'preserved_properties':kept,'runtime_counters':telemetry}
+    return {'preserved_properties':kept,'runtime_counters':telemetry,'session_stamps':stamps}
 
 def parse_native(name,raw,mode=None):
     if name=='installer':

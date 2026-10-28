@@ -120,7 +120,12 @@ class CompletionTests(unittest.TestCase):
         self.state['previous_errors'] = [dict(error='historic EBUSY')]
         self.state['private_evidence'] = str(self.setup / 'failed')
         job = jobs.new_job('setup_all', {})
-        with patch.object(worker, 'run', return_value=self.state):
+        # On macOS a camera action would otherwise open a real Terminal sudo
+        # prompt (worker.execute_request routes through macos_authorization);
+        # this test only exercises the summary logging path.
+        from desktopapp.platforms import macos_authorization
+        with patch.object(worker, 'run', return_value=self.state), \
+                patch.object(macos_authorization, 'required', return_value=False):
             self.assertEqual(worker.execute_request(job / 'request.private.json'), 0)
         log = (job / 'worker.log').read_text(encoding='utf-8')
         self.assertNotIn('historic EBUSY', log)
